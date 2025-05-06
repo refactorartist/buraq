@@ -1,24 +1,22 @@
-use dotenvy; 
-
-
-
-pub struct DatabaseConfig {
-    pub uri: String
-}
+use dotenvy;
+use mongodb;
+use std::sync::Arc;
 
 pub struct AppConfig {
-    pub database: DatabaseConfig
+    pub database: Arc<mongodb::Client>,
 }
 
 impl AppConfig {
-    pub fn from_env() -> Result<Self, anyhow::Error> {
+    pub async fn from_env() -> Result<Self, anyhow::Error> {
         dotenvy::dotenv().ok();
 
         let database_uri = dotenvy::var("DATABASE_URI")?;
-        Ok(
-            Self { 
-                database: DatabaseConfig { uri: database_uri } 
-            }
-        )
+        let client = mongodb::Client::with_uri_str(&database_uri)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to create MongoDB client: {}", e))?;
+
+        Ok(Self {
+            database: Arc::new(client),
+        })
     }
 }
