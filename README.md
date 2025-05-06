@@ -34,7 +34,7 @@ cp .env.example .env
 
 The following scripts are available through Devbox:
 
-- `devbox run test` - Run the test suite
+- `devbox run test` - Run the test suite (includes Docker services)
 - `devbox run start` - Start the application (includes Docker services)
 - `devbox run shutdown` - Shutdown Docker services
 
