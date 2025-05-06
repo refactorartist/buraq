@@ -11,19 +11,18 @@ async fn main() -> Result<(), anyhow::Error> {
     env_logger::init();  
 
     let app_config = AppConfig::from_env().await?; 
+    let host = app_config.application.host.clone();
+    let port = app_config.application.port;
+    let app_data = web::Data::new(app_config);
 
-    let app_data = web::Data::new(
-        app_config 
-    );
-
-    println!("Starting the server on 127.0.0.1:8080");
+    println!("Starting the server on {}:{}", &host, &port);
 
     let server = HttpServer::new(move || {
         App::new()
             .app_data(app_data.clone())
             .route("/", web::get().to(|| async { "Hello, World!" }))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind((host, port))?
     .shutdown_timeout(30) // 30 seconds graceful shutdown timeout
     .workers(4) // Set number of workers
     .keep_alive(Duration::from_secs(75)) // Keep-alive timeout
