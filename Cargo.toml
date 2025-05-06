@@ -1,0 +1,21 @@
+[package]
+name = "buraq"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = { version = "4", features = ["rustls"] }
+anyhow = "1"
+dotenvy = { version = "0", features = ["clap"] }
+env_logger = "0"
+envy = "0.4.2"
+log = "0"
+mongodb = { version = "3", features = ["sync"] }
+rstest = "0.25.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1.45.0", features = ["full", "signal"] }
+
+[dev-dependencies]
+temp-env = "0.2.0"

@@ -1,0 +1,24 @@
+{
+  "$schema":  "https://raw.githubusercontent.com/jetify-com/devbox/0.14.2/.schema/devbox.schema.json",
+  "packages": ["rustup@latest"],
+  "shell": {
+    "init_hook": [
+      "echo 'Welcome to devbox!' > /dev/null"
+    ],
+    "scripts": {
+      "test": [
+        "docker compose up -d",
+        "cargo test",
+        "devbox run shutdown"
+      ],
+      "start": [
+        "docker compose up -d",
+        "cargo run",
+        "devbox run shutdown"
+      ],
+      "shutdown": [
+        "docker compose down"
+      ]
+    }
+  }
+}
