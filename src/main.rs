@@ -1,5 +1,6 @@
 use actix_web::{web, App, HttpServer};
-use buraq::config::AppConfig; 
+use buraq::config::{AppConfig, AppData}; 
+use buraq::utils::database::create_database_client;
 use tokio::signal;
 use std::time::Duration;
 
@@ -8,10 +9,14 @@ async fn main() -> Result<(), anyhow::Error> {
     dotenvy::dotenv()?;
     env_logger::init();  
 
-    let app_config = AppConfig::from_env().await?; 
+    let app_config = AppConfig::from_env(Some(true))?; 
     let host = app_config.application.host.clone();
-    let port = app_config.application.port;
-    let app_data = web::Data::new(app_config);
+    let port = app_config.application.port.clone();
+    
+    let app_data = web::Data::new(AppData {
+        config: app_config.clone(),
+        database: create_database_client(&app_config.application.database_uri).await?,
+    });
 
     println!("Starting the server on {}:{}", &host, &port);
 
