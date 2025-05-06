@@ -4,7 +4,6 @@ globs:
 alwaysApply: true
 ---
 You are an expert in Rust, async programming, and concurrent systems.
-
 Key Principles
 - Write clear, concise, and idiomatic Rust code with accurate examples.
 - Use async programming paradigms effectively, leveraging `tokio` for concurrency.
@@ -13,191 +12,70 @@ Key Principles
 - Adhere to Rust's naming conventions: snake_case for variables and functions, PascalCase for types and structs.
 - Avoid code duplication; use functions and modules to encapsulate reusable logic.
 - Write code with safety, concurrency, and performance in mind, embracing Rust's ownership and type system.
-
 Async Web Development
 - Use `hyper` as the primary HTTP server and client library.
 - Implement request handlers with clear separation of concerns.
 - Use middleware patterns for cross-cutting concerns like logging, authentication.
 - Leverage `tower` middleware ecosystem for composable request processing.
 - Implement robust error handling with custom error types.
-
 Database Interactions
 - Use `mongodb` for database operations with async support.
 - Implement repository pattern for database access.
 - Use connection pooling with `mongodb` client.
 - Implement efficient query strategies with minimal blocking.
 - Use `serde` for document serialization/deserialization.
-
 Async Programming
 - Use `tokio` as the async runtime for handling asynchronous tasks and I/O.
 - Implement async functions using `async fn` syntax.
 - Leverage `tokio::spawn` for task spawning and concurrency.
 - Use `tokio::select!` for managing multiple async tasks and cancellations.
 - Favor structured concurrency: prefer scoped tasks and clean cancellation paths.
-
 Channels and Concurrency
 - Use Rust's `tokio::sync::mpsc` for asynchronous, multi-producer, single-consumer channels.
 - Use `tokio::sync::broadcast` for broadcasting messages to multiple consumers.
 - Implement `tokio::sync::oneshot` for one-time communication between tasks.
 - Prefer bounded channels for backpressure; handle capacity limits gracefully.
 - Use `tokio::sync::Mutex` and `tokio::sync::RwLock` for shared state across tasks, avoiding deadlocks.
-
 Error Handling and Safety
 - Create a comprehensive application error type using `thiserror` or `anyhow`.
 - Use `Result` for all fallible operations.
 - Implement detailed error responses for HTTP endpoints.
 - Use the `?` operator for concise error propagation.
 - Handle errors with context and provide meaningful error messages.
-
 HTTP and Web Specifics
 - Use `hyper` for low-level HTTP handling.
 - Implement robust request parsing and validation.
 - Use `serde` for request/response JSON serialization.
 - Implement proper content negotiation and error responses.
 - Use middleware for common web concerns (logging, CORS, authentication).
-
 Testing
-- Use `rstest` as the primary testing framework for structured and parameterized tests.
-- Organize tests in a dedicated `tests` folder with clear module structure.
-- Use `tokio::test` alongside `rstest` for async test scenarios.
-- Implement fixtures with `rstest` for test setup and teardown.
+- Write comprehensive unit and integration tests.
+- Use `tokio::test` for async test scenarios.
 - Mock external dependencies like MongoDB.
 - Implement thorough error case testing.
 - Use `httptest` or similar for HTTP endpoint testing.
-
-Testing Structure and Patterns
-1. Test Organization:
-   ```rust
-   #[cfg(test)]
-   mod tests {
-       use rstest::*;
-       use super::*;
-
-       #[fixture]
-       fn test_data() -> TestStruct {
-           // Setup test data
-       }
-       #[rstest]
-       #[case(input1, expected1)]
-       #[case(input2, expected2)]
-       fn test_function(#[case] input: Type, #[case] expected: Type) {
-           // Test implementation
-       }
-   }
-2. Async Testing:
-#[cfg(test)]
-mod tests {
-    use rstest::*;
-    use super::*;
-
-    #[fixture]
-    async fn db_fixture() -> mongodb::Database {
-        // Setup test database
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_async_function(#[future] db: mongodb::Database) {
-        // Async test implementation
-    }
-}
-
-3. Common Fixtures:
-- Database connections
-- Test configurations
-- Mock services
-- Test data builders
-
-Testing Best Practices
-
-- Use descriptive test names following test_<scenario>_<expected_result> pattern
-- Implement shared fixtures in tests/common/mod.rs
-- Use parameterized tests for comprehensive test coverage
-- Implement test utilities and helper functions
-- Use snapshot testing for complex data structures
-
-Test Categories
-
-Unit Tests:
-- Place alongside source code
-- Focus on individual function behavior
-- Use rstest fixtures for setup
-
-Integration Tests:
-- Place in tests/ directory
-- Test multiple components together
-- Use shared fixtures
-
-API Tests:
-- Use httptest with rstest
-- Test HTTP endpoints
-- Validate request/response cycles
-
-Property Tests:
-- Combine rstest with property testing
-- Test invariants and properties
-- Generate test cases automatically
-
-Mocking Strategy
-
-- Use trait-based mocking
-- Implement mock structs with rstest fixtures
-- Use async mocks for async functions
-- Provide deterministic test environments
-
-Error Testing
-
-- Test error conditions systematically
-- Use parameterized tests for error cases
-- Validate error messages and types
-- Test error propagation
-
-Performance Testing
-
-- Implement benchmarks where needed
-- Use criterion with rstest
-- Test concurrent operations
-- Measure resource usage
-
-Test Documentation
-
-- Document test fixtures
-- Explain test scenarios
-- Document test data generation
-- Maintain test suite documentation
-
 Performance Optimization
-
 - Minimize async overhead; use sync code where possible.
 - Implement connection pooling for MongoDB.
-- Use efficient serialization with serde.
+- Use efficient serialization with `serde`.
 - Optimize database queries and indexing.
 - Implement caching strategies where appropriate.
-
 Key Conventions
-
-- Modular application structure with clear separation of concerns.
-- Use environment-based configuration (e.g., config crate).
-- Comprehensive logging with tracing or log crates.
-- Implement health check and metrics endpoints.
-
+1. Modular application structure with clear separation of concerns.
+2. Use environment-based configuration (e.g., `config` crate).
+3. Comprehensive logging with `tracing` or `log` crates.
+4. Implement health check and metrics endpoints.
 Ecosystem Recommendations
-
-- hyper for HTTP server/client
-- mongodb for database interactions
-- serde for serialization
-- tower for middleware
-- tracing for logging
-- config for configuration management
-- rstest for testing framework
-
+- `hyper` for HTTP server/client
+- `mongodb` for database interactions
+- `serde` for serialization
+- `tower` for middleware
+- `tracing` for logging
+- `config` for configuration management
 Security Considerations
-
 - Implement proper input validation
 - Use secure defaults for MongoDB connections
 - Implement proper authentication and authorization
 - Protect against common web vulnerabilities
 - Use HTTPS and secure headers
-- Refer to Hyper, MongoDB, and Tokio documentation for advanced patterns and best practices.
-
-
+Refer to Hyper, MongoDB, and Tokio documentation for advanced patterns and best practices.
