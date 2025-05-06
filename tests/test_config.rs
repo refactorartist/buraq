@@ -1,5 +1,4 @@
 use buraq::config::AppConfig;
-use temp_env;
 
 #[test]
 fn test_app_config_from_env() {

@@ -29,7 +29,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // Create application configuration from environment variables
     let app_config = AppConfig::from_env(Some(true))?; 
     let host = app_config.application.host.clone();
-    let port = app_config.application.port.clone();
+    let port = app_config.application.port;
     
     // Create application data including the MongoDB client
     let app_data = web::Data::new(AppData {
