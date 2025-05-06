@@ -29,7 +29,7 @@ impl AppConfig {
         Ok(Self {
             database: Arc::new(client),
             application: ApplicationConfig {
-                host: host,
+                host,
                 port: port.parse()?,
             },
         })

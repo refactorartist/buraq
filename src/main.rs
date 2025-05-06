@@ -1,5 +1,3 @@
-use env_logger;
-use anyhow;
 use actix_web::{web, App, HttpServer};
 use buraq::config::AppConfig; 
 use tokio::signal;
