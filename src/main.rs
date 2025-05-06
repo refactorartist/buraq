@@ -10,7 +10,7 @@ async fn main() -> Result<(), anyhow::Error> {
     dotenvy::dotenv()?;
     env_logger::init();  
 
-    let app_config = AppConfig::from_env()?; 
+    let app_config = AppConfig::from_env().await?; 
 
     let _app_data = web::Data::new(
         app_config 
