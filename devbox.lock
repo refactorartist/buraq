@@ -5,6 +5,54 @@
       "last_modified": "2025-04-13T09:22:33Z",
       "resolved": "github:NixOS/nixpkgs/18dd725c29603f582cf1900e0d25f9f1063dbf11?lastModified=1744536153&narHash=sha256-awS2zRgF4uTwrOKwwiJcByDzDOdo3Q1rPZbiHQg%2FN38%3D"
     },
+    "mermaid-cli@latest": {
+      "last_modified": "2025-04-03T14:08:01Z",
+      "resolved": "github:NixOS/nixpkgs/2bfc080955153be0be56724be6fa5477b4eefabb#mermaid-cli",
+      "source": "devbox-search",
+      "version": "11.4.2",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/vypsiy9fmljxsrlcn9xbf4f57hdlkkrn-mermaid-cli-11.4.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/vypsiy9fmljxsrlcn9xbf4f57hdlkkrn-mermaid-cli-11.4.2"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ff3n2ppikld618c5d1xdf623scr8g56y-mermaid-cli-11.4.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ff3n2ppikld618c5d1xdf623scr8g56y-mermaid-cli-11.4.2"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/3pi6dza1wh5xfy3ply9fw9n9fi8amfpp-mermaid-cli-11.4.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/3pi6dza1wh5xfy3ply9fw9n9fi8amfpp-mermaid-cli-11.4.2"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/v4awxs3d8a98gm6adn97j2sc69lyfv7l-mermaid-cli-11.4.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/v4awxs3d8a98gm6adn97j2sc69lyfv7l-mermaid-cli-11.4.2"
+        }
+      }
+    },
     "rustup@latest": {
       "last_modified": "2025-03-11T17:52:14Z",
       "plugin_version": "0.0.1",
