@@ -1,0 +1,65 @@
+erDiagram
+    algorithm {
+        string name PK "Primary Key"
+        string description "Algorithm description"
+    }
+
+    api_key {
+        UUID api_key_id PK "Primary Key"
+        string key "API key value"
+        date expires_at "Expiration date"
+    }
+
+    environment {
+        UUID environment_id PK "Primary Key"
+        UUID project_id FK "Foreign Key to PROJECT"
+        string name "Environment name"
+        string description "Environment description"
+        bool enabled "Environment status"
+    }
+
+    project {
+        UUID project_id PK "Primary Key"
+        string name "Project name"
+        string description "Project description"
+        bool enabled "Project status"
+    }
+
+    project_access {
+        UUID project_access_id PK "Primary Key"
+        string name "Access name"
+        UUID environment_id FK "Foreign Key to ENVIRONMENT"
+        UUID service_account_id FK "Foreign Key to SERVICE_ACCOUNT"
+        UUID[] project_scopes FK "Foreign Keys to PROJECT_SCOPES"
+    }
+
+    project_scopes {
+        UUID project_scope_id PK "Primary Key"
+        UUID project_id FK "Foreign Key to PROJECT"
+        string name "Scope name"
+        string description "Scope description"
+    }
+
+    service_account {
+        UUID service_account_id PK "Primary Key"
+        string email "Account email"
+        string user "Username"
+        string secret "Account secret"
+        bool enabled "Account status"
+    }
+
+    service_account_keys {
+        UUID service_account_id PK "Primary Key"
+        string algorithm FK "Foreign Key to ALGORITHM"
+        string key "Key value"
+        date expires_at "Expiration date"
+    }
+
+    project ||--o{ environment : "has"
+    project ||--o{ project_scopes : "contains"
+    service_account ||--o{ project_access : "is used in"
+    service_account ||--|| service_account_keys : "has"
+    environment ||--o{ project_access : "is used in"
+    project_access ||--o{ api_key : "generates"
+    project_access }o--o{ project_scopes : "uses"
+    service_account_keys }o--|| algorithm : "uses"

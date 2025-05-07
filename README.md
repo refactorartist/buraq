@@ -67,3 +67,18 @@ run the following command to initialize your rust environment
 rustup default stable 
 ```
 
+## Entity Relationship Diagram
+
+![Entity Relationship Diagram](docs/erd/erd.png)
+
+
+The database schema is defined in `docs/erd/erd.mmd` and visualized above. The diagram shows:
+
+- All database entities and their fields
+- Relationships between entities
+- Primary and foreign key constraints
+
+To regenerate the diagram from the source file, you'll need:
+1. Mermaid CLI installed (`npm install -g @mermaid-js/mermaid-cli`)
+2. Run: `mmdc -i docs/erd/erd.mmd -o docs/erd/erd.png`
+
