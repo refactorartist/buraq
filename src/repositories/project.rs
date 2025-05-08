@@ -27,10 +27,16 @@ impl ProjectRepository {
     /// ```no_run
     /// use buraq::repositories::project::ProjectRepository;
     /// use mongodb::Client;
-    ///
+    /// use buraq::utils::database::create_database_client;
+    /// use dotenvy::dotenv;
+    /// use buraq::config::AppConfig;
+    /// 
     /// #[tokio::main]
     /// async fn main() -> anyhow::Result<()> {
-    ///     let client = Client::with_uri_str("mongodb://localhost:27017").await?;
+    ///     dotenv().ok();
+    /// 
+    ///     let app_config = AppConfig::from_env(Some(true))?;
+    ///     let client = create_database_client(&app_config.application.database_uri).await?;
     ///     let db = client.database("test_db");
     ///     let repo = ProjectRepository::new(db)?;
     ///     Ok(())
