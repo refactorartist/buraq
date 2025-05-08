@@ -79,6 +79,6 @@ The database schema is defined in `docs/erd/erd.mmd` and visualized above. The d
 - Primary and foreign key constraints
 
 To regenerate the diagram from the source file, you'll need:
-1. Mermaid CLI installed (`npm install -g @mermaid-js/mermaid-cli`)
-2. Run: `mmdc -i docs/erd/erd.mmd -o docs/erd/erd.png`
+
+Run: `mmdc -i docs/erd/erd.mmd -o docs/erd/erd.png`
 
