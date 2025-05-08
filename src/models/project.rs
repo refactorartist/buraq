@@ -67,6 +67,11 @@ impl Project {
         &self.description
     }
 
+    /// Returns the project's enabled status
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+
     /// Returns the project's creation timestamp
     pub fn created_at(&self) -> &DateTime<Utc> {
         &self.created_at
