@@ -15,6 +15,7 @@ pub struct Project {
     id: ObjectId,
     name: String,
     description: String,
+    enabled: bool,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -45,6 +46,7 @@ impl Project {
             id: ObjectId::new(), 
             name, 
             description, 
+            enabled: true,
             created_at: Utc::now(), 
             updated_at: Utc::now() 
         }
@@ -91,7 +93,7 @@ mod tests {
         assert!(ObjectId::parse_str(project.id.to_string()).is_ok());
         assert_eq!(project.name, name);
         assert_eq!(project.description, description);
-        
+        assert_eq!(project.enabled, true);
         // Verify timestamps are recent
         let now = Utc::now();
         assert!(project.created_at <= now);
@@ -114,5 +116,8 @@ mod tests {
         assert_eq!(project.id, deserialized_project.id);
         assert_eq!(project.name, deserialized_project.name);
         assert_eq!(project.description, deserialized_project.description);
+        assert_eq!(project.enabled, deserialized_project.enabled);
+        assert!(project.created_at <= deserialized_project.created_at);
+        assert!(project.updated_at <= deserialized_project.updated_at);
     }
 }
