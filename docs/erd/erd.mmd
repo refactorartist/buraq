@@ -5,43 +5,45 @@ erDiagram
     }
 
     api_key {
-        UUID api_key_id PK "Primary Key"
+        ObjectID api_key_id PK "Primary Key"
         string key "API key value"
         date expires_at "Expiration date"
     }
 
     environment {
-        UUID environment_id PK "Primary Key"
-        UUID project_id FK "Foreign Key to PROJECT"
+        ObjectID environment_id PK "Primary Key"
+        ObjectID project_id FK "Foreign Key to PROJECT"
         string name "Environment name"
         string description "Environment description"
         bool enabled "Environment status"
     }
 
     project {
-        UUID project_id PK "Primary Key"
+        ObjectID project_id PK "Primary Key"
         string name "Project name"
         string description "Project description"
         bool enabled "Project status"
+        date created_at "Creation date"
+        date updated_at "Last update date"
     }
 
     project_access {
-        UUID project_access_id PK "Primary Key"
+        ObjectID project_access_id PK "Primary Key"
         string name "Access name"
-        UUID environment_id FK "Foreign Key to ENVIRONMENT"
-        UUID service_account_id FK "Foreign Key to SERVICE_ACCOUNT"
-        UUID[] project_scopes FK "Foreign Keys to PROJECT_SCOPES"
+        ObjectID environment_id FK "Foreign Key to ENVIRONMENT"
+        ObjectID service_account_id FK "Foreign Key to SERVICE_ACCOUNT"
+        ObjectID[] project_scopes FK "Foreign Keys to PROJECT_SCOPES"
     }
 
     project_scopes {
-        UUID project_scope_id PK "Primary Key"
-        UUID project_id FK "Foreign Key to PROJECT"
+        ObjectID project_scope_id PK "Primary Key"
+        ObjectID project_id FK "Foreign Key to PROJECT"
         string name "Scope name"
         string description "Scope description"
     }
 
     service_account {
-        UUID service_account_id PK "Primary Key"
+        ObjectID service_account_id PK "Primary Key"
         string email "Account email"
         string user "Username"
         string secret "Account secret"
@@ -49,7 +51,7 @@ erDiagram
     }
 
     service_account_keys {
-        UUID service_account_id PK "Primary Key"
+        ObjectID service_account_id PK "Primary Key"
         string algorithm FK "Foreign Key to ALGORITHM"
         string key "Key value"
         date expires_at "Expiration date"
