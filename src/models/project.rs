@@ -88,7 +88,7 @@ mod tests {
         let project = Project::new(name.clone(), description.clone());
         
         // Verify fields are set correctly
-        assert!(ObjectId::parse_str(&project.id.to_string()).is_ok());
+        assert!(ObjectId::parse_str(project.id.to_string()).is_ok());
         assert_eq!(project.name, name);
         assert_eq!(project.description, description);
         
