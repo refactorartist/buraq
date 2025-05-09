@@ -2,7 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.14.2/.schema/devbox.schema.json",
   "packages": [
     "rustup@latest",
-    "mermaid-cli@latest"
+    "mermaid-cli@latest",
+    "docker",
+    "docker-compose"
   ],
   "shell": {
     "init_hook": [
@@ -10,7 +12,7 @@
     ],
     "scripts": {
       "test": [
-        "docker compose up -d",
+        "docker compose up -d",  
         "cargo test",
         "devbox run shutdown"
       ],

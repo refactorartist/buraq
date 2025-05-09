@@ -1,7 +1,7 @@
-use crate::repositories::base::Repository;
-use mongodb::{Database, Collection};
 use crate::models::project::Project;
+use crate::repositories::base::Repository;
 use anyhow::Result;
+use mongodb::{Collection, Database};
 
 /// Repository for managing Project documents in MongoDB.
 ///
@@ -30,11 +30,11 @@ impl ProjectRepository {
     /// use buraq::utils::database::create_database_client;
     /// use dotenvy::dotenv;
     /// use buraq::config::AppConfig;
-    /// 
+    ///
     /// #[tokio::main]
     /// async fn main() -> anyhow::Result<()> {
     ///     dotenv().ok();
-    /// 
+    ///
     ///     let app_config = AppConfig::from_env(Some(true))?;
     ///     let client = create_database_client(&app_config.application.database_uri).await?;
     ///     let db = client.database("test_db");
@@ -62,17 +62,17 @@ impl Repository<Project> for ProjectRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio;
-    use dotenvy::dotenv; 
+    use crate::config::AppConfig;
     use crate::utils::database::create_database_client;
-    use crate::config::AppConfig; 
-    use mongodb::bson::{doc, Bson};
+    use dotenvy::dotenv;
+    use mongodb::bson::{Bson, doc};
+    use tokio;
 
     async fn setup_test_db() -> Result<Database> {
         dotenv().ok();
 
         let app_config = AppConfig::from_env(Some(true))?;
-        
+
         let client = create_database_client(&app_config.application.database_uri).await?;
         let db = client.database("test_db");
         Ok(db)
@@ -87,12 +87,12 @@ mod tests {
     async fn test_create_project() -> Result<()> {
         let db = setup_test_db().await?;
         let repo = ProjectRepository::new(db.clone())?;
-        
+
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
         let result = repo.create(project).await?;
-        
+
         assert!(matches!(result.inserted_id, Bson::ObjectId(_)));
-        
+
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -101,12 +101,12 @@ mod tests {
     async fn test_read_project() -> Result<()> {
         let db = setup_test_db().await?;
         let repo = ProjectRepository::new(db.clone())?;
-        
+
         // Create a project first
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
         let result = repo.create(project).await?;
         let id = result.inserted_id.as_object_id().unwrap();
-        
+
         // Read the project
         let read_project = repo.read(id).await?;
         assert!(read_project.is_some());
@@ -114,7 +114,7 @@ mod tests {
         assert_eq!(read_project.name(), "Test Project");
         assert_eq!(read_project.description(), "Test Description");
         assert_eq!(read_project.enabled(), true);
-        
+
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -123,22 +123,25 @@ mod tests {
     async fn test_update_project() -> Result<()> {
         let db = setup_test_db().await?;
         let repo = ProjectRepository::new(db.clone())?;
-        
+
         // Create a project first
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
         let result = repo.create(project).await?;
         let id = result.inserted_id.as_object_id().unwrap();
-        
+
         // Update the project
-        let updated_project = Project::new("Updated Project".to_string(), "Updated Description".to_string());
+        let updated_project = Project::new(
+            "Updated Project".to_string(),
+            "Updated Description".to_string(),
+        );
         let update_result = repo.update(id, updated_project).await?;
         assert_eq!(update_result.modified_count, 1);
-        
+
         // Verify the update
         let read_project = repo.read(id).await?.unwrap();
         assert_eq!(read_project.name(), "Updated Project");
         assert_eq!(read_project.description(), "Updated Description");
-        
+
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -147,20 +150,20 @@ mod tests {
     async fn test_delete_project() -> Result<()> {
         let db = setup_test_db().await?;
         let repo = ProjectRepository::new(db.clone())?;
-        
+
         // Create a project first
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
         let result = repo.create(project).await?;
         let id = result.inserted_id.as_object_id().unwrap();
-        
+
         // Delete the project
         let delete_result = repo.delete(id).await?;
         assert_eq!(delete_result.deleted_count, 1);
-        
+
         // Verify the deletion
         let read_project = repo.read(id).await?;
         assert!(read_project.is_none());
-        
+
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -169,22 +172,22 @@ mod tests {
     async fn test_find_projects() -> Result<()> {
         let db = setup_test_db().await?;
         let repo = ProjectRepository::new(db.clone())?;
-        
+
         // Create multiple projects
         let project1 = Project::new("Project 1".to_string(), "Description 1".to_string());
         let project2 = Project::new("Project 2".to_string(), "Description 2".to_string());
         repo.create(project1).await?;
         repo.create(project2).await?;
-        
+
         // Find all projects
         let projects = repo.find(doc! {}).await?;
         assert_eq!(projects.len(), 2);
-        
+
         // Find projects with specific name
         let projects = repo.find(doc! { "name": "Project 1" }).await?;
         assert_eq!(projects.len(), 1);
         assert_eq!(projects[0].name(), "Project 1");
-        
+
         cleanup_test_db(db).await?;
         Ok(())
     }
