@@ -45,8 +45,8 @@ impl ServiceAccount {
         &self.secret
     }
 
-    pub fn enabled(&self) -> &bool {
-        &self.enabled
+    pub fn enabled(&self) -> bool {
+        self.enabled
     }
 }
 
