@@ -113,7 +113,7 @@ mod tests {
         let read_project = read_project.unwrap();
         assert_eq!(read_project.name(), "Test Project");
         assert_eq!(read_project.description(), "Test Description");
-        assert_eq!(read_project.enabled(), true);
+        assert!(read_project.enabled());
 
         cleanup_test_db(db).await?;
         Ok(())

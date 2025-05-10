@@ -92,7 +92,7 @@ mod tests {
         assert_eq!(read_service_account.email(), email);
         assert_eq!(read_service_account.user(), user);
         assert_eq!(read_service_account.secret(),secret);
-        assert_eq!(read_service_account.enabled(), true);
+        assert!(read_service_account.enabled());
 
         cleanup_test_db(db).await?;
         Ok(())
