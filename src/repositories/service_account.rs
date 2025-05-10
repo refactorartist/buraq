@@ -41,7 +41,7 @@ mod tests {
         let app_config = AppConfig::from_env(Some(true))?;
 
         let client = create_database_client(&app_config.application.database_uri).await?;
-        let db = client.database("test_db");
+        let db = client.database("test_db__service_account");
         Ok(db)
     }
 
