@@ -4,3 +4,4 @@ pub mod service_account;
 pub mod environment;
 pub mod service_account_key;
 pub mod project_scope;
+pub mod project_access;
