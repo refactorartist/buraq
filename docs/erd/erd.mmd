@@ -1,13 +1,17 @@
 erDiagram
-    algorithm {
-        string name PK "Primary Key"
-        string description "Algorithm description"
+    ALGORITHM {
+        string name "Algorithm type"
     }
 
-    api_key {
-        ObjectID api_key_id PK "Primary Key"
+    access_token {
+        ObjectID accesstoken_id PK "Primary Key"
+        ObjectId project_id FK "Foreign Key to PROJECT" 
+        ObjectId project_access_id FK "Foreign Key to PROJECT_ACCESS"
         string key "API key value"
+        ALGORITHM algorithm FK "Foreign Key to ALGORITHM"
         date expires_at "Expiration date"
+        date created_at "Creation date"
+        bool enabled "Token status"
     }
 
     environment {
@@ -52,16 +56,16 @@ erDiagram
 
     service_account_keys {
         ObjectID service_account_id PK "Primary Key"
-        string algorithm FK "Foreign Key to ALGORITHM"
+        ALGORITHM algorithm FK "Foreign Key to ALGORITHM"
         string key "Key value"
         date expires_at "Expiration date"
     }
 
-    project ||--o{ environment : "has"
-    project ||--o{ project_scopes : "contains"
-    service_account ||--o{ project_access : "is used in"
-    service_account ||--|| service_account_keys : "has"
-    environment ||--o{ project_access : "is used in"
-    project_access ||--o{ api_key : "generates"
-    project_access }o--o{ project_scopes : "uses"
-    service_account_keys }o--|| algorithm : "uses"
+    project ||--o{ environment: "has"
+    project ||--o{ project_scopes: "contains"
+    service_account ||--o{ project_access: "is used in"
+    service_account ||--|| service_account_keys: "has"
+    environment ||--o{ project_access: "is used in"
+    project_access ||--o{ access_token: "generates"
+    project_access }o--o{ project_scopes: "uses"
+    service_account_keys }o--|| ALGORITHM: "uses"
