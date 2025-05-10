@@ -1,5 +1,5 @@
 use mongodb::bson::oid::ObjectId;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Represents an environment associated with a project.
 ///
@@ -11,7 +11,8 @@ use serde::{Serialize, Deserialize};
 /// - `enabled`: Whether the environment is active/enabled
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Environment {
-    id: ObjectId,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    id: Option<ObjectId>,
     project_id: ObjectId,
     name: String,
     description: String,
@@ -32,7 +33,7 @@ impl Environment {
     /// * `description` - Description of the environment
     pub fn new(project_id: ObjectId, name: String, description: String) -> Self {
         Self {
-            id: ObjectId::new(),
+            id: None,
             project_id,
             name,
             description,
@@ -40,10 +41,7 @@ impl Environment {
         }
     }
 
-    /// Returns the environment's unique identifier
-    pub fn id(&self) -> &ObjectId {
-        &self.id
-    }
+
 
     /// Returns the associated project ID
     pub fn project_id(&self) -> &ObjectId {
@@ -64,10 +62,20 @@ impl Environment {
     pub fn enabled(&self) -> bool {
         self.enabled
     }
+    // Convert to MongoDB Document
+    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
+        mongodb::bson::to_document(self)
+    }
+
+    // Create from MongoDB Document
+    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
+        mongodb::bson::from_document(doc)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -78,11 +86,31 @@ mod tests {
 
         let env = Environment::new(project_id, name.clone(), description.clone());
 
-        assert!(ObjectId::parse_str(env.id().to_hex()).is_ok());
         assert_eq!(env.project_id(), &project_id);
         assert_eq!(env.name(), name);
         assert_eq!(env.description(), description);
         assert!(env.enabled());
+    }
+    #[test]
+    fn test_mongodb_serialization() {
+        let project_id = ObjectId::new();
+        let name = "example-name".to_string();
+        let description = "example description".to_string();
+        let enable = true;
+
+        let environment = Environment::new(
+            project_id,
+            name.clone(),
+            description.clone()
+        );
+
+        let doc = environment.to_document().unwrap();
+
+        let deserialized = Environment::from_document(doc).unwrap();
+        assert_eq!(deserialized.project_id, project_id);
+        assert_eq!(deserialized.name, name);
+        assert_eq!(deserialized.description, description);
+        assert_eq!(deserialized.enabled, enable);
     }
 
     #[test]
@@ -95,7 +123,6 @@ mod tests {
         let serialized = serde_json::to_string(&env).unwrap();
         let deserialized: Environment = serde_json::from_str(&serialized).unwrap();
 
-        assert_eq!(env.id(), deserialized.id());
         assert_eq!(env.project_id(), deserialized.project_id());
         assert_eq!(env.name(), deserialized.name());
         assert_eq!(env.description(), deserialized.description());
