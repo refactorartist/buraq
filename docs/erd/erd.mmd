@@ -4,8 +4,8 @@ erDiagram
         string description "Algorithm description"
     }
 
-    api_key {
-        ObjectID api_key_id PK "Primary Key"
+    accesstoken {
+        ObjectID accesstoken_id PK "Primary Key"
         string key "API key value"
         date expires_at "Expiration date"
     }
@@ -62,6 +62,6 @@ erDiagram
     service_account ||--o{ project_access : "is used in"
     service_account ||--|| service_account_keys : "has"
     environment ||--o{ project_access : "is used in"
-    project_access ||--o{ api_key : "generates"
+    project_access ||--o{ accesstoken : "generates"
     project_access }o--o{ project_scopes : "uses"
     service_account_keys }o--|| algorithm : "uses"
