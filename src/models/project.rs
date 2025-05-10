@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_serialization() {
-        let project = Project::new("Test".to_string(), "Description".to_string());
+        let project = Project::new("Test".to_string(), "Description".to_string()); // why not use variables from line 92 and 93 
         
         // Test serialization
         let serialized = serde_json::to_string(&project);
