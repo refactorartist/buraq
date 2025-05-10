@@ -13,9 +13,8 @@ use crate::serializers::algorithm;
 /// - `expires_at`: Token expiration timestamp
 /// - `created_at`: Token creation timestamp
 /// - `enabled`: Whether the token is currently active
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AccessToken {
-    #[serde(rename = "_id")]
     id: ObjectId,
     key: String,
     #[serde(with = "algorithm")]
