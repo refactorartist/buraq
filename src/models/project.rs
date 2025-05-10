@@ -98,7 +98,7 @@ mod tests {
         assert!(ObjectId::parse_str(project.id.to_string()).is_ok());
         assert_eq!(project.name, name);
         assert_eq!(project.description, description);
-        assert_eq!(project.enabled, true);
+        assert!(project.enabled);
         // Verify timestamps are recent
         let now = Utc::now();
         assert!(project.created_at <= now);
