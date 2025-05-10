@@ -1,4 +1,4 @@
-use mongodb::bson::{oid::ObjectId};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 /// Represents access control configuration for a project environment.
