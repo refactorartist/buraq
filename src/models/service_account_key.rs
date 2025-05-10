@@ -2,6 +2,7 @@ use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use crate::types::Algorithm;
+use crate::serializers::algorithm;
 
 //service_account_keys {
 //    ObjectID service_account_id PK "Primary Key"
@@ -15,40 +16,12 @@ pub struct ServiceAccountKey {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     service_account_id: ObjectId,
-    #[serde(with = "algorithm_serializer")]
+    #[serde(with = "algorithm")]
     algorithm: Algorithm,
     key: String,
     expires_at: DateTime<Utc>,
 }
 
-// Custom serializer for Algorithm enum to store as string in MongoDB
-mod algorithm_serializer {
-    use super::*;
-    use serde::{Deserializer, Serializer};
-
-    pub fn serialize<S>(algorithm: &Algorithm, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let algorithm_str = match algorithm {
-            Algorithm::RSA => "RSA",
-            Algorithm::HMAC => "HMAC",
-        };
-        serializer.serialize_str(algorithm_str)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Algorithm, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        match s.as_str() {
-            "RSA" => Ok(Algorithm::RSA),
-            "HMAC" => Ok(Algorithm::HMAC),
-            _ => Err(serde::de::Error::custom("Invalid algorithm type")),
-        }
-    }
-}
 
 impl ServiceAccountKey {
     pub fn new(service_account_id: ObjectId, algorithm: Algorithm, key: String, expires_at: DateTime<Utc>) -> Self {
