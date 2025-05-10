@@ -99,7 +99,7 @@ mod tests {
         let read_environment = read_environment.unwrap();
         assert_eq!(read_environment.name(), "Test Environment");
         assert_eq!(read_environment.description(), "Test Description");
-        assert_eq!(read_environment.enabled(), true);
+        assert!(read_environment.enabled());
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -112,7 +112,7 @@ mod tests {
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let environment = Environment::new(
-            project_id.clone(),
+            project_id,
             "Test Environment".to_string(),
             "Test Description".to_string(),
         );
@@ -166,7 +166,7 @@ mod tests {
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let environment1 = Environment::new(
-            project_id.clone(),
+            project_id,
             "Environment 1".to_string(),
             "Description 1".to_string(),
         );
@@ -199,12 +199,12 @@ mod tests {
 
         // Create environments for project 1
         let environment1 = Environment::new(
-            project_id_1.clone(),
+            project_id_1,
             "Project 1 Environment 1".to_string(),
             "Description 1".to_string(),
         );
         let environment2 = Environment::new(
-            project_id_1.clone(),
+            project_id_1,
             "Project 1 Environment 2".to_string(),
             "Description 2".to_string(),
         );
@@ -213,7 +213,7 @@ mod tests {
 
         // Create environment for project 2
         let environment3 = Environment::new(
-            project_id_2.clone(),
+            project_id_2,
             "Project 2 Environment 1".to_string(),
             "Description 3".to_string(),
         );
