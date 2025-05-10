@@ -32,7 +32,7 @@ mod tests {
     use crate::config::AppConfig;
     use crate::utils::database::create_database_client;
     use dotenvy::dotenv;
-    use mongodb::bson::{Bson,doc};
+    use mongodb::bson::Bson;
     use tokio;
 
     async fn setup_test_db() -> Result<Database> {
