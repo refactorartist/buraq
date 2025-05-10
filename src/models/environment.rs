@@ -76,7 +76,7 @@ mod tests {
         let name = "Production".to_string();
         let description = "Production environment".to_string();
 
-        let env = Environment::new(project_id.clone(), name.clone(), description.clone());
+        let env = Environment::new(project_id, name.clone(), description.clone());
 
         assert!(ObjectId::parse_str(env.id().to_hex()).is_ok());
         assert_eq!(env.project_id(), &project_id);
