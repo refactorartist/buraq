@@ -22,15 +22,17 @@ impl EnvironmentRepository {
     /// # Returns
     ///
     /// Returns a Result containing the EnvironmentRepository or an error if collection creation fails.
-    pub async  fn new(database: Database) -> Result<Self, anyhow::Error> {
+    pub async fn new(database: Database) -> Result<Self, anyhow::Error> {
         let collection = database.collection::<Environment>("environments");
 
+        // Create unique compound index on project_id and name
         let options = IndexOptions::builder().unique(true).build();
         let index = IndexModel::builder()
-            .keys(doc! { "service_account_id": 1 })
+            .keys(doc! { "project_id": 1, "name": 1 })
             .options(options)
             .build();
         
+        // Create index if it doesn't exist
         collection.create_index(index).await?;
 
         Ok(Self { collection })
@@ -64,11 +66,17 @@ mod tests {
 
         let client = create_database_client(&app_config.application.database_uri).await?;
         let db = client.database("test_db__environments");
+        
+        // Clean up any existing data
+        let collection = db.collection::<Environment>("environments");
+        collection.delete_many(doc! {}).await?;
+        
         Ok(db)
     }
 
     async fn cleanup_test_db(db: Database) -> Result<()> {
-        db.collection::<Environment>("environments").drop().await?;
+        let collection = db.collection::<Environment>("environments");
+        collection.delete_many(doc! {}).await?;
         Ok(())
     }
 
@@ -77,9 +85,8 @@ mod tests {
         let db = setup_test_db().await?;
         let repo = EnvironmentRepository::new(db.clone()).await?;
         
-        // Generate a unique name/ID for each test run
         let project_id = mongodb::bson::oid::ObjectId::new();
-        let name = "Test Environment ".to_string();
+        let name = "Test Environment".to_string();
         
         let environment = Environment::new(
             project_id,
@@ -93,6 +100,7 @@ mod tests {
         cleanup_test_db(db).await?;
         Ok(())
     }
+
     #[tokio::test]
     async fn test_read_environment() -> Result<()> {
         let db = setup_test_db().await?;

@@ -11,8 +11,7 @@ use serde::{Deserialize, Serialize};
 /// - `enabled`: Whether the environment is active/enabled
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Environment {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    id: Option<ObjectId>,
+    id: ObjectId,
     project_id: ObjectId,
     name: String,
     description: String,
@@ -33,7 +32,7 @@ impl Environment {
     /// * `description` - Description of the environment
     pub fn new(project_id: ObjectId, name: String, description: String) -> Self {
         Self {
-            id: None,
+            id: ObjectId::new(),
             project_id,
             name,
             description,
