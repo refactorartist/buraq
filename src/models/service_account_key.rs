@@ -1,4 +1,4 @@
-use mongodb::bson::{oid::ObjectId, Document};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use crate::types::Algorithm;
@@ -78,12 +78,12 @@ impl ServiceAccountKey {
     }
 
     // Convert to MongoDB Document
-    pub fn to_document(&self) -> Result<Document, mongodb::bson::ser::Error> {
+    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
         mongodb::bson::to_document(self)
     }
 
     // Create from MongoDB Document
-    pub fn from_document(doc: Document) -> Result<Self, mongodb::bson::de::Error> {
+    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
         mongodb::bson::from_document(doc)
     }
 }
