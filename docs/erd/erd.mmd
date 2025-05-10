@@ -1,69 +1,71 @@
 erDiagram
     ALGORITHM {
-        string name         "Algorithm type"
+        string name "Algorithm type"
     }
 
     access_token {
-        ObjectID accesstoken_id  PK "Primary Key"
-        string   key               "API key value"
-        ALGORITHM algorithm      FK "Foreign Key to ALGORITHM"
-        date     expires_at        "Expiration date"
-        date     created_at        "Creation date"
-        bool     enabled           "Token status"
+        ObjectID accesstoken_id PK "Primary Key"
+        ObjectId project_id FK "Foreign Key to PROJECT" 
+        ObjectId project_access_id FK "Foreign Key to PROJECT_ACCESS"
+        string key "API key value"
+        ALGORITHM algorithm FK "Foreign Key to ALGORITHM"
+        date expires_at "Expiration date"
+        date created_at "Creation date"
+        bool enabled "Token status"
     }
 
     environment {
-        ObjectID environment_id  PK "Primary Key"
-        ObjectID project_id     FK "Foreign Key to PROJECT"
-        string   name             "Environment name"
-        string   description      "Environment description"
-        bool     enabled          "Environment status"
+        ObjectID environment_id PK "Primary Key"
+        ObjectID project_id FK "Foreign Key to PROJECT"
+        string name "Environment name"
+        string description "Environment description"
+        bool enabled "Environment status"
     }
 
     project {
-        ObjectID project_id     PK "Primary Key"
-        string   name             "Project name"
-        string   description      "Project description"
-        bool     enabled          "Project status"
-        date     created_at       "Creation date"
-        date     updated_at       "Last update date"
+        ObjectID project_id PK "Primary Key"
+        string name "Project name"
+        string description "Project description"
+        bool enabled "Project status"
+        date created_at "Creation date"
+        date updated_at "Last update date"
     }
 
     project_access {
-        ObjectID  project_access_id  PK "Primary Key"
-        string    name                "Access name"
-        ObjectID  environment_id    FK "Foreign Key to ENVIRONMENT"
-        ObjectID  service_account_id FK "Foreign Key to SERVICE_ACCOUNT"
-        ObjectID[] project_scopes   FK "Foreign Keys to PROJECT_SCOPES"
+        ObjectID project_access_id PK "Primary Key"
+        string name "Access name"
+        ObjectID environment_id FK "Foreign Key to ENVIRONMENT"
+        ObjectID service_account_id FK "Foreign Key to SERVICE_ACCOUNT"
+        ObjectID[] project_scopes FK "Foreign Keys to PROJECT_SCOPES"
     }
 
     project_scopes {
-        ObjectID project_scope_id  PK "Primary Key"
-        ObjectID project_id       FK "Foreign Key to PROJECT"
-        string   name              "Scope name"
-        string   description       "Scope description"
+        ObjectID project_scope_id PK "Primary Key"
+        ObjectID project_id FK "Foreign Key to PROJECT"
+        string name "Scope name"
+        string description "Scope description"
     }
 
     service_account {
         ObjectID service_account_id PK "Primary Key"
-        string   email              "Account email"
-        string   user               "Username"
-        string   secret             "Account secret"
-        bool     enabled            "Account status"
+        string email "Account email"
+        string user "Username"
+        string secret "Account secret"
+        bool enabled "Account status"
     }
 
     service_account_keys {
-        ObjectID  service_account_id PK "Primary Key"
-        ALGORITHM algorithm        FK "Foreign Key to ALGORITHM"
-        string    key                "Key value"
-        date      expires_at         "Expiration date"
+        ObjectID service_account_id PK "Primary Key"
+        ALGORITHM algorithm FK "Foreign Key to ALGORITHM"
+        string key "Key value"
+        date expires_at "Expiration date"
     }
 
-    project ||--o{ environment : "has"
-    project ||--o{ project_scopes : "contains"
-    service_account ||--o{ project_access : "is used in"
-    service_account ||--|| service_account_keys : "has"
-    environment ||--o{ project_access : "is used in"
-    project_access ||--o{ access_token : "generates"
-    project_access }o--o{ project_scopes : "uses"
-    service_account_keys }o--|| ALGORITHM : "uses"
+    project ||--o{ environment: "has"
+    project ||--o{ project_scopes: "contains"
+    service_account ||--o{ project_access: "is used in"
+    service_account ||--|| service_account_keys: "has"
+    environment ||--o{ project_access: "is used in"
+    project_access ||--o{ access_token: "generates"
+    project_access }o--o{ project_scopes: "uses"
+    service_account_keys }o--|| ALGORITHM: "uses"
