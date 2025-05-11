@@ -5,6 +5,8 @@ use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 /// Service for managing projects
 ///
@@ -249,17 +251,44 @@ mod tests {
     use dotenvy::dotenv;
     use tokio;    
 
+    static DB_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
     async fn setup_test_db() -> Result<Database, Error> {
         dotenv().ok();
 
         let app_config = AppConfig::from_env(Some(true))?;
         let client = create_database_client(&app_config.application.database_uri).await?;
-        let db = client.database("test_db__project_services");  
+        
+        // Create a unique database name for each test
+        let db_num = DB_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let db = client.database(&format!("test_db__project_services_{}", db_num));
+        
+        // Ensure the database is clean before starting
+        cleanup_test_db(db.clone()).await?;
+        
         Ok(db)
     }
 
     async fn cleanup_test_db(db: Database) -> Result<(), Error> {
         db.collection::<Project>("projects").drop().await?;
+        Ok(())
+    }
+
+    async fn setup_projects_for_filter_tests(project_service: &ProjectService) -> Result<(), Error> {
+        // Clean up any existing data first
+        let collection = project_service.project_repository.collection()?;
+        let db = collection.client().database(&collection.namespace().db);
+        cleanup_test_db(db).await?;
+
+        // Create multiple projects for testing filters
+        let project1 = Project::new("Project 1".to_string(), "Description 1".to_string());
+        let project2 = Project::new("Project 2".to_string(), "Description 2".to_string());
+        let project3 = Project::new("Project 3".to_string(), "Description 3".to_string());
+
+        project_service.create_project(project1).await?;
+        project_service.create_project(project2).await?;
+        project_service.create_project(project3).await?;
+        
         Ok(())
     }
 
@@ -283,9 +312,6 @@ mod tests {
         let db = setup_test_db().await.unwrap();
         let project_service = ProjectService::new(db.clone());
 
-        // Clean up any existing data
-        cleanup_test_db(db.clone()).await.unwrap();
-
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
         let result = project_service.create_project(project).await;
 
@@ -302,7 +328,6 @@ mod tests {
     #[tokio::test]
     async fn test_get_project() {
         let db = setup_test_db().await.unwrap();
-        cleanup_test_db(db.clone()).await.unwrap();
         let project_service = ProjectService::new(db.clone());
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
@@ -316,12 +341,14 @@ mod tests {
         assert_eq!(project.name(), "Test Project");
         assert_eq!(project.description(), "Test Description");
         assert!(project.enabled());
+
+        // Clean up test database
+        cleanup_test_db(db).await.unwrap();
     }
 
     #[tokio::test]
     async fn test_update_project() {
         let db = setup_test_db().await.unwrap();
-        cleanup_test_db(db.clone()).await.unwrap();
         let project_service = ProjectService::new(db.clone());
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
@@ -343,7 +370,6 @@ mod tests {
     #[tokio::test]
     async fn test_delete_project() {
         let db = setup_test_db().await.unwrap();
-        cleanup_test_db(db.clone()).await.unwrap();
         let project_service = ProjectService::new(db.clone());
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
@@ -359,24 +385,9 @@ mod tests {
         cleanup_test_db(db).await.unwrap();
     }
 
-
-    async fn setup_projects_for_filter_tests(project_service: &ProjectService) -> Result<(), Error> {
-        // Create multiple projects for testing filters
-        let project1 = Project::new("Project 1".to_string(), "Description 1".to_string());
-        let project2 = Project::new("Project 2".to_string(), "Description 2".to_string());
-        let project3 = Project::new("Project 3".to_string(), "Description 3".to_string());
-
-        project_service.create_project(project1).await?;
-        project_service.create_project(project2).await?;
-        project_service.create_project(project3).await?;
-        
-        Ok(())
-    }
-
     #[tokio::test]
     async fn test_get_projects_no_filter() {
         let db = setup_test_db().await.unwrap();
-        cleanup_test_db(db.clone()).await.unwrap();
         let project_service = ProjectService::new(db.clone());
 
         // Setup test data
@@ -402,7 +413,6 @@ mod tests {
     #[tokio::test]
     async fn test_get_projects_filter_by_name() {
         let db = setup_test_db().await.unwrap();
-        cleanup_test_db(db.clone()).await.unwrap();
         let project_service = ProjectService::new(db.clone());
 
         // Setup test data
@@ -429,7 +439,6 @@ mod tests {
     #[tokio::test]
     async fn test_get_projects_filter_by_description() {
         let db = setup_test_db().await.unwrap();
-        cleanup_test_db(db.clone()).await.unwrap();
         let project_service = ProjectService::new(db.clone());
 
         // Setup test data
@@ -456,7 +465,6 @@ mod tests {
     #[tokio::test]
     async fn test_get_projects_filter_by_enabled() {
         let db = setup_test_db().await.unwrap();
-        cleanup_test_db(db.clone()).await.unwrap();
         let project_service = ProjectService::new(db.clone());
 
         // Setup test data
