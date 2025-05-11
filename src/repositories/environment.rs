@@ -67,17 +67,12 @@ mod tests {
         let client = create_database_client(&app_config.application.database_uri).await?;
         let db = client.database("test_db__environments");
         
-        // Clean up any existing data
-        let collection = db.collection::<Environment>("environments");
-        collection.delete_many(doc! {}).await?;
-        
         Ok(db)
     }
 
     async fn cleanup_test_db(db: Database) -> Result<()> {
-        let collection = db.collection::<Environment>("environments");
-        collection.delete_many(doc! {}).await?;
-        Ok(())
+        db.collection::<Environment>("environments").drop().await?;
+        Ok(())        
     }
 
     #[tokio::test]
