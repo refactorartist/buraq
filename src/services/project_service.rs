@@ -5,8 +5,6 @@ use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 
 /// Service for managing projects
 ///
@@ -23,9 +21,9 @@ pub struct ProjectService {
 /// It can be used to filter projects by name, description, or enabled status.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectFilter {
-    name: Option<String>,
-    description: Option<String>,
-    enabled: Option<bool>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub enabled: Option<bool>,
 }
 
 impl Into<mongodb::bson::Document> for ProjectFilter {
@@ -236,6 +234,42 @@ impl ProjectService {
     }
 
 
+    /// Retrieves projects based on the provided filter criteria
+    ///
+    /// # Arguments
+    ///
+    /// * `filter` - The filter criteria to apply when retrieving projects
+    ///
+    /// # Returns
+    ///
+    /// A vector of projects that match the filter criteria
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the database operation fails
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use buraq::services::project_service::{ProjectService, ProjectFilter};
+    /// # use mongodb::{Client, Database};
+    /// 
+    /// # async fn example() -> anyhow::Result<()> {
+    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
+    /// # let db = client.database("test_db");
+    /// let project_service = ProjectService::new(db);
+    /// 
+    /// // Create a filter to find enabled projects
+    /// let filter = ProjectFilter {
+    ///     name: None,
+    ///     description: None,
+    ///     enabled: Some(true),
+    /// };
+    /// 
+    /// let projects = project_service.get_projects(filter).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn get_projects(&self, filter: ProjectFilter) -> Result<Vec<Project>, Error> {
         let filter_doc = filter.into();
         let projects = self.project_repository.find(filter_doc).await?;
@@ -250,7 +284,8 @@ mod tests {
     use crate::utils::database::create_database_client;
     use dotenvy::dotenv;
     use tokio;    
-
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    
     static DB_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
     async fn setup_test_db() -> Result<Database, Error> {
