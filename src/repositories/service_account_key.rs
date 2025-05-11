@@ -73,32 +73,15 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
+    use crate::test_utils::{setup_test_db, cleanup_test_db};
     use crate::types::Algorithm;
-    use crate::utils::database::create_database_client;
     use chrono::Utc;
-    use dotenvy::dotenv;
     use mongodb::bson::{Bson, oid::ObjectId};
     use tokio;
 
-    async fn setup_test_db() -> Result<Database> {
-        dotenv().ok();
-
-        let app_config = AppConfig::from_env(Some(true))?;
-
-        let client = create_database_client(&app_config.application.database_uri).await?;
-        let db = client.database("test_db__service_account_key");
-        Ok(db)
-    }
-
-    async fn cleanup_test_db(db: Database) -> Result<()> {
-        db.collection::<ServiceAccountKey>("service_account_key").drop().await?;
-        Ok(())
-    }
-
     #[tokio::test]
     async fn test_create_service_account_key() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("service_account_key").await?;
         let repo = ServiceAccountKeyRepository::new(db.clone()).await?;
 
         let service_account_id = ObjectId::new();
@@ -108,7 +91,7 @@ mod tests {
 
         let service_account_key = ServiceAccountKey::new(
             service_account_id,
-            algorithm,
+            algorithm.clone(),
             key.clone(),
             expires_at
         );
@@ -123,7 +106,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_service_account_key() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("service_account_key").await?;
         let repo = ServiceAccountKeyRepository::new(db.clone()).await?;
 
         let service_account_id = ObjectId::new();
@@ -133,11 +116,10 @@ mod tests {
 
         let service_account_key = ServiceAccountKey::new(
             service_account_id,
-            algorithm,
+            algorithm.clone(),
             key.clone(),
             expires_at
         );
-
         let result = repo.create(service_account_key).await?;
         let id = result.inserted_id.as_object_id().unwrap();
 
@@ -145,9 +127,111 @@ mod tests {
         assert!(read_key.is_some());
         let read_key = read_key.unwrap();
         assert_eq!(read_key.service_account_id(), &service_account_id);
-        assert!(matches!(read_key.algorithm(), &Algorithm::RSA));
+        assert_eq!(read_key.algorithm(), &algorithm);
         assert_eq!(read_key.key(), key);
-        assert_eq!(read_key.expires_at().timestamp(), expires_at.timestamp());
+
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_update_service_account_key() -> Result<()> {
+        let db = setup_test_db("service_account_key").await?;
+        let repo = ServiceAccountKeyRepository::new(db.clone()).await?;
+
+        let service_account_id = ObjectId::new();
+        let algorithm = Algorithm::RSA;
+        let key = "test-key-value".to_string();
+        let expires_at = Utc::now();
+
+        let service_account_key = ServiceAccountKey::new(
+            service_account_id,
+            algorithm.clone(),
+            key.clone(),
+            expires_at
+        );
+        let result = repo.create(service_account_key).await?;
+        let id = result.inserted_id.as_object_id().unwrap();
+
+        let updated_algorithm = Algorithm::HMAC;
+        let updated_key = "updated-key-value".to_string();
+        let updated_expires_at = Utc::now();
+
+        let updated_service_account_key = ServiceAccountKey::new(
+            service_account_id,
+            updated_algorithm.clone(),
+            updated_key.clone(),
+            updated_expires_at
+        );
+        let update_result = repo.update(id, updated_service_account_key).await?;
+        assert_eq!(update_result.modified_count, 1);
+
+        let read_key = repo.read(id).await?.unwrap();
+        assert_eq!(read_key.service_account_id(), &service_account_id);
+        assert_eq!(read_key.algorithm(), &updated_algorithm);
+        assert_eq!(read_key.key(), updated_key);
+
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_delete_service_account_key() -> Result<()> {
+        let db = setup_test_db("service_account_key").await?;
+        let repo = ServiceAccountKeyRepository::new(db.clone()).await?;
+
+        let service_account_id = ObjectId::new();
+        let algorithm = Algorithm::RSA;
+        let key = "test-key-value".to_string();
+        let expires_at = Utc::now();
+
+        let service_account_key = ServiceAccountKey::new(
+            service_account_id,
+            algorithm.clone(),
+            key.clone(),
+            expires_at
+        );
+        let result = repo.create(service_account_key).await?;
+        let id = result.inserted_id.as_object_id().unwrap();
+
+        let delete_result = repo.delete(id).await?;
+        assert_eq!(delete_result.deleted_count, 1);
+
+        let read_key = repo.read(id).await?;
+        assert!(read_key.is_none());
+
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find_service_account_keys() -> Result<()> {
+        let db = setup_test_db("service_account_key").await?;
+        let repo = ServiceAccountKeyRepository::new(db.clone()).await?;
+
+        let service_account_id1 = ObjectId::new();
+        let service_account_id2 = ObjectId::new();
+        let key1 = ServiceAccountKey::new(
+            service_account_id1,
+            Algorithm::RSA,
+            "key-1".to_string(),
+            Utc::now()
+        );
+        let key2 = ServiceAccountKey::new(
+            service_account_id2,
+            Algorithm::HMAC,
+            "key-2".to_string(),
+            Utc::now()
+        );
+        repo.create(key1).await?;
+        repo.create(key2).await?;
+
+        let keys = repo.find(doc! {}).await?;
+        assert_eq!(keys.len(), 2);
+
+        let filtered_keys = repo.find(doc! { "key": "key-1" }).await?;
+        assert_eq!(filtered_keys.len(), 1);
+        assert_eq!(filtered_keys[0].key(), "key-1");
 
         cleanup_test_db(db).await?;
         Ok(())

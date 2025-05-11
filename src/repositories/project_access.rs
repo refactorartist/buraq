@@ -61,30 +61,13 @@ impl Repository<ProjectAccess> for ProjectAccessRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
-    use crate::utils::database::create_database_client;
-    use dotenvy::dotenv;
+    use crate::test_utils::{setup_test_db, cleanup_test_db};
     use mongodb::bson::{Bson, doc};
     use tokio;
 
-    async fn setup_test_db() -> Result<Database> {
-        dotenv().ok();
-
-        let app_config = AppConfig::from_env(Some(true))?;
-
-        let client = create_database_client(&app_config.application.database_uri).await?;
-        let db = client.database("test_db__project_access");
-        Ok(db)
-    }
-
-    async fn cleanup_test_db(db: Database) -> Result<()> {
-        db.collection::<ProjectAccess>("project_access").drop().await?;
-        Ok(())
-    }
-
     #[tokio::test]
     async fn test_create_project_access() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_access").await?;
         let repo = ProjectAccessRepository::new(db.clone())?;
 
         let project_access = ProjectAccess::new(
@@ -103,7 +86,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_project_access() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_access").await?;
         let repo = ProjectAccessRepository::new(db.clone())?;
 
         let project_access = ProjectAccess::new(
@@ -126,7 +109,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_project_access() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_access").await?;
         let repo = ProjectAccessRepository::new(db.clone())?;
 
         let project_access = ProjectAccess::new(
@@ -156,7 +139,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_project_access() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_access").await?;
         let repo = ProjectAccessRepository::new(db.clone())?;
 
         let project_access = ProjectAccess::new(
@@ -180,7 +163,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_find_project_access() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_access").await?;
         let repo = ProjectAccessRepository::new(db.clone())?;
 
         let environment_id = mongodb::bson::oid::ObjectId::new();
