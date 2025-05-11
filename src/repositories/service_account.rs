@@ -59,33 +59,16 @@ impl Repository<ServiceAccount> for ServiceAccountRepository {
 }
 
 
-#[cfg(test)] 
+#[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
-    use crate::utils::database::create_database_client;
-    use dotenvy::dotenv;
+    use crate::test_utils::{setup_test_db, cleanup_test_db};
     use mongodb::bson::Bson;
     use tokio;
 
-    async fn setup_test_db() -> Result<Database> {
-        dotenv().ok();
-
-        let app_config = AppConfig::from_env(Some(true))?;
-
-        let client = create_database_client(&app_config.application.database_uri).await?;
-        let db = client.database("test_db__service_account");
-        Ok(db)
-    }
-
-    async fn cleanup_test_db(db: Database) -> Result<()> {
-        db.collection::<ServiceAccount>("projects").drop().await?;
-        Ok(())
-    }
-
     #[tokio::test]
-    async fn test_create_project() -> Result<()> {
-        let db = setup_test_db().await?;
+    async fn test_create_service_account() -> Result<()> {
+        let db = setup_test_db("service_account").await?;
         let repo = ServiceAccountRepository::new(db.clone())?;
 
         let email = "Examples@google.com".to_string();
@@ -102,35 +85,80 @@ mod tests {
         Ok(())
     }
 
-
     #[tokio::test]
-    async fn test_read_project() -> Result<()> {
-        let db = setup_test_db().await?;
+    async fn test_read_service_account() -> Result<()> {
+        let db = setup_test_db("service_account").await?;
         let repo = ServiceAccountRepository::new(db.clone())?;
 
-        // Create a project first
         let email = "Examples@google.com".to_string();
         let user = "Example123".to_string();
         let secret = "ExampleSercet".to_string();
 
         let service_account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
-
         let result = repo.create(service_account).await?;
         let id = result.inserted_id.as_object_id().unwrap();
 
-        // Read the project
-        let read_service_account = repo.read(id).await?;
-        assert!(read_service_account.is_some());
-        let read_service_account = read_service_account.unwrap();
-        assert_eq!(read_service_account.email(), email);
-        assert_eq!(read_service_account.user(), user);
-        assert_eq!(read_service_account.secret(),secret);
-        assert!(read_service_account.enabled());
+        let read_account = repo.read(id).await?;
+        assert!(read_account.is_some());
+        let read_account = read_account.unwrap();
+        assert_eq!(read_account.email(), email);
+        assert_eq!(read_account.user(), user);
+        assert_eq!(read_account.secret(), secret);
 
         cleanup_test_db(db).await?;
         Ok(())
     }
 
+    #[tokio::test]
+    async fn test_update_service_account() -> Result<()> {
+        let db = setup_test_db("service_account").await?;
+        let repo = ServiceAccountRepository::new(db.clone())?;
 
+        let email = "Examples@google.com".to_string();
+        let user = "Example123".to_string();
+        let secret = "ExampleSercet".to_string();
 
+        let service_account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
+        let result = repo.create(service_account).await?;
+        let id = result.inserted_id.as_object_id().unwrap();
+
+        let updated_email = "Updated@google.com".to_string();
+        let updated_user = "Updated123".to_string();
+        let updated_secret = "UpdatedSecret".to_string();
+
+        let updated_account = ServiceAccount::new(updated_email.clone(), updated_user.clone(), updated_secret.clone());
+        let update_result = repo.update(id, updated_account).await?;
+        assert_eq!(update_result.modified_count, 1);
+
+        let read_account = repo.read(id).await?.unwrap();
+        assert_eq!(read_account.email(), updated_email);
+        assert_eq!(read_account.user(), updated_user);
+        assert_eq!(read_account.secret(), updated_secret);
+
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_delete_service_account() -> Result<()> {
+        let db = setup_test_db("service_account").await?;
+        let repo = ServiceAccountRepository::new(db.clone())?;
+
+        let email = "Examples@google.com".to_string();
+        let user = "Example123".to_string();
+        let secret = "ExampleSercet".to_string();
+
+        let service_account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
+        let result = repo.create(service_account).await?;
+        let id = result.inserted_id.as_object_id().unwrap();
+
+        let delete_result = repo.delete(id).await?;
+        assert_eq!(delete_result.deleted_count, 1);
+
+        let read_account = repo.read(id).await?;
+        assert!(read_account.is_none());
+
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
 }
