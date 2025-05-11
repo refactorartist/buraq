@@ -50,10 +50,13 @@ HTTP and Web Specifics
 - Use middleware for common web concerns (logging, CORS, authentication).
 Testing
 - Write comprehensive unit and integration tests.
-- Use `tokio::test` for async test scenarios.
+- Use `devbox run test` to execute test suites.
 - Mock external dependencies like MongoDB.
 - Implement thorough error case testing.
 - Use `httptest` or similar for HTTP endpoint testing.
+Application Execution
+- Use `devbox run start` to launch the application
+- Ensure all configuration and environment setup is compatible with Devbox runtime
 Performance Optimization
 - Minimize async overhead; use sync code where possible.
 - Implement connection pooling for MongoDB.
