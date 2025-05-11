@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 /// - `enabled`: Whether the environment is active/enabled
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Environment {
-    id: ObjectId,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
     project_id: ObjectId,
     name: String,
     description: String,
@@ -22,7 +23,6 @@ impl Environment {
     /// Creates a new Environment with the given project ID, name and description.
     ///
     /// Automatically generates:
-    /// - A new ObjectId
     /// - Sets enabled to true by default
     ///
     /// # Arguments
@@ -32,7 +32,7 @@ impl Environment {
     /// * `description` - Description of the environment
     pub fn new(project_id: ObjectId, name: String, description: String) -> Self {
         Self {
-            id: ObjectId::new(),
+            id: None,
             project_id,
             name,
             description,
@@ -40,7 +40,15 @@ impl Environment {
         }
     }
 
+    /// Returns the environment's unique identifier
+    pub fn id(&self) -> Option<&ObjectId> {
+        self.id.as_ref()
+    }
 
+    /// Sets the environment's unique identifier
+    pub fn set_id(&mut self, id: ObjectId) {
+        self.id = Some(id);
+    }
 
     /// Returns the associated project ID
     pub fn project_id(&self) -> &ObjectId {
@@ -61,6 +69,7 @@ impl Environment {
     pub fn enabled(&self) -> bool {
         self.enabled
     }
+
     // Convert to MongoDB Document
     pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
         mongodb::bson::to_document(self)
@@ -85,11 +94,13 @@ mod tests {
 
         let env = Environment::new(project_id, name.clone(), description.clone());
 
+        assert!(env.id().is_none());
         assert_eq!(env.project_id(), &project_id);
         assert_eq!(env.name(), name);
         assert_eq!(env.description(), description);
         assert!(env.enabled());
     }
+
     #[test]
     fn test_mongodb_serialization() {
         let project_id = ObjectId::new();
@@ -97,15 +108,18 @@ mod tests {
         let description = "example description".to_string();
         let enable = true;
 
-        let environment = Environment::new(
+        let mut environment = Environment::new(
             project_id,
             name.clone(),
             description.clone()
         );
+        let id = ObjectId::new();
+        environment.set_id(id);
 
         let doc = environment.to_document().unwrap();
 
         let deserialized = Environment::from_document(doc).unwrap();
+        assert_eq!(deserialized.id(), environment.id());
         assert_eq!(deserialized.project_id, project_id);
         assert_eq!(deserialized.name, name);
         assert_eq!(deserialized.description, description);
@@ -117,11 +131,14 @@ mod tests {
         let project_id = ObjectId::new();
         let name = "Staging".to_string();
         let description = "Staging environment".to_string();
-        let env = Environment::new(project_id, name, description);
+        let mut env = Environment::new(project_id, name, description);
+        let id = ObjectId::new();
+        env.set_id(id);
 
         let serialized = serde_json::to_string(&env).unwrap();
         let deserialized: Environment = serde_json::from_str(&serialized).unwrap();
 
+        assert_eq!(env.id(), deserialized.id());
         assert_eq!(env.project_id(), deserialized.project_id());
         assert_eq!(env.name(), deserialized.name());
         assert_eq!(env.description(), deserialized.description());
