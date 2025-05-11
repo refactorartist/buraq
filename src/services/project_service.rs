@@ -120,7 +120,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_project() {
-        // TODO: Implement test for get_project
+        let db = setup_test_db().await.unwrap();
+        cleanup_test_db(db.clone()).await.unwrap();
+        let project_service = ProjectService::new(db.clone());
+
+        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
+        let result = project_service.create_project(project).await;
+        assert!(result.is_ok(), "Failed to create project: {:?}", result.err());
+        let created_project = result.unwrap();
+
+        let project = project_service.get_project(created_project.id().unwrap().clone()).await;
+        assert!(project.is_ok(), "Failed to get project: {:?}", project.err());
+        let project = project.unwrap().expect("Project should exist");
+        assert_eq!(project.name(), "Test Project");
+        assert_eq!(project.description(), "Test Description");
+        assert!(project.enabled());
     }
 
     #[tokio::test]
