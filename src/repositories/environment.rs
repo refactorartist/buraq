@@ -97,6 +97,69 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_create_duplicate_environment() -> Result<()> {
+        let db = setup_test_db().await?;
+        let repo = EnvironmentRepository::new(db.clone()).await?;
+        
+        let project_id = mongodb::bson::oid::ObjectId::new();
+        let name = "Test Environment".to_string();
+        
+        // Create first environment
+        let environment1 = Environment::new(
+            project_id,
+            name.clone(),
+            "Test Description 1".to_string(),
+        );
+        repo.create(environment1).await?;
+        
+        // Try to create second environment with same project_id and name
+        let environment2 = Environment::new(
+            project_id,
+            name.clone(),
+            "Test Description 2".to_string(),
+        );
+        let result = repo.create(environment2).await;
+        
+        // Should fail due to unique index constraint
+        assert!(result.is_err());
+        
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_create_environment_same_name_different_project() -> Result<()> {
+        let db = setup_test_db().await?;
+        let repo = EnvironmentRepository::new(db.clone()).await?;
+        
+        let project_id_1 = mongodb::bson::oid::ObjectId::new();
+        let project_id_2 = mongodb::bson::oid::ObjectId::new();
+        let name = "Test Environment".to_string();
+        
+        // Create environment for first project
+        let environment1 = Environment::new(
+            project_id_1,
+            name.clone(),
+            "Test Description 1".to_string(),
+        );
+        repo.create(environment1).await?;
+        
+        // Create environment with same name but different project_id
+        let environment2 = Environment::new(
+            project_id_2,
+            name.clone(),
+            "Test Description 2".to_string(),
+        );
+        let result = repo.create(environment2).await;
+        
+        // Should succeed as project_ids are different
+        assert!(result.is_ok());
+        
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_read_environment() -> Result<()> {
         let db = setup_test_db().await?;
         let repo = EnvironmentRepository::new(db.clone()).await?;
