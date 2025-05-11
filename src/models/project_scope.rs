@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// - `project_id`: Foreign key reference to the associated project
 /// - `name`: Name of the scope
 /// - `description`: Description of what the scope allows
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectScope {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
