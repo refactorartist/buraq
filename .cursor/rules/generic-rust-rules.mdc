@@ -50,6 +50,7 @@ HTTP and Web Specifics
 - Use middleware for common web concerns (logging, CORS, authentication).
 Testing
 - Write comprehensive unit and integration tests.
+- Use `tokio::test` for async test scenarios.
 - Use `devbox run test` to execute test suites.
 - Mock external dependencies like MongoDB.
 - Implement thorough error case testing.
