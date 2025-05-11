@@ -39,6 +39,11 @@ impl ProjectScope {
         self.id.as_ref()
     }
 
+    /// Sets the project scope's unique identifier
+    pub fn set_id(&mut self, id: ObjectId) {
+        self.id = Some(id);
+    }
+
     /// Returns the associated project ID
     pub fn project_id(&self) -> &ObjectId {
         &self.project_id
@@ -89,7 +94,9 @@ mod tests {
         let name = "write:posts".to_string();
         let description = "Allows creating and updating posts".to_string();
 
-        let scope = ProjectScope::new(project_id, name.clone(), description.clone());
+        let mut scope = ProjectScope::new(project_id, name.clone(), description.clone());
+        let id = ObjectId::new();
+        scope.set_id(id);
 
         // Test conversion to BSON Document
         let doc = scope.to_document().unwrap();
@@ -97,6 +104,30 @@ mod tests {
         // Test conversion from BSON Document
         let deserialized = ProjectScope::from_document(doc).unwrap();
 
+        assert_eq!(deserialized.id(), scope.id());
+        assert_eq!(deserialized.project_id, project_id);
+        assert_eq!(deserialized.name, name);
+        assert_eq!(deserialized.description, description);
+    }
+
+    #[test]
+    fn test_serialization() {
+        let project_id = ObjectId::new();
+        let name = "example-scope".to_string();
+        let description = "example description".to_string();
+
+        let mut scope = ProjectScope::new(
+            project_id,
+            name.clone(),
+            description.clone()
+        );
+        let id = ObjectId::new();
+        scope.set_id(id);
+
+        let doc = scope.to_document().unwrap();
+
+        let deserialized = ProjectScope::from_document(doc).unwrap();
+        assert_eq!(deserialized.id(), scope.id());
         assert_eq!(deserialized.project_id, project_id);
         assert_eq!(deserialized.name, name);
         assert_eq!(deserialized.description, description);
