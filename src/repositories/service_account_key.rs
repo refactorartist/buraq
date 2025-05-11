@@ -5,11 +5,44 @@ use mongodb::{Collection, Database, IndexModel};
 use mongodb::options::IndexOptions;
 use mongodb::bson::doc;
 
+/// Repository for managing ServiceAccountKey documents in MongoDB.
+///
+/// Provides CRUD operations for ServiceAccountKey entities.
 pub struct ServiceAccountKeyRepository {
     collection: Collection<ServiceAccountKey>,
 }
 
 impl ServiceAccountKeyRepository {
+    /// Creates a new ServiceAccountKeyRepository instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `database` - MongoDB Database instance
+    ///
+    /// # Returns
+    ///
+    /// Returns a Result containing the ServiceAccountKeyRepository or an error if collection creation fails.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use buraq::repositories::service_account_key::ServiceAccountKeyRepository;
+    /// use mongodb::Client;
+    /// use buraq::utils::database::create_database_client;
+    /// use dotenvy::dotenv;
+    /// use buraq::config::AppConfig;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> anyhow::Result<()> {
+    ///     dotenv().ok();
+    ///
+    ///     let app_config = AppConfig::from_env(Some(true))?;
+    ///     let client = create_database_client(&app_config.application.database_uri).await?;
+    ///     let db = client.database("test_db");
+    ///     let repo = ServiceAccountKeyRepository::new(db).await?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn new(database: Database) -> Result<Self, anyhow::Error> {
         let collection = database.collection::<ServiceAccountKey>("service_account_key");
         
