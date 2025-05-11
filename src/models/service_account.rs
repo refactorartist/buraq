@@ -12,7 +12,7 @@ use chrono::{DateTime, Utc};
 /// - `enabled`: Whether the account is currently active
 /// - `created_at`: Account creation timestamp
 /// - `updated_at`: Last update timestamp
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 pub struct ServiceAccount {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
