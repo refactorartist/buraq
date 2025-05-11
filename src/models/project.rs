@@ -81,6 +81,17 @@ impl Project {
     pub fn updated_at(&self) -> &DateTime<Utc> {
         &self.updated_at
     }
+
+
+    // Convert to MongoDB Document
+    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
+        mongodb::bson::to_document(self)
+    }
+
+    // Create from MongoDB Document
+    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
+        mongodb::bson::from_document(doc)
+    }      
 }
 
 #[cfg(test)]
@@ -124,5 +135,26 @@ mod tests {
         assert_eq!(project.enabled, deserialized_project.enabled);
         assert!(project.created_at <= deserialized_project.created_at);
         assert!(project.updated_at <= deserialized_project.updated_at);
+    }
+
+    #[test]
+    fn test_mongodb_serialization() {
+        let name = "Test Project".to_string();
+        let description = "Test Description".to_string();
+        
+        let project = Project::new(name.clone(), description.clone());
+
+        // Test conversion to BSON Document
+        let doc = project.to_document().unwrap();
+        
+        // Test conversion from BSON Document
+        let deserialized = Project::from_document(doc).unwrap();
+
+        assert_eq!(deserialized.id, project.id);
+        assert_eq!(deserialized.name, name);
+        assert_eq!(deserialized.description, description);
+        assert_eq!(deserialized.enabled, project.enabled);
+        assert_eq!(deserialized.created_at.timestamp(), project.created_at.timestamp());
+        assert_eq!(deserialized.updated_at.timestamp(), project.updated_at.timestamp());
     }
 }
