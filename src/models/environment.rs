@@ -30,6 +30,22 @@ impl Environment {
     /// * `project_id` - ID of the associated project
     /// * `name` - Name of the environment
     /// * `description` - Description of the environment
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::environment::Environment;
+    /// use mongodb::bson::oid::ObjectId;
+    ///
+    /// let project_id = ObjectId::new();
+    /// let name = "Production".to_string();
+    /// let description = "Production environment".to_string();
+    ///
+    /// let env = Environment::new(project_id, name.clone(), description.clone());
+    /// assert_eq!(env.name(), "Production");
+    /// assert_eq!(env.description(), "Production environment");
+    /// assert!(env.enabled());
+    /// ```
     pub fn new(project_id: ObjectId, name: String, description: String) -> Self {
         Self {
             id: None,
@@ -41,6 +57,26 @@ impl Environment {
     }
 
     /// Returns the environment's unique identifier
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::environment::Environment;
+    /// use mongodb::bson::oid::ObjectId;
+    ///
+    /// let project_id = ObjectId::new();
+    /// let mut env = Environment::new(
+    ///     project_id,
+    ///     "Staging".to_string(),
+    ///     "Staging environment".to_string()
+    /// );
+    ///
+    /// assert!(env.id().is_none());
+    ///
+    /// let id = ObjectId::new();
+    /// env.set_id(id);
+    /// assert!(env.id().is_some());
+    /// ```
     pub fn id(&self) -> Option<&ObjectId> {
         self.id.as_ref()
     }
@@ -51,21 +87,84 @@ impl Environment {
     }
 
     /// Returns the associated project ID
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::environment::Environment;
+    /// use mongodb::bson::oid::ObjectId;
+    ///
+    /// let project_id = ObjectId::new();
+    /// let env = Environment::new(
+    ///     project_id,
+    ///     "Development".to_string(),
+    ///     "Development environment".to_string()
+    /// );
+    ///
+    /// assert_eq!(env.project_id(), &project_id);
+    /// ```
     pub fn project_id(&self) -> &ObjectId {
         &self.project_id
     }
 
     /// Returns the environment's name
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::environment::Environment;
+    /// use mongodb::bson::oid::ObjectId;
+    ///
+    /// let name = "Testing".to_string();
+    /// let env = Environment::new(
+    ///     ObjectId::new(),
+    ///     name.clone(),
+    ///     "Testing environment".to_string()
+    /// );
+    ///
+    /// assert_eq!(env.name(), name);
+    /// ```
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Returns the environment's description
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::environment::Environment;
+    /// use mongodb::bson::oid::ObjectId;
+    ///
+    /// let description = "Production environment for live applications".to_string();
+    /// let env = Environment::new(
+    ///     ObjectId::new(),
+    ///     "Production".to_string(),
+    ///     description.clone()
+    /// );
+    ///
+    /// assert_eq!(env.description(), description);
+    /// ```
     pub fn description(&self) -> &str {
         &self.description
     }
 
     /// Returns whether the environment is enabled
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::environment::Environment;
+    /// use mongodb::bson::oid::ObjectId;
+    ///
+    /// let env = Environment::new(
+    ///     ObjectId::new(),
+    ///     "Staging".to_string(),
+    ///     "Staging environment".to_string()
+    /// );
+    ///
+    /// assert!(env.enabled());
+    /// ```
     pub fn enabled(&self) -> bool {
         self.enabled
     }
