@@ -1,6 +1,6 @@
-use crate::repositories::project::ProjectRepository;
 use crate::models::project::Project;
 use crate::repositories::base::Repository;
+use crate::repositories::project::ProjectRepository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::oid::ObjectId;
@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 pub struct ProjectService {
     project_repository: ProjectRepository,
 }
-
 
 /// Filter for querying projects
 ///
@@ -41,13 +40,10 @@ impl From<ProjectFilter> for mongodb::bson::Document {
         if let Some(enabled) = val.enabled {
             doc.insert("enabled", enabled);
         }
-        
+
         doc
     }
 }
-
-
-
 
 impl ProjectService {
     /// Creates a new ProjectService instance.
@@ -84,7 +80,7 @@ impl ProjectService {
     /// # use buraq::services::project_service::ProjectService;
     /// # use buraq::models::project::Project;
     /// # use mongodb::{Client, Database};
-    /// 
+    ///
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
@@ -97,9 +93,12 @@ impl ProjectService {
     pub async fn create_project(&self, project: Project) -> Result<Project, Error> {
         let result = self.project_repository.create(project.clone()).await?;
         let id = result.inserted_id.as_object_id().unwrap();
-        
+
         // Fetch the newly created project
-        let inserted_project = self.project_repository.read(id).await?
+        let inserted_project = self
+            .project_repository
+            .read(id)
+            .await?
             .ok_or_else(|| Error::msg("Failed to fetch created project"))?;
 
         Ok(inserted_project)
@@ -124,7 +123,7 @@ impl ProjectService {
     /// ```
     /// # use buraq::services::project_service::ProjectService;
     /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    /// 
+    ///
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
@@ -159,7 +158,7 @@ impl ProjectService {
     /// # use buraq::services::project_service::ProjectService;
     /// # use buraq::models::project::Project;
     /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    /// 
+    ///
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
@@ -179,7 +178,10 @@ impl ProjectService {
             log::error!("Failed to update project: {:?}", id);
         }
 
-        let updated_project = self.project_repository.read(id).await?
+        let updated_project = self
+            .project_repository
+            .read(id)
+            .await?
             .ok_or_else(|| Error::msg("Failed to fetch updated project"))?;
 
         Ok(updated_project)
@@ -204,7 +206,7 @@ impl ProjectService {
     /// ```
     /// # use buraq::services::project_service::ProjectService;
     /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    /// 
+    ///
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
@@ -218,7 +220,6 @@ impl ProjectService {
         let result = self.project_repository.delete(id).await?;
         Ok(result.deleted_count > 0)
     }
-
 
     /// Retrieves projects based on the provided filter criteria
     ///
@@ -239,7 +240,7 @@ impl ProjectService {
     /// ```
     /// # use buraq::services::project_service::{ProjectService, ProjectFilter};
     /// # use mongodb::{Client, Database};
-    /// 
+    ///
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
@@ -251,7 +252,7 @@ impl ProjectService {
     ///     description: None,
     ///     enabled: Some(true),
     /// };
-    /// 
+    ///
     /// let projects = project_service.get_projects(filter).await?;
     /// # Ok(())
     /// # }
@@ -269,7 +270,9 @@ mod tests {
     use crate::test_utils::{setup_test_db, cleanup_test_db};
     use tokio;
 
-    async fn setup_projects_for_filter_tests(project_service: &ProjectService) -> Result<(), Error> {
+    async fn setup_projects_for_filter_tests(
+        project_service: &ProjectService,
+    ) -> Result<(), Error> {
         // Clean up any existing data first
         let collection = project_service.project_repository.collection()?;
         let db = collection.client().database(&collection.namespace().db);
@@ -283,7 +286,7 @@ mod tests {
         project_service.create_project(project1).await?;
         project_service.create_project(project2).await?;
         project_service.create_project(project3).await?;
-        
+
         Ok(())
     }
 
