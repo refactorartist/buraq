@@ -1,7 +1,9 @@
 use crate::models::environment::Environment;
 use crate::repositories::base::Repository;
 use anyhow::Result;
-use mongodb::{Collection, Database};
+use mongodb::{Collection, Database, IndexModel, options::IndexOptions};
+use mongodb::bson::doc;
+
 
 /// Repository for managing Environment documents in MongoDB.
 ///
@@ -20,8 +22,19 @@ impl EnvironmentRepository {
     /// # Returns
     ///
     /// Returns a Result containing the EnvironmentRepository or an error if collection creation fails.
-    pub fn new(database: Database) -> Result<Self, anyhow::Error> {
+    pub async fn new(database: Database) -> Result<Self, anyhow::Error> {
         let collection = database.collection::<Environment>("environments");
+
+        // Create unique compound index on project_id and name
+        let options = IndexOptions::builder().unique(true).build();
+        let index = IndexModel::builder()
+            .keys(doc! { "project_id": 1, "name": 1 })
+            .options(options)
+            .build();
+        
+        // Create index if it doesn't exist
+        collection.create_index(index).await?;
+
         Ok(Self { collection })
     }
 }
@@ -53,29 +66,95 @@ mod tests {
 
         let client = create_database_client(&app_config.application.database_uri).await?;
         let db = client.database("test_db__environments");
+        
         Ok(db)
     }
 
     async fn cleanup_test_db(db: Database) -> Result<()> {
         db.collection::<Environment>("environments").drop().await?;
-        Ok(())
+        Ok(())        
     }
 
     #[tokio::test]
     async fn test_create_environment() -> Result<()> {
         let db = setup_test_db().await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
-
+        let repo = EnvironmentRepository::new(db.clone()).await?;
+        
         let project_id = mongodb::bson::oid::ObjectId::new();
+        let name = "Test Environment".to_string();
+        
         let environment = Environment::new(
             project_id,
-            "Test Environment".to_string(),
+            name.clone(),
             "Test Description".to_string(),
         );
+        
         let result = repo.create(environment).await?;
-
         assert!(matches!(result.inserted_id, Bson::ObjectId(_)));
+        
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
 
+    #[tokio::test]
+    async fn test_create_duplicate_environment() -> Result<()> {
+        let db = setup_test_db().await?;
+        let repo = EnvironmentRepository::new(db.clone()).await?;
+        
+        let project_id = mongodb::bson::oid::ObjectId::new();
+        let name = "Test Environment".to_string();
+        
+        // Create first environment
+        let environment1 = Environment::new(
+            project_id,
+            name.clone(),
+            "Test Description 1".to_string(),
+        );
+        repo.create(environment1).await?;
+        
+        // Try to create second environment with same project_id and name
+        let environment2 = Environment::new(
+            project_id,
+            name.clone(),
+            "Test Description 2".to_string(),
+        );
+        let result = repo.create(environment2).await;
+        
+        // Should fail due to unique index constraint
+        assert!(result.is_err());
+        
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_create_environment_same_name_different_project() -> Result<()> {
+        let db = setup_test_db().await?;
+        let repo = EnvironmentRepository::new(db.clone()).await?;
+        
+        let project_id_1 = mongodb::bson::oid::ObjectId::new();
+        let project_id_2 = mongodb::bson::oid::ObjectId::new();
+        let name = "Test Environment".to_string();
+        
+        // Create environment for first project
+        let environment1 = Environment::new(
+            project_id_1,
+            name.clone(),
+            "Test Description 1".to_string(),
+        );
+        repo.create(environment1).await?;
+        
+        // Create environment with same name but different project_id
+        let environment2 = Environment::new(
+            project_id_2,
+            name.clone(),
+            "Test Description 2".to_string(),
+        );
+        let result = repo.create(environment2).await;
+        
+        // Should succeed as project_ids are different
+        assert!(result.is_ok());
+        
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -83,7 +162,7 @@ mod tests {
     #[tokio::test]
     async fn test_read_environment() -> Result<()> {
         let db = setup_test_db().await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let repo = EnvironmentRepository::new(db.clone()).await?;
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let environment = Environment::new(
@@ -108,7 +187,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_environment() -> Result<()> {
         let db = setup_test_db().await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let repo = EnvironmentRepository::new(db.clone()).await?;
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let environment = Environment::new(
@@ -138,7 +217,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_environment() -> Result<()> {
         let db = setup_test_db().await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let repo = EnvironmentRepository::new(db.clone()).await?;
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let environment = Environment::new(
@@ -162,7 +241,7 @@ mod tests {
     #[tokio::test]
     async fn test_find_environments() -> Result<()> {
         let db = setup_test_db().await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let repo = EnvironmentRepository::new(db.clone()).await?;
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let environment1 = Environment::new(
@@ -192,7 +271,7 @@ mod tests {
     #[tokio::test]
     async fn test_find_environments_by_project() -> Result<()> {
         let db = setup_test_db().await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let repo = EnvironmentRepository::new(db.clone()).await?;
 
         let project_id_1 = mongodb::bson::oid::ObjectId::new();
         let project_id_2 = mongodb::bson::oid::ObjectId::new();
@@ -222,9 +301,21 @@ mod tests {
         // Find environments for project 1
         let environments = repo.find(doc! { "project_id": project_id_1 }).await?;
         assert_eq!(environments.len(), 2);
-        assert!(environments.iter().all(|env| env.project_id() == &project_id_1));
-        assert!(environments.iter().any(|env| env.name() == "Project 1 Environment 1"));
-        assert!(environments.iter().any(|env| env.name() == "Project 1 Environment 2"));
+        assert!(
+            environments
+                .iter()
+                .all(|env| env.project_id() == &project_id_1)
+        );
+        assert!(
+            environments
+                .iter()
+                .any(|env| env.name() == "Project 1 Environment 1")
+        );
+        assert!(
+            environments
+                .iter()
+                .any(|env| env.name() == "Project 1 Environment 2")
+        );
 
         // Find environments for project 2
         let environments = repo.find(doc! { "project_id": project_id_2 }).await?;
@@ -234,7 +325,9 @@ mod tests {
 
         // Find environments for non-existent project
         let non_existent_project_id = mongodb::bson::oid::ObjectId::new();
-        let environments = repo.find(doc! { "project_id": non_existent_project_id }).await?;
+        let environments = repo
+            .find(doc! { "project_id": non_existent_project_id })
+            .await?;
         assert_eq!(environments.len(), 0);
 
         cleanup_test_db(db).await?;
