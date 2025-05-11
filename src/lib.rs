@@ -4,3 +4,4 @@ pub mod repositories;
 pub mod models;
 pub mod types;
 pub mod serializers;
+pub mod services;
