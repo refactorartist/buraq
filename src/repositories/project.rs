@@ -173,15 +173,22 @@ mod tests {
         let db = setup_test_db().await?;
         let repo = ProjectRepository::new(db.clone())?;
 
+        // Clean up any existing data
+        cleanup_test_db(db.clone()).await?;
+
         // Create multiple projects
         let project1 = Project::new("Project 1".to_string(), "Description 1".to_string());
         let project2 = Project::new("Project 2".to_string(), "Description 2".to_string());
-        repo.create(project1).await?;
-        repo.create(project2).await?;
+        let result1 = repo.create(project1).await?;
+        let result2 = repo.create(project2).await?;
+
+        // Verify both projects were created
+        assert!(result1.inserted_id.as_object_id().is_some());
+        assert!(result2.inserted_id.as_object_id().is_some());
 
         // Find all projects
         let projects = repo.find(doc! {}).await?;
-        assert_eq!(projects.len(), 2);
+        assert_eq!(projects.len(), 2, "Expected 2 projects, found {}", projects.len());
 
         // Find projects with specific name
         let projects = repo.find(doc! { "name": "Project 1" }).await?;
