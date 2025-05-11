@@ -48,6 +48,16 @@ impl ServiceAccount {
     pub fn enabled(&self) -> bool {
         self.enabled
     }
+
+    // Convert to MongoDB Document
+    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
+        mongodb::bson::to_document(self)
+    }
+
+    // Create from MongoDB Document
+    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
+        mongodb::bson::from_document(doc)
+    }    
 }
 
 #[cfg(test)]
@@ -68,6 +78,7 @@ mod test {
         assert_eq!(service_account.user, user);
         assert_eq!(service_account.secret, secret);
     }
+   
     #[test]
     fn test_serialization() {
         let email = "Examples@google.com".to_string();
@@ -88,5 +99,25 @@ mod test {
             service_account.enabled,
             deserialized_service_account.enabled
         );
+    }
+
+    #[test]
+    fn test_mongodb_serialization() {
+        let email = "Examples@google.com".to_string();
+        let user = "Example123".to_string();
+        let secret = "ExampleSercet".to_string();
+        let service_account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
+
+        // Test conversion to BSON Document
+        let doc = service_account.to_document().unwrap();
+        
+        // Test conversion from BSON Document
+        let deserialized = ServiceAccount::from_document(doc).unwrap();
+
+        assert_eq!(service_account.id, deserialized.id);
+        assert_eq!(service_account.email, deserialized.email);
+        assert_eq!(service_account.user, deserialized.user);
+        assert_eq!(service_account.secret, deserialized.secret);
+        assert_eq!(service_account.enabled, deserialized.enabled);
     }
 }
