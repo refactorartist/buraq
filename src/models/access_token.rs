@@ -15,7 +15,8 @@ use crate::serializers::algorithm;
 /// - `enabled`: Whether the token is currently active
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AccessToken {
-    id: ObjectId,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
     key: String,
     #[serde(with = "algorithm")]
     algorithm: Algorithm,
@@ -33,7 +34,7 @@ impl AccessToken {
     /// * `expires_at` - When the token expires
     pub fn new(key: String, algorithm: Algorithm, expires_at: DateTime<Utc>) -> Self {
         Self {
-            id: ObjectId::new(),
+            id: None,
             key,
             algorithm,
             expires_at,
@@ -43,8 +44,13 @@ impl AccessToken {
     }
 
     /// Returns the token's unique identifier
-    pub fn id(&self) -> &ObjectId {
-        &self.id
+    pub fn id(&self) -> Option<&ObjectId> {
+        self.id.as_ref()
+    }
+
+    /// Sets the token's unique identifier
+    pub fn set_id(&mut self, id: ObjectId) {
+        self.id = Some(id);
     }
 
     /// Returns the API key value
@@ -100,7 +106,7 @@ mod tests {
 
         let token = AccessToken::new(key.clone(), algorithm, expires_at);
 
-        assert!(ObjectId::parse_str(token.id().to_hex()).is_ok());
+        assert!(token.id().is_none());
         assert_eq!(token.key(), key);
         assert!(matches!(token.algorithm(), Algorithm::HMAC));
         assert_eq!(token.expires_at(), &expires_at);
@@ -114,7 +120,9 @@ mod tests {
         let algorithm = Algorithm::RSA;
         let expires_at = Utc::now() + chrono::Duration::days(7);
 
-        let token = AccessToken::new(key.clone(), algorithm, expires_at);
+        let mut token = AccessToken::new(key.clone(), algorithm, expires_at);
+        let id = ObjectId::new();
+        token.set_id(id);
 
         // Test conversion to BSON Document
         let doc = token.to_document().unwrap();
@@ -166,4 +174,3 @@ mod tests {
         assert!(token.is_expired());
     }
 }
-
