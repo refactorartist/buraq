@@ -26,6 +26,16 @@ pub trait Repository<T: Send + Sync + Serialize + DeserializeOwned + 'static> {
     async fn update(&self, id: ObjectId, item: T) -> Result<UpdateResult, Error> {
         let collection = self.collection()?;
         let filter = doc! { "_id": id };
+        
+        // Convert item to document
+        let mut doc = mongodb::bson::to_document(&item)?;
+        
+        // Preserve the _id field
+        doc.insert("_id", id);
+        
+        // Convert back to T
+        let item = mongodb::bson::from_document::<T>(doc)?;
+        
         let result = collection.replace_one(filter, item).await?;
         Ok(result)
     }
