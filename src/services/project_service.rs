@@ -271,6 +271,7 @@ mod tests {
 
     async fn cleanup_test_db(db: Database) -> Result<(), Error> {
         db.collection::<Project>("projects").drop().await?;
+        db.drop().await?;
         Ok(())
     }
 
