@@ -20,6 +20,27 @@ impl AccessTokenRepository {
     /// # Returns
     ///
     /// Returns a Result containing the AccessTokenRepository or an error if collection creation fails.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use buraq::repositories::access_token::AccessTokenRepository;
+    /// use mongodb::Client;
+    /// use buraq::utils::database::create_database_client;
+    /// use dotenvy::dotenv;
+    /// use buraq::config::AppConfig;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> anyhow::Result<()> {
+    ///     dotenv().ok();
+    ///
+    ///     let app_config = AppConfig::from_env(Some(true))?;
+    ///     let client = create_database_client(&app_config.application.database_uri).await?;
+    ///     let db = client.database("test_db");
+    ///     let repo = AccessTokenRepository::new(db)?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn new(database: Database) -> Result<Self, anyhow::Error> {
         let collection = database.collection::<AccessToken>("access_tokens");
         Ok(Self { collection })
