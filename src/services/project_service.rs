@@ -4,10 +4,13 @@ use crate::repositories::base::Repository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::oid::ObjectId;
+use serde::{Deserialize, Serialize};
 
 pub struct ProjectService {
     project_repository: ProjectRepository,
 }
+
+
 
 impl ProjectService {
     /// Creates a new ProjectService with the given database connection
@@ -171,6 +174,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_project() {
-        // TODO: Implement test for delete_project
+        let db = setup_test_db().await.unwrap();
+        cleanup_test_db(db.clone()).await.unwrap();
+        let project_service = ProjectService::new(db.clone());
+
+        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
+        let result = project_service.create_project(project).await;
+        assert!(result.is_ok(), "Failed to create project: {:?}", result.err());
+        let created_project = result.unwrap();
+
+        let result = project_service.delete_project(created_project.id().unwrap().clone()).await;
+        assert!(result.is_ok(), "Failed to delete project: {:?}", result.err());
+        assert!(result.unwrap(), "Project should be deleted");
+
+        // Clean up test database
+        cleanup_test_db(db).await.unwrap();
     }
 }
