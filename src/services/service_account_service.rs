@@ -79,13 +79,16 @@ mod tests {
     async fn setup_service_account_for_filter_tests(
         service_account_service: &ServiceAccountService,
     ) -> Result<(), Error> {
-    let collation = service_account_service.service_account_repository.collection()?;
-    let db = collation.client().database(&collation.namespace().db);
+    let collection = service_account_service.service_account_repository.collection()?;
+    let db = collection.client().database(&collection.namespace().db);
     cleanup_test_db(db).await?;
 
-
-    let service_account1 = ServiceAccount::new()
-
-
+    let email = "service@example.com".to_string();
+    let user = "service-user".to_string();
+    let secret = "service-secret-123".to_string();
+    
+    let account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
+        
+        Ok(())
     }
 }
