@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 /// - `project_scopes`: Array of project scope IDs this access is granted
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProjectAccess {    
-    id: ObjectId,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
     name: String,
     environment_id: ObjectId,
     service_account_id: ObjectId,
@@ -34,7 +35,7 @@ impl ProjectAccess {
         project_scopes: Vec<ObjectId>,
     ) -> Self {
         Self {
-            id: ObjectId::new(),
+            id: None,
             name,
             environment_id,
             service_account_id,
@@ -53,8 +54,13 @@ impl ProjectAccess {
     }
 
     /// Returns the access configuration's unique identifier
-    pub fn id(&self) -> &ObjectId {
-        &self.id
+    pub fn id(&self) -> Option<&ObjectId> {
+        self.id.as_ref()
+    }
+
+    /// Sets the access configuration's unique identifier
+    pub fn set_id(&mut self, id: ObjectId) {
+        self.id = Some(id);
     }
 
     /// Returns the access configuration's name
@@ -120,7 +126,7 @@ mod tests {
             project_scopes.clone(),
         );
 
-        assert!(ObjectId::parse_str(access.id().to_hex()).is_ok());
+        assert!(access.id().is_none());
         assert_eq!(access.name(), name);
         assert_eq!(access.environment_id(), &environment_id);
         assert_eq!(access.service_account_id(), &service_account_id);
@@ -129,12 +135,14 @@ mod tests {
 
     #[test]
     fn test_document_conversion() {
-        let access = ProjectAccess::new(
+        let mut access = ProjectAccess::new(
             "Test Access".to_string(),
             ObjectId::new(),
             ObjectId::new(),
             vec![ObjectId::new()],
         );
+        let id = ObjectId::new();
+        access.set_id(id);
 
         // Test conversion to document
         let doc = access.to_document().unwrap();
@@ -192,12 +200,14 @@ mod tests {
         let service_account_id = ObjectId::new();
         let project_scopes = vec![ObjectId::new(), ObjectId::new()];
 
-        let access = ProjectAccess::new(
+        let mut access = ProjectAccess::new(
             name,
             environment_id,
             service_account_id,
             project_scopes,
         );
+        let id = ObjectId::new();
+        access.set_id(id);
 
         let serialized = serde_json::to_string(&access).unwrap();
         let deserialized: ProjectAccess = serde_json::from_str(&serialized).unwrap();
@@ -209,5 +219,3 @@ mod tests {
         assert_eq!(access.project_scopes(), deserialized.project_scopes());
     }
 }
-
-

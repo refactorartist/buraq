@@ -55,6 +55,10 @@ mod tests {
 
         let client = create_database_client(&app_config.application.database_uri).await?;
         let db = client.database("test_db__access_tokens");
+        
+        // Ensure collection is empty before test
+        db.collection::<AccessToken>("access_tokens").drop().await?;
+        
         Ok(db)
     }
 
@@ -117,11 +121,12 @@ mod tests {
         let result = repo.create(token).await?;
         let id = result.inserted_id.as_object_id().unwrap();
 
-        let updated_token = AccessToken::new(
+        let mut updated_token = AccessToken::new(
             "updated-key".to_string(),
             Algorithm::RSA,
             Utc::now() + Duration::days(14)
         );
+        updated_token.set_id(id);
         let update_result = repo.update(id, updated_token).await?;
         assert_eq!(update_result.modified_count, 1);
 
@@ -161,23 +166,35 @@ mod tests {
         let db = setup_test_db().await?;
         let repo = AccessTokenRepository::new(db.clone())?;
 
+        // Create first token
         let token1 = AccessToken::new(
             "key-1".to_string(),
             Algorithm::HMAC,
             Utc::now() + Duration::days(7)
         );
+        let result1 = repo.create(token1).await?;
+        println!("Created first token with id: {:?}", result1.inserted_id);
+
+        // Create second token
         let token2 = AccessToken::new(
             "key-2".to_string(),
             Algorithm::RSA,
             Utc::now() + Duration::days(7)
         );
-        repo.create(token1).await?;
-        repo.create(token2).await?;
+        let result2 = repo.create(token2).await?;
+        println!("Created second token with id: {:?}", result2.inserted_id);
 
+        // Find all tokens
         let tokens = repo.find(doc! {}).await?;
+        println!("Found {} tokens", tokens.len());
+        for token in &tokens {
+            println!("Token key: {}", token.key());
+        }
         assert_eq!(tokens.len(), 2);
 
+        // Find specific token
         let filtered_tokens = repo.find(doc! { "key": "key-1" }).await?;
+        println!("Found {} filtered tokens", filtered_tokens.len());
         assert_eq!(filtered_tokens.len(), 1);
         assert_eq!(filtered_tokens[0].key(), "key-1");
 

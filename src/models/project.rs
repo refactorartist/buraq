@@ -12,7 +12,8 @@ use chrono::{DateTime, Utc};
 /// - `updated_at`: Timestamp when project was last updated
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Project {
-    id: ObjectId,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
     name: String,
     description: String,
     enabled: bool,
@@ -24,8 +25,8 @@ impl Project {
     /// Creates a new Project with the given name and description.
     ///
     /// Automatically generates:
-    /// - A new ObjectId
     /// - Current UTC timestamps for created_at and updated_at
+    /// - Sets enabled to true by default
     ///
     /// # Arguments
     ///
@@ -43,7 +44,7 @@ impl Project {
     /// ```
     pub fn new(name: String, description: String) -> Self {
         Self { 
-            id: ObjectId::new(), 
+            id: None,
             name, 
             description, 
             enabled: true,
@@ -53,8 +54,13 @@ impl Project {
     }
 
     /// Returns the project's unique identifier
-    pub fn id(&self) -> &ObjectId {
-        &self.id
+    pub fn id(&self) -> Option<&ObjectId> {
+        self.id.as_ref()
+    }
+
+    /// Sets the project's unique identifier
+    pub fn set_id(&mut self, id: ObjectId) {
+        self.id = Some(id);
     }
 
     /// Returns the project's name
@@ -82,7 +88,6 @@ impl Project {
         &self.updated_at
     }
 
-
     // Convert to MongoDB Document
     pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
         mongodb::bson::to_document(self)
@@ -106,19 +111,21 @@ mod tests {
         let project = Project::new(name.clone(), description.clone());
         
         // Verify fields are set correctly
-        assert!(ObjectId::parse_str(project.id.to_string()).is_ok());
-        assert_eq!(project.name, name);
-        assert_eq!(project.description, description);
-        assert!(project.enabled);
+        assert!(project.id().is_none());
+        assert_eq!(project.name(), name);
+        assert_eq!(project.description(), description);
+        assert!(project.enabled());
         // Verify timestamps are recent
         let now = Utc::now();
-        assert!(project.created_at <= now);
-        assert!(project.updated_at <= now);
+        assert!(project.created_at() <= &now);
+        assert!(project.updated_at() <= &now);
     }
 
     #[test]
     fn test_serialization() {
-        let project = Project::new("Test".to_string(), "Description".to_string()); // why not use variables from line 92 and 93 
+        let name = "Test Project".to_string();
+        let description = "Test Description".to_string();
+        let project = Project::new(name.clone(), description.clone());
         
         // Test serialization
         let serialized = serde_json::to_string(&project);
@@ -129,12 +136,12 @@ mod tests {
         assert!(deserialized.is_ok());
         
         let deserialized_project = deserialized.unwrap();
-        assert_eq!(project.id, deserialized_project.id);
-        assert_eq!(project.name, deserialized_project.name);
-        assert_eq!(project.description, deserialized_project.description);
-        assert_eq!(project.enabled, deserialized_project.enabled);
-        assert!(project.created_at <= deserialized_project.created_at);
-        assert!(project.updated_at <= deserialized_project.updated_at);
+        assert_eq!(project.id(), deserialized_project.id());
+        assert_eq!(project.name(), deserialized_project.name());
+        assert_eq!(project.description(), deserialized_project.description());
+        assert_eq!(project.enabled(), deserialized_project.enabled());
+        assert_eq!(project.created_at(), deserialized_project.created_at());
+        assert_eq!(project.updated_at(), deserialized_project.updated_at());
     }
 
     #[test]
@@ -142,7 +149,9 @@ mod tests {
         let name = "Test Project".to_string();
         let description = "Test Description".to_string();
         
-        let project = Project::new(name.clone(), description.clone());
+        let mut project = Project::new(name.clone(), description.clone());
+        let id = ObjectId::new();
+        project.set_id(id);
 
         // Test conversion to BSON Document
         let doc = project.to_document().unwrap();
@@ -150,11 +159,11 @@ mod tests {
         // Test conversion from BSON Document
         let deserialized = Project::from_document(doc).unwrap();
 
-        assert_eq!(deserialized.id, project.id);
-        assert_eq!(deserialized.name, name);
-        assert_eq!(deserialized.description, description);
-        assert_eq!(deserialized.enabled, project.enabled);
-        assert_eq!(deserialized.created_at.timestamp(), project.created_at.timestamp());
-        assert_eq!(deserialized.updated_at.timestamp(), project.updated_at.timestamp());
+        assert_eq!(deserialized.id(), project.id());
+        assert_eq!(deserialized.name(), project.name());
+        assert_eq!(deserialized.description(), project.description());
+        assert_eq!(deserialized.enabled(), project.enabled());
+        assert_eq!(deserialized.created_at(), project.created_at());
+        assert_eq!(deserialized.updated_at(), project.updated_at());
     }
 }
