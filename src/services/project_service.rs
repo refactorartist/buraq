@@ -49,9 +49,19 @@ impl ProjectService {
         self.project_repository.read(id).await
     }
 
-    pub async fn update_project(&self, id: ObjectId, project: Project) -> Result<bool, Error> {
+    pub async fn update_project(&self, id: ObjectId, project: Project) -> Result<Project, Error> {
         let result = self.project_repository.update(id, project).await?;
-        Ok(result.modified_count > 0)
+
+        if result.modified_count > 0 {
+            log::info!("Project updated successfully: {:?}", id);
+        } else {
+            log::error!("Failed to update project: {:?}", id);
+        }
+
+        let updated_project = self.project_repository.read(id).await?
+            .ok_or_else(|| Error::msg("Failed to fetch updated project"))?;
+
+        Ok(updated_project)
     }
 
     pub async fn delete_project(&self, id: ObjectId) -> Result<bool, Error> {
@@ -73,7 +83,7 @@ mod tests {
 
         let app_config = AppConfig::from_env(Some(true))?;
         let client = create_database_client(&app_config.application.database_uri).await?;
-        let db = client.database("test_db__projects");  
+        let db = client.database("test_db__project_services");  
         Ok(db)
     }
 
@@ -139,7 +149,24 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_project() {
-        // TODO: Implement test for update_project
+        let db = setup_test_db().await.unwrap();
+        cleanup_test_db(db.clone()).await.unwrap();
+        let project_service = ProjectService::new(db.clone());
+
+        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
+        let result = project_service.create_project(project).await;
+        assert!(result.is_ok(), "Failed to create project: {:?}", result.err());
+        let created_project = result.unwrap();
+
+        let updated_project = Project::new("Updated Project".to_string(), "Updated Description".to_string());
+        let result = project_service.update_project(created_project.id().unwrap().clone(), updated_project).await;
+        assert!(result.is_ok(), "Failed to update project: {:?}", result.err());
+        let updated_project = result.unwrap();
+        assert_eq!(updated_project.name(), "Updated Project");
+        assert_eq!(updated_project.description(), "Updated Description");
+
+        // Clean up test database
+        cleanup_test_db(db).await.unwrap();
     }
 
     #[tokio::test]
