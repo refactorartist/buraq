@@ -1,0 +1,63 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  BURAQ_DATABASE_URI: mongodb://root:root@localhost:27017/?authSource=admin
+  BURAQ_HOST: 127.0.0.1
+  BURAQ_PORT: 8080
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    # MongoDB service container
+    services:
+      mongodb:
+        image: bitnami/mongodb:latest
+        ports:
+          - 27017:27017
+        env:
+          MONGODB_ROOT_USER: root
+          MONGODB_ROOT_PASSWORD: root
+          MONGODB_DATABASE: admin
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Setup Rust
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+    
+    # Cache dependencies
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    # Wait for MongoDB to be ready
+    - name: Wait for MongoDB
+      run: |
+        while ! nc -z localhost 27017; do   
+          sleep 1
+        done
+    
+    # Build the project
+    - name: Build
+      run: cargo build --verbose
+    
+    # Run tests
+    - name: Run tests
+      run: cargo test --verbose
