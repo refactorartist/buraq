@@ -4,7 +4,6 @@ use crate::repositories::base::Repository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::oid::ObjectId;
-use serde::{Deserialize, Serialize};
 
 /// Service for managing projects
 ///
@@ -268,7 +267,7 @@ mod tests {
         assert!(result.is_ok(), "Failed to create project: {:?}", result.err());
         let created_project = result.unwrap();
 
-        let project = project_service.get_project(created_project.id().unwrap().clone()).await;
+        let project = project_service.get_project(*created_project.id().unwrap()).await;
         assert!(project.is_ok(), "Failed to get project: {:?}", project.err());
         let project = project.unwrap().expect("Project should exist");
         assert_eq!(project.name(), "Test Project");
@@ -288,7 +287,7 @@ mod tests {
         let created_project = result.unwrap();
 
         let updated_project = Project::new("Updated Project".to_string(), "Updated Description".to_string());
-        let result = project_service.update_project(created_project.id().unwrap().clone(), updated_project).await;
+        let result = project_service.update_project(*created_project.id().unwrap(), updated_project).await;
         assert!(result.is_ok(), "Failed to update project: {:?}", result.err());
         let updated_project = result.unwrap();
         assert_eq!(updated_project.name(), "Updated Project");
@@ -309,7 +308,7 @@ mod tests {
         assert!(result.is_ok(), "Failed to create project: {:?}", result.err());
         let created_project = result.unwrap();
 
-        let result = project_service.delete_project(created_project.id().unwrap().clone()).await;
+        let result = project_service.delete_project(*created_project.id().unwrap()).await;
         assert!(result.is_ok(), "Failed to delete project: {:?}", result.err());
         assert!(result.unwrap(), "Project should be deleted");
 
