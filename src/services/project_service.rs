@@ -26,19 +26,19 @@ pub struct ProjectFilter {
     pub enabled: Option<bool>,
 }
 
-impl Into<mongodb::bson::Document> for ProjectFilter {
-    fn into(self) -> mongodb::bson::Document {
+impl From<ProjectFilter> for mongodb::bson::Document {
+    fn from(val: ProjectFilter) -> Self {
         let mut doc = mongodb::bson::Document::new();
         
-        if let Some(name) = self.name {
+        if let Some(name) = val.name {
             doc.insert("name", name);
         }
         
-        if let Some(description) = self.description {
+        if let Some(description) = val.description {
             doc.insert("description", description);
         }
         
-        if let Some(enabled) = self.enabled {
+        if let Some(enabled) = val.enabled {
             doc.insert("enabled", enabled);
         }
         
@@ -50,32 +50,18 @@ impl Into<mongodb::bson::Document> for ProjectFilter {
 
 
 impl ProjectService {
-    /// Creates a new ProjectService with the given database connection
+    /// Creates a new ProjectService instance.
     ///
     /// # Arguments
     ///
-    /// * `db` - MongoDB database connection
+    /// * `database` - MongoDB Database instance
     ///
     /// # Returns
     ///
-    /// A new ProjectService instance
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::services::project_service::ProjectService;
-    /// use mongodb::{Client, Database};
-    ///
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn new(db: Database) -> Self {
-        let project_repository = ProjectRepository::new(db).unwrap();
-        Self { project_repository }
+    /// Returns a Result containing the ProjectService or an error if initialization fails.
+    pub fn new(database: Database) -> Result<Self, Error> {
+        let project_repository = ProjectRepository::new(database)?;
+        Ok(Self { project_repository })
     }
 
     /// Creates a new project in the database
@@ -102,7 +88,7 @@ impl ProjectService {
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db);
+    /// let project_service = ProjectService::new(db)?;
     /// let project = Project::new("My Project".to_string(), "A test project".to_string());
     /// let created_project = project_service.create_project(project).await?;
     /// # Ok(())
@@ -142,7 +128,7 @@ impl ProjectService {
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db);
+    /// let project_service = ProjectService::new(db)?;
     /// let project_id = ObjectId::new();
     /// let project = project_service.get_project(project_id).await?;
     /// # Ok(())
@@ -177,7 +163,7 @@ impl ProjectService {
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db);
+    /// let project_service = ProjectService::new(db)?;
     /// let project_id = ObjectId::new();
     /// let updated_project = Project::new("Updated Name".to_string(), "Updated description".to_string());
     /// let result = project_service.update_project(project_id, updated_project).await?;
@@ -222,7 +208,7 @@ impl ProjectService {
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db);
+    /// let project_service = ProjectService::new(db)?;
     /// let project_id = ObjectId::new();
     /// let was_deleted = project_service.delete_project(project_id).await?;
     /// # Ok(())
@@ -257,7 +243,7 @@ impl ProjectService {
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db);
+    /// let project_service = ProjectService::new(db)?;
     /// 
     /// // Create a filter to find enabled projects
     /// let filter = ProjectFilter {
@@ -280,35 +266,8 @@ impl ProjectService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
-    use crate::utils::database::create_database_client;
-    use dotenvy::dotenv;
-    use tokio;    
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    
-    static DB_COUNTER: AtomicUsize = AtomicUsize::new(0);
-
-    async fn setup_test_db() -> Result<Database, Error> {
-        dotenv().ok();
-
-        let app_config = AppConfig::from_env(Some(true))?;
-        let client = create_database_client(&app_config.application.database_uri).await?;
-        
-        // Create a unique database name for each test
-        let db_num = DB_COUNTER.fetch_add(1, Ordering::SeqCst);
-        let db = client.database(&format!("test_db__project_services_{}", db_num));
-        
-        // Ensure the database is clean before starting
-        cleanup_test_db(db.clone()).await?;
-        
-        Ok(db)
-    }
-
-    async fn cleanup_test_db(db: Database) -> Result<(), Error> {
-        db.collection::<Project>("projects").drop().await?;
-        db.drop().await?;
-        Ok(())
-    }
+    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use tokio;
 
     async fn setup_projects_for_filter_tests(project_service: &ProjectService) -> Result<(), Error> {
         // Clean up any existing data first
@@ -329,105 +288,93 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_new() {
-        // Setup test database
-        let db = setup_test_db().await.unwrap();
-        
-        // Create a new ProjectService instance
-        let project_service = ProjectService::new(db.clone());
-        
-        // Verify the project_service was created successfully
-        assert!(project_service.project_repository.collection().unwrap().name() == "projects");
-        
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
+    async fn test_create_project() -> Result<(), Error> {
+        let db = setup_test_db("project_service").await?;
+        let project_service = ProjectService::new(db.clone())?;
+
+        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
+        let result = project_service.create_project(project).await?;
+
+        assert!(result.id().is_some());
+        assert_eq!(result.name(), "Test Project");
+        assert_eq!(result.description(), "Test Description");
+        assert!(result.enabled());
+
+        cleanup_test_db(db).await?;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_create_project() {
-        let db = setup_test_db().await.unwrap();
-        let project_service = ProjectService::new(db.clone());
-
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-        let result = project_service.create_project(project).await;
-
-        assert!(result.is_ok(), "Failed to create project: {:?}", result.err());
-        let created_project = result.unwrap();
-        assert_eq!(created_project.name(), "Test Project");
-        assert_eq!(created_project.description(), "Test Description");
-        assert!(created_project.enabled());
-
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
+    async fn test_new() -> Result<(), Error> {
+        let db = setup_test_db("project_service").await?;
+        let project_service = ProjectService::new(db.clone())?;
+        assert!(project_service.project_repository.collection().is_ok());
+        cleanup_test_db(db).await?;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_get_project() {
-        let db = setup_test_db().await.unwrap();
-        let project_service = ProjectService::new(db.clone());
+    async fn test_get_project() -> Result<(), Error> {
+        let db = setup_test_db("project_service").await?;
+        let project_service = ProjectService::new(db.clone())?;
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-        let result = project_service.create_project(project).await;
-        assert!(result.is_ok(), "Failed to create project: {:?}", result.err());
-        let created_project = result.unwrap();
+        let result = project_service.create_project(project).await?;
+        assert!(result.id().is_some());
 
-        let project = project_service.get_project(*created_project.id().unwrap()).await;
-        assert!(project.is_ok(), "Failed to get project: {:?}", project.err());
-        let project = project.unwrap().expect("Project should exist");
+        let project = project_service.get_project(*result.id().unwrap()).await?;
+        assert!(project.is_some());
+        let project = project.unwrap();
         assert_eq!(project.name(), "Test Project");
         assert_eq!(project.description(), "Test Description");
         assert!(project.enabled());
 
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
+        cleanup_test_db(db).await?;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_update_project() {
-        let db = setup_test_db().await.unwrap();
-        let project_service = ProjectService::new(db.clone());
+    async fn test_update_project() -> Result<(), Error> {
+        let db = setup_test_db("project_service").await?;
+        let project_service = ProjectService::new(db.clone())?;
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-        let result = project_service.create_project(project).await;
-        assert!(result.is_ok(), "Failed to create project: {:?}", result.err());
-        let created_project = result.unwrap();
+        let result = project_service.create_project(project).await?;
+        assert!(result.id().is_some());
 
         let updated_project = Project::new("Updated Project".to_string(), "Updated Description".to_string());
-        let result = project_service.update_project(*created_project.id().unwrap(), updated_project).await;
-        assert!(result.is_ok(), "Failed to update project: {:?}", result.err());
-        let updated_project = result.unwrap();
-        assert_eq!(updated_project.name(), "Updated Project");
-        assert_eq!(updated_project.description(), "Updated Description");
+        let result = project_service.update_project(*result.id().unwrap(), updated_project).await?;
+        assert!(result.id().is_some());
+        assert_eq!(result.name(), "Updated Project");
+        assert_eq!(result.description(), "Updated Description");
 
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
+        cleanup_test_db(db).await?;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_delete_project() {
-        let db = setup_test_db().await.unwrap();
-        let project_service = ProjectService::new(db.clone());
+    async fn test_delete_project() -> Result<(), Error> {
+        let db = setup_test_db("project_service").await?;
+        let project_service = ProjectService::new(db.clone())?;
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-        let result = project_service.create_project(project).await;
-        assert!(result.is_ok(), "Failed to create project: {:?}", result.err());
-        let created_project = result.unwrap();
+        let result = project_service.create_project(project).await?;
+        assert!(result.id().is_some());
 
-        let result = project_service.delete_project(*created_project.id().unwrap()).await;
-        assert!(result.is_ok(), "Failed to delete project: {:?}", result.err());
-        assert!(result.unwrap(), "Project should be deleted");
+        let result = project_service.delete_project(*result.id().unwrap()).await?;
+        assert!(result);
 
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
+        cleanup_test_db(db).await?;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_get_projects_no_filter() {
-        let db = setup_test_db().await.unwrap();
-        let project_service = ProjectService::new(db.clone());
+    async fn test_get_projects_no_filter() -> Result<(), Error> {
+        let db = setup_test_db("project_service").await?;
+        let project_service = ProjectService::new(db.clone())?;
 
         // Setup test data
-        setup_projects_for_filter_tests(&project_service).await.unwrap();
+        setup_projects_for_filter_tests(&project_service).await?;
 
         // Test with empty filter (should return all projects)
         let filter = ProjectFilter {
@@ -436,23 +383,20 @@ mod tests {
             enabled: None,
         };
         
-        let result = project_service.get_projects(filter).await;
-        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
-        
-        let projects = result.unwrap();
+        let projects = project_service.get_projects(filter).await?;
         assert_eq!(projects.len(), 3, "Should have retrieved all 3 projects with no filter");
         
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
+        cleanup_test_db(db).await?;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_get_projects_filter_by_name() {
-        let db = setup_test_db().await.unwrap();
-        let project_service = ProjectService::new(db.clone());
+    async fn test_get_projects_filter_by_name() -> Result<(), Error> {
+        let db = setup_test_db("project_service").await?;
+        let project_service = ProjectService::new(db.clone())?;
 
         // Setup test data
-        setup_projects_for_filter_tests(&project_service).await.unwrap();
+        setup_projects_for_filter_tests(&project_service).await?;
 
         // Test filtering by name
         let filter = ProjectFilter {
@@ -461,24 +405,21 @@ mod tests {
             enabled: None,
         };
         
-        let result = project_service.get_projects(filter).await;
-        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
-        
-        let projects = result.unwrap();
+        let projects = project_service.get_projects(filter).await?;
         assert_eq!(projects.len(), 1, "Should have retrieved 1 project when filtering by name");
         assert_eq!(projects[0].name(), "Project 1");
         
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
+        cleanup_test_db(db).await?;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_get_projects_filter_by_description() {
-        let db = setup_test_db().await.unwrap();
-        let project_service = ProjectService::new(db.clone());
+    async fn test_get_projects_filter_by_description() -> Result<(), Error> {
+        let db = setup_test_db("project_service").await?;
+        let project_service = ProjectService::new(db.clone())?;
 
         // Setup test data
-        setup_projects_for_filter_tests(&project_service).await.unwrap();
+        setup_projects_for_filter_tests(&project_service).await?;
 
         // Test filtering by description
         let filter = ProjectFilter {
@@ -487,24 +428,21 @@ mod tests {
             enabled: None,
         };
         
-        let result = project_service.get_projects(filter).await;
-        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
-        
-        let projects = result.unwrap();
+        let projects = project_service.get_projects(filter).await?;
         assert_eq!(projects.len(), 1, "Should have retrieved 1 project when filtering by description");
         assert_eq!(projects[0].description(), "Description 2");
         
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
+        cleanup_test_db(db).await?;
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_get_projects_filter_by_enabled() {
-        let db = setup_test_db().await.unwrap();
-        let project_service = ProjectService::new(db.clone());
+    async fn test_get_projects_filter_by_enabled() -> Result<(), Error> {
+        let db = setup_test_db("project_service").await?;
+        let project_service = ProjectService::new(db.clone())?;
 
         // Setup test data
-        setup_projects_for_filter_tests(&project_service).await.unwrap();
+        setup_projects_for_filter_tests(&project_service).await?;
 
         // Test filtering by enabled status
         let filter = ProjectFilter {
@@ -513,13 +451,10 @@ mod tests {
             enabled: Some(true),
         };
         
-        let result = project_service.get_projects(filter).await;
-        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
-        
-        let projects = result.unwrap();
+        let projects = project_service.get_projects(filter).await?;
         assert_eq!(projects.len(), 3, "Should have retrieved all 3 projects when filtering by enabled=true");
         
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
+        cleanup_test_db(db).await?;
+        Ok(())
     }
 }

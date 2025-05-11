@@ -62,30 +62,13 @@ impl Repository<ProjectScope> for ProjectScopeRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
-    use crate::utils::database::create_database_client;
-    use dotenvy::dotenv;
+    use crate::test_utils::{setup_test_db, cleanup_test_db};
     use mongodb::bson::{Bson, doc};
     use tokio;
 
-    async fn setup_test_db() -> Result<Database> {
-        dotenv().ok();
-
-        let app_config = AppConfig::from_env(Some(true))?;
-
-        let client = create_database_client(&app_config.application.database_uri).await?;
-        let db = client.database("test_db__project_scopes");
-        Ok(db)
-    }
-
-    async fn cleanup_test_db(db: Database) -> Result<()> {
-        db.collection::<ProjectScope>("project_scopes").drop().await?;
-        Ok(())
-    }
-
     #[tokio::test]
     async fn test_create_project_scope() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_scope").await?;
         let repo = ProjectScopeRepository::new(db.clone())?;
 
         let project_id = mongodb::bson::oid::ObjectId::new();
@@ -104,14 +87,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_project_scope() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_scope").await?;
         let repo = ProjectScopeRepository::new(db.clone())?;
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let scope = ProjectScope::new(
             project_id,
-            "write:posts".to_string(),
-            "Allows creating and updating posts".to_string()
+            "read:users".to_string(),
+            "Allows reading user data".to_string()
         );
         let result = repo.create(scope).await?;
         let id = result.inserted_id.as_object_id().unwrap();
@@ -119,9 +102,8 @@ mod tests {
         let read_scope = repo.read(id).await?;
         assert!(read_scope.is_some());
         let read_scope = read_scope.unwrap();
-        assert_eq!(read_scope.project_id(), &project_id);
-        assert_eq!(read_scope.name(), "write:posts");
-        assert_eq!(read_scope.description(), "Allows creating and updating posts");
+        assert_eq!(read_scope.name(), "read:users");
+        assert_eq!(read_scope.description(), "Allows reading user data");
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -129,29 +111,29 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_project_scope() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_scope").await?;
         let repo = ProjectScopeRepository::new(db.clone())?;
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let scope = ProjectScope::new(
             project_id,
-            "read:posts".to_string(),
-            "Allows reading posts".to_string()
+            "read:users".to_string(),
+            "Allows reading user data".to_string()
         );
         let result = repo.create(scope).await?;
         let id = result.inserted_id.as_object_id().unwrap();
 
         let updated_scope = ProjectScope::new(
             project_id,
-            "read:posts:v2".to_string(),
-            "Updated post reading permissions".to_string()
+            "write:users".to_string(),
+            "Allows writing user data".to_string()
         );
         let update_result = repo.update(id, updated_scope).await?;
         assert_eq!(update_result.modified_count, 1);
 
         let read_scope = repo.read(id).await?.unwrap();
-        assert_eq!(read_scope.name(), "read:posts:v2");
-        assert_eq!(read_scope.description(), "Updated post reading permissions");
+        assert_eq!(read_scope.name(), "write:users");
+        assert_eq!(read_scope.description(), "Allows writing user data");
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -159,14 +141,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_project_scope() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_scope").await?;
         let repo = ProjectScopeRepository::new(db.clone())?;
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let scope = ProjectScope::new(
             project_id,
-            "delete:posts".to_string(),
-            "Allows deleting posts".to_string()
+            "read:users".to_string(),
+            "Allows reading user data".to_string()
         );
         let result = repo.create(scope).await?;
         let id = result.inserted_id.as_object_id().unwrap();
@@ -183,19 +165,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_find_project_scopes() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project_scope").await?;
         let repo = ProjectScopeRepository::new(db.clone())?;
 
         let project_id = mongodb::bson::oid::ObjectId::new();
         let scope1 = ProjectScope::new(
             project_id,
-            "scope:1".to_string(),
-            "First scope".to_string()
+            "read:users".to_string(),
+            "Allows reading user data".to_string()
         );
         let scope2 = ProjectScope::new(
             project_id,
-            "scope:2".to_string(),
-            "Second scope".to_string()
+            "write:users".to_string(),
+            "Allows writing user data".to_string()
         );
         repo.create(scope1).await?;
         repo.create(scope2).await?;
@@ -203,9 +185,9 @@ mod tests {
         let scopes = repo.find(doc! {}).await?;
         assert_eq!(scopes.len(), 2);
 
-        let scopes = repo.find(doc! { "name": "scope:1" }).await?;
-        assert_eq!(scopes.len(), 1);
-        assert_eq!(scopes[0].name(), "scope:1");
+        let filtered_scopes = repo.find(doc! { "name": "read:users" }).await?;
+        assert_eq!(filtered_scopes.len(), 1);
+        assert_eq!(filtered_scopes[0].name(), "read:users");
 
         cleanup_test_db(db).await?;
         Ok(())

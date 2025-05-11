@@ -62,30 +62,13 @@ impl Repository<Project> for ProjectRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
-    use crate::utils::database::create_database_client;
-    use dotenvy::dotenv;
+    use crate::test_utils::{setup_test_db, cleanup_test_db};
     use mongodb::bson::{Bson, doc};
     use tokio;
 
-    async fn setup_test_db() -> Result<Database> {
-        dotenv().ok();
-
-        let app_config = AppConfig::from_env(Some(true))?;
-
-        let client = create_database_client(&app_config.application.database_uri).await?;
-        let db = client.database("test_db__projects");
-        Ok(db)
-    }
-
-    async fn cleanup_test_db(db: Database) -> Result<()> {
-        db.collection::<Project>("projects").drop().await?;
-        Ok(())
-    }
-
     #[tokio::test]
     async fn test_create_project() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
@@ -99,7 +82,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_project() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
         // Create a project first
@@ -121,7 +104,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_project() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
         // Create a project first
@@ -130,15 +113,14 @@ mod tests {
         let id = result.inserted_id.as_object_id().unwrap();
 
         // Update the project
-        let updated_project = Project::new(
-            "Updated Project".to_string(),
-            "Updated Description".to_string(),
-        );
+        let updated_project = Project::new("Updated Project".to_string(), "Updated Description".to_string());
         let update_result = repo.update(id, updated_project).await?;
         assert_eq!(update_result.modified_count, 1);
 
-        // Verify the update
-        let read_project = repo.read(id).await?.unwrap();
+        // Read the updated project
+        let read_project = repo.read(id).await?;
+        assert!(read_project.is_some());
+        let read_project = read_project.unwrap();
         assert_eq!(read_project.name(), "Updated Project");
         assert_eq!(read_project.description(), "Updated Description");
 
@@ -148,7 +130,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_project() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
         // Create a project first
@@ -160,7 +142,7 @@ mod tests {
         let delete_result = repo.delete(id).await?;
         assert_eq!(delete_result.deleted_count, 1);
 
-        // Verify the deletion
+        // Try to read the deleted project
         let read_project = repo.read(id).await?;
         assert!(read_project.is_none());
 
@@ -170,7 +152,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_find_projects() -> Result<()> {
-        let db = setup_test_db().await?;
+        let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
         // Clean up any existing data
