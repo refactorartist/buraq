@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 /// - `environment_id`: Foreign key reference to the associated environment
 /// - `service_account_id`: Foreign key reference to the associated service account
 /// - `project_scopes`: Array of project scope IDs this access is granted
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectAccess {    
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
