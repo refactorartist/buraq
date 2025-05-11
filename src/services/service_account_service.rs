@@ -81,14 +81,14 @@ mod tests {
     ) -> Result<(), Error> {
     let collection = service_account_service.service_account_repository.collection()?;
     let db = collection.client().database(&collection.namespace().db);
-    cleanup_test_db(db).await?;
+    cleanup_test_db(db).await;
 
-    let email = "service@example.com".to_string();
-    let user = "service-user".to_string();
-    let secret = "service-secret-123".to_string();
+    let account1 = ServiceAccount::new("service@example.com".to_string(), "service-user".to_string(), "service-secret-123".to_string());
+    let account2 = ServiceAccount::new("service@example123.com".to_string(), "service-user123".to_string(), "service-secret-123123".to_string());
+    let account3 = ServiceAccount::new("service@google.com".to_string(), "service_user_service".to_string(), "secret".to_string());
     
-    let account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
-        
+    service_account_service.create
+    
         Ok(())
     }
 }
