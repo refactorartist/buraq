@@ -1,4 +1,4 @@
-use crate::models::service_account_key::{self, ServiceAccountKey};
+use crate::models::service_account_key::ServiceAccountKey;
 use crate::repositories::base::Repository;
 use crate::repositories::service_account_key::ServiceAccountKeyRepository;
 use anyhow::Error;
@@ -109,12 +109,10 @@ impl ServiceAccountKeyService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::serializers::algorithm;
-    use crate::test_utils::{cleanup_test_db, setup_test_db};
+    use crate::test_utils::cleanup_test_db;
     use crate::types::Algorithm;
     use anyhow::Ok;
-    use chrono::{DateTime, Utc};
-    use tokio;
+    use chrono::Utc;
 
     async fn setup_service_account_keys_for_filter_tests(
         service_account_key_service: &ServiceAccountKeyService,

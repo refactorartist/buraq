@@ -1,4 +1,4 @@
-use crate::models::service_account::{ ServiceAccount};
+use crate::models::service_account::ServiceAccount;
 use crate::repositories::base::Repository;
 use crate::repositories::service_account::ServiceAccountRepository;
 use anyhow::Error;
@@ -107,42 +107,49 @@ impl ServiceAccountService {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
     use anyhow::Ok;
     use tokio;
     async fn setup_service_accounts_for_filter_tests(
         service_account_service: &ServiceAccountService,
     ) -> Result<(), Error> {
         // Clean up any existing data first
-        let collection = service_account_service.service_account_repository.collection()?;
+        let collection = service_account_service
+            .service_account_repository
+            .collection()?;
         let db = collection.client().database(&collection.namespace().db);
         cleanup_test_db(db).await?;
-        
+
         // Create multiple service accounts for testing filters
         let service_account1 = ServiceAccount::new(
-            "user1@example.com".to_string(), 
-            "User 1".to_string(), 
-            "secret".to_string()
+            "user1@example.com".to_string(),
+            "User 1".to_string(),
+            "secret".to_string(),
         );
         let service_account2 = ServiceAccount::new(
-            "user2@example.com".to_string(), 
-            "User 2".to_string(), 
-            "secret".to_string()
+            "user2@example.com".to_string(),
+            "User 2".to_string(),
+            "secret".to_string(),
         );
         let service_account3 = ServiceAccount::new(
-            "user3@example.com".to_string(), 
-            "User 3".to_string(), 
-            "secret".to_string()
+            "user3@example.com".to_string(),
+            "User 3".to_string(),
+            "secret".to_string(),
         );
-        
-        service_account_service.create_service_account(service_account1).await?;
-        service_account_service.create_service_account(service_account2).await?;
-        service_account_service.create_service_account(service_account3).await?;
-        
+
+        service_account_service
+            .create_service_account(service_account1)
+            .await?;
+        service_account_service
+            .create_service_account(service_account2)
+            .await?;
+        service_account_service
+            .create_service_account(service_account3)
+            .await?;
+
         Ok(())
     }
 
@@ -151,11 +158,13 @@ mod tests {
         let db = setup_test_db("service_account_service").await?;
         let service_account_service = ServiceAccountService::new(db.clone())?;
         let service_account = ServiceAccount::new(
-            "test@example.com".to_string(), 
-            "Test User".to_string(), 
-            "secret".to_string()
+            "test@example.com".to_string(),
+            "Test User".to_string(),
+            "secret".to_string(),
         );
-        let result = service_account_service.create_service_account(service_account).await?;
+        let result = service_account_service
+            .create_service_account(service_account)
+            .await?;
         assert!(result.id().is_some());
         assert_eq!(result.email(), "test@example.com");
         assert_eq!(result.user(), "Test User");
@@ -167,7 +176,12 @@ mod tests {
     async fn test_new() -> Result<(), Error> {
         let db = setup_test_db("service_account_service").await?;
         let service_account_service = ServiceAccountService::new(db.clone())?;
-        assert!(service_account_service.service_account_repository.collection().is_ok());
+        assert!(
+            service_account_service
+                .service_account_repository
+                .collection()
+                .is_ok()
+        );
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -177,13 +191,17 @@ mod tests {
         let db = setup_test_db("service_account_service").await?;
         let service_account_service = ServiceAccountService::new(db.clone())?;
         let service_account = ServiceAccount::new(
-            "test@example.com".to_string(), 
-            "Test User".to_string(), 
-            "secret".to_string()
+            "test@example.com".to_string(),
+            "Test User".to_string(),
+            "secret".to_string(),
         );
-        let result = service_account_service.create_service_account(service_account).await?;
+        let result = service_account_service
+            .create_service_account(service_account)
+            .await?;
         assert!(result.id().is_some());
-        let service_account = service_account_service.get_service_account(*result.id().unwrap()).await?;
+        let service_account = service_account_service
+            .get_service_account(*result.id().unwrap())
+            .await?;
         assert!(service_account.is_some());
         let service_account = service_account.unwrap();
         assert_eq!(service_account.email(), "test@example.com");
@@ -197,18 +215,22 @@ mod tests {
         let db = setup_test_db("service_account_service").await?;
         let service_account_service = ServiceAccountService::new(db.clone())?;
         let service_account = ServiceAccount::new(
-            "test@example.com".to_string(), 
-            "Test User".to_string(), 
-            "secret".to_string()
+            "test@example.com".to_string(),
+            "Test User".to_string(),
+            "secret".to_string(),
         );
-        let result = service_account_service.create_service_account(service_account).await?;
+        let result = service_account_service
+            .create_service_account(service_account)
+            .await?;
         assert!(result.id().is_some());
         let updated_service_account = ServiceAccount::new(
-            "updated@example.com".to_string(), 
-            "Updated User".to_string(), 
-            "new_secret".to_string()
+            "updated@example.com".to_string(),
+            "Updated User".to_string(),
+            "new_secret".to_string(),
         );
-        let result = service_account_service.update_service_account(*result.id().unwrap(), updated_service_account).await?;
+        let result = service_account_service
+            .update_service_account(*result.id().unwrap(), updated_service_account)
+            .await?;
         assert!(result.id().is_some());
         assert_eq!(result.email(), "updated@example.com");
         assert_eq!(result.user(), "Updated User");
@@ -221,13 +243,17 @@ mod tests {
         let db = setup_test_db("service_account_service").await?;
         let service_account_service = ServiceAccountService::new(db.clone())?;
         let service_account = ServiceAccount::new(
-            "test@example.com".to_string(), 
-            "Test User".to_string(), 
-            "secret".to_string()
+            "test@example.com".to_string(),
+            "Test User".to_string(),
+            "secret".to_string(),
         );
-        let result = service_account_service.create_service_account(service_account).await?;
+        let result = service_account_service
+            .create_service_account(service_account)
+            .await?;
         assert!(result.id().is_some());
-        let result = service_account_service.delete_service_account(*result.id().unwrap()).await?;
+        let result = service_account_service
+            .delete_service_account(*result.id().unwrap())
+            .await?;
         assert!(result);
         cleanup_test_db(db).await?;
         Ok(())
@@ -245,10 +271,14 @@ mod tests {
             user: None,
             enable: None,
         };
-        
+
         let service_accounts = service_account_service.get_service_accounts(filter).await?;
-        assert_eq!(service_accounts.len(), 3, "Should have retrieved all 3 service accounts with no filter");
-        
+        assert_eq!(
+            service_accounts.len(),
+            3,
+            "Should have retrieved all 3 service accounts with no filter"
+        );
+
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -265,11 +295,15 @@ mod tests {
             user: None,
             enable: None,
         };
-        
+
         let service_accounts = service_account_service.get_service_accounts(filter).await?;
-        assert_eq!(service_accounts.len(), 1, "Should have retrieved 1 service account when filtering by email");
+        assert_eq!(
+            service_accounts.len(),
+            1,
+            "Should have retrieved 1 service account when filtering by email"
+        );
         assert_eq!(service_accounts[0].email(), "user1@example.com");
-        
+
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -286,13 +320,16 @@ mod tests {
             user: Some("User 2".to_string()),
             enable: None,
         };
-        
+
         let service_accounts = service_account_service.get_service_accounts(filter).await?;
-        assert_eq!(service_accounts.len(), 1, "Should have retrieved 1 service account when filtering by user");
+        assert_eq!(
+            service_accounts.len(),
+            1,
+            "Should have retrieved 1 service account when filtering by user"
+        );
         assert_eq!(service_accounts[0].user(), "User 2");
-        
+
         cleanup_test_db(db).await?;
         Ok(())
     }
-
 }
