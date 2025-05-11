@@ -1,4 +1,4 @@
-use crate::models::service_account::{self, ServiceAccount};
+use crate::models::service_account::{ ServiceAccount};
 use crate::repositories::base::Repository;
 use crate::repositories::service_account::ServiceAccountRepository;
 use anyhow::Error;
