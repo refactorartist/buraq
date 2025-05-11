@@ -10,7 +10,7 @@ use chrono::{DateTime, Utc};
 /// - `description`: Description of the project
 /// - `created_at`: Timestamp when project was created
 /// - `updated_at`: Timestamp when project was last updated
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Project {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
