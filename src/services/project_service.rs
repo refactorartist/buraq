@@ -28,18 +28,6 @@ pub struct ProjectFilter {
 impl From<ProjectFilter> for mongodb::bson::Document {
     fn from(val: ProjectFilter) -> Self {
         let mut doc = mongodb::bson::Document::new();
-<<<<<<< HEAD
-
-        if let Some(name) = self.name {
-            doc.insert("name", name);
-        }
-
-        if let Some(description) = self.description {
-            doc.insert("description", description);
-        }
-
-        if let Some(enabled) = self.enabled {
-=======
         
         if let Some(name) = val.name {
             doc.insert("name", name);
@@ -50,7 +38,6 @@ impl From<ProjectFilter> for mongodb::bson::Document {
         }
         
         if let Some(enabled) = val.enabled {
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
             doc.insert("enabled", enabled);
         }
 
@@ -257,13 +244,8 @@ impl ProjectService {
     /// # async fn example() -> anyhow::Result<()> {
     /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
     /// # let db = client.database("test_db");
-<<<<<<< HEAD
-    /// let project_service = ProjectService::new(db);
-    ///
-=======
     /// let project_service = ProjectService::new(db)?;
     /// 
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
     /// // Create a filter to find enabled projects
     /// let filter = ProjectFilter {
     ///     name: None,
@@ -285,40 +267,8 @@ impl ProjectService {
 #[cfg(test)]
 mod tests {
     use super::*;
-<<<<<<< HEAD
-    use crate::config::AppConfig;
-    use crate::utils::database::create_database_client;
-    use dotenvy::dotenv;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use tokio;
-
-    static DB_COUNTER: AtomicUsize = AtomicUsize::new(0);
-
-    async fn setup_test_db() -> Result<Database, Error> {
-        dotenv().ok();
-
-        let app_config = AppConfig::from_env(Some(true))?;
-        let client = create_database_client(&app_config.application.database_uri).await?;
-
-        // Create a unique database name for each test
-        let db_num = DB_COUNTER.fetch_add(1, Ordering::SeqCst);
-        let db = client.database(&format!("test_db__project_services_{}", db_num));
-
-        // Ensure the database is clean before starting
-        cleanup_test_db(db.clone()).await?;
-
-        Ok(db)
-    }
-
-    async fn cleanup_test_db(db: Database) -> Result<(), Error> {
-        db.collection::<Project>("projects").drop().await?;
-        db.drop().await?;
-        Ok(())
-    }
-=======
     use crate::test_utils::{setup_test_db, cleanup_test_db};
     use tokio;
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
 
     async fn setup_projects_for_filter_tests(
         project_service: &ProjectService,
@@ -341,49 +291,6 @@ mod tests {
     }
 
     #[tokio::test]
-<<<<<<< HEAD
-    async fn test_new() {
-        // Setup test database
-        let db = setup_test_db().await.unwrap();
-
-        // Create a new ProjectService instance
-        let project_service = ProjectService::new(db.clone());
-
-        // Verify the project_service was created successfully
-        assert!(
-            project_service
-                .project_repository
-                .collection()
-                .unwrap()
-                .name()
-                == "projects"
-        );
-
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_create_project() {
-        let db = setup_test_db().await.unwrap();
-        let project_service = ProjectService::new(db.clone());
-
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-        let result = project_service.create_project(project).await;
-
-        assert!(
-            result.is_ok(),
-            "Failed to create project: {:?}",
-            result.err()
-        );
-        let created_project = result.unwrap();
-        assert_eq!(created_project.name(), "Test Project");
-        assert_eq!(created_project.description(), "Test Description");
-        assert!(created_project.enabled());
-
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
-=======
     async fn test_create_project() -> Result<(), Error> {
         let db = setup_test_db("project_service").await?;
         let project_service = ProjectService::new(db.clone())?;
@@ -407,7 +314,6 @@ mod tests {
         assert!(project_service.project_repository.collection().is_ok());
         cleanup_test_db(db).await?;
         Ok(())
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
     }
 
     #[tokio::test]
@@ -416,32 +322,12 @@ mod tests {
         let project_service = ProjectService::new(db.clone())?;
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-<<<<<<< HEAD
-        let result = project_service.create_project(project).await;
-        assert!(
-            result.is_ok(),
-            "Failed to create project: {:?}",
-            result.err()
-        );
-        let created_project = result.unwrap();
-
-        let project = project_service
-            .get_project(*created_project.id().unwrap())
-            .await;
-        assert!(
-            project.is_ok(),
-            "Failed to get project: {:?}",
-            project.err()
-        );
-        let project = project.unwrap().expect("Project should exist");
-=======
         let result = project_service.create_project(project).await?;
         assert!(result.id().is_some());
 
         let project = project_service.get_project(*result.id().unwrap()).await?;
         assert!(project.is_some());
         let project = project.unwrap();
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
         assert_eq!(project.name(), "Test Project");
         assert_eq!(project.description(), "Test Description");
         assert!(project.enabled());
@@ -456,31 +342,6 @@ mod tests {
         let project_service = ProjectService::new(db.clone())?;
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-<<<<<<< HEAD
-        let result = project_service.create_project(project).await;
-        assert!(
-            result.is_ok(),
-            "Failed to create project: {:?}",
-            result.err()
-        );
-        let created_project = result.unwrap();
-
-        let updated_project = Project::new(
-            "Updated Project".to_string(),
-            "Updated Description".to_string(),
-        );
-        let result = project_service
-            .update_project(*created_project.id().unwrap(), updated_project)
-            .await;
-        assert!(
-            result.is_ok(),
-            "Failed to update project: {:?}",
-            result.err()
-        );
-        let updated_project = result.unwrap();
-        assert_eq!(updated_project.name(), "Updated Project");
-        assert_eq!(updated_project.description(), "Updated Description");
-=======
         let result = project_service.create_project(project).await?;
         assert!(result.id().is_some());
 
@@ -489,7 +350,6 @@ mod tests {
         assert!(result.id().is_some());
         assert_eq!(result.name(), "Updated Project");
         assert_eq!(result.description(), "Updated Description");
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -501,31 +361,11 @@ mod tests {
         let project_service = ProjectService::new(db.clone())?;
 
         let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-<<<<<<< HEAD
-        let result = project_service.create_project(project).await;
-        assert!(
-            result.is_ok(),
-            "Failed to create project: {:?}",
-            result.err()
-        );
-        let created_project = result.unwrap();
-
-        let result = project_service
-            .delete_project(*created_project.id().unwrap())
-            .await;
-        assert!(
-            result.is_ok(),
-            "Failed to delete project: {:?}",
-            result.err()
-        );
-        assert!(result.unwrap(), "Project should be deleted");
-=======
         let result = project_service.create_project(project).await?;
         assert!(result.id().is_some());
 
         let result = project_service.delete_project(*result.id().unwrap()).await?;
         assert!(result);
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -537,13 +377,7 @@ mod tests {
         let project_service = ProjectService::new(db.clone())?;
 
         // Setup test data
-<<<<<<< HEAD
-        setup_projects_for_filter_tests(&project_service)
-            .await
-            .unwrap();
-=======
         setup_projects_for_filter_tests(&project_service).await?;
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
 
         // Test with empty filter (should return all projects)
         let filter = ProjectFilter {
@@ -551,28 +385,12 @@ mod tests {
             description: None,
             enabled: None,
         };
-<<<<<<< HEAD
-
-        let result = project_service.get_projects(filter).await;
-        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
-
-        let projects = result.unwrap();
-        assert_eq!(
-            projects.len(),
-            3,
-            "Should have retrieved all 3 projects with no filter"
-        );
-
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
-=======
         
         let projects = project_service.get_projects(filter).await?;
         assert_eq!(projects.len(), 3, "Should have retrieved all 3 projects with no filter");
         
         cleanup_test_db(db).await?;
         Ok(())
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
     }
 
     #[tokio::test]
@@ -581,13 +399,7 @@ mod tests {
         let project_service = ProjectService::new(db.clone())?;
 
         // Setup test data
-<<<<<<< HEAD
-        setup_projects_for_filter_tests(&project_service)
-            .await
-            .unwrap();
-=======
         setup_projects_for_filter_tests(&project_service).await?;
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
 
         // Test filtering by name
         let filter = ProjectFilter {
@@ -595,22 +407,6 @@ mod tests {
             description: None,
             enabled: None,
         };
-<<<<<<< HEAD
-
-        let result = project_service.get_projects(filter).await;
-        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
-
-        let projects = result.unwrap();
-        assert_eq!(
-            projects.len(),
-            1,
-            "Should have retrieved 1 project when filtering by name"
-        );
-        assert_eq!(projects[0].name(), "Project 1");
-
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
-=======
         
         let projects = project_service.get_projects(filter).await?;
         assert_eq!(projects.len(), 1, "Should have retrieved 1 project when filtering by name");
@@ -618,7 +414,6 @@ mod tests {
         
         cleanup_test_db(db).await?;
         Ok(())
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
     }
 
     #[tokio::test]
@@ -627,13 +422,7 @@ mod tests {
         let project_service = ProjectService::new(db.clone())?;
 
         // Setup test data
-<<<<<<< HEAD
-        setup_projects_for_filter_tests(&project_service)
-            .await
-            .unwrap();
-=======
         setup_projects_for_filter_tests(&project_service).await?;
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
 
         // Test filtering by description
         let filter = ProjectFilter {
@@ -641,22 +430,6 @@ mod tests {
             description: Some("Description 2".to_string()),
             enabled: None,
         };
-<<<<<<< HEAD
-
-        let result = project_service.get_projects(filter).await;
-        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
-
-        let projects = result.unwrap();
-        assert_eq!(
-            projects.len(),
-            1,
-            "Should have retrieved 1 project when filtering by description"
-        );
-        assert_eq!(projects[0].description(), "Description 2");
-
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
-=======
         
         let projects = project_service.get_projects(filter).await?;
         assert_eq!(projects.len(), 1, "Should have retrieved 1 project when filtering by description");
@@ -664,7 +437,6 @@ mod tests {
         
         cleanup_test_db(db).await?;
         Ok(())
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
     }
 
     #[tokio::test]
@@ -673,13 +445,7 @@ mod tests {
         let project_service = ProjectService::new(db.clone())?;
 
         // Setup test data
-<<<<<<< HEAD
-        setup_projects_for_filter_tests(&project_service)
-            .await
-            .unwrap();
-=======
         setup_projects_for_filter_tests(&project_service).await?;
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
 
         // Test filtering by enabled status
         let filter = ProjectFilter {
@@ -687,27 +453,11 @@ mod tests {
             description: None,
             enabled: Some(true),
         };
-<<<<<<< HEAD
-
-        let result = project_service.get_projects(filter).await;
-        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
-
-        let projects = result.unwrap();
-        assert_eq!(
-            projects.len(),
-            3,
-            "Should have retrieved all 3 projects when filtering by enabled=true"
-        );
-
-        // Clean up test database
-        cleanup_test_db(db).await.unwrap();
-=======
         
         let projects = project_service.get_projects(filter).await?;
         assert_eq!(projects.len(), 3, "Should have retrieved all 3 projects when filtering by enabled=true");
         
         cleanup_test_db(db).await?;
         Ok(())
->>>>>>> d3e8a6cca9ceb15ac8363e8e04078bf65bee01b8
     }
 }
