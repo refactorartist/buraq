@@ -4,6 +4,7 @@ use crate::repositories::base::Repository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::oid::ObjectId;
+use serde::{Deserialize, Serialize};
 
 /// Service for managing projects
 ///
@@ -12,6 +13,41 @@ use mongodb::bson::oid::ObjectId;
 pub struct ProjectService {
     project_repository: ProjectRepository,
 }
+
+
+/// Filter for querying projects
+///
+/// This struct is used to filter projects based on specific criteria.
+/// It can be used to filter projects by name, description, or enabled status.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectFilter {
+    name: Option<String>,
+    description: Option<String>,
+    enabled: Option<bool>,
+}
+
+impl Into<mongodb::bson::Document> for ProjectFilter {
+    fn into(self) -> mongodb::bson::Document {
+        let mut doc = mongodb::bson::Document::new();
+        
+        if let Some(name) = self.name {
+            doc.insert("name", name);
+        }
+        
+        if let Some(description) = self.description {
+            doc.insert("description", description);
+        }
+        
+        if let Some(enabled) = self.enabled {
+            doc.insert("enabled", enabled);
+        }
+        
+        doc
+    }
+}
+
+
+
 
 impl ProjectService {
     /// Creates a new ProjectService with the given database connection
@@ -196,6 +232,13 @@ impl ProjectService {
         let result = self.project_repository.delete(id).await?;
         Ok(result.deleted_count > 0)
     }
+
+
+    pub async fn get_projects(&self, filter: ProjectFilter) -> Result<Vec<Project>, Error> {
+        let filter_doc = filter.into();
+        let projects = self.project_repository.find(filter_doc).await?;
+        Ok(projects)
+    }
 }
 
 #[cfg(test)]
@@ -312,6 +355,126 @@ mod tests {
         assert!(result.is_ok(), "Failed to delete project: {:?}", result.err());
         assert!(result.unwrap(), "Project should be deleted");
 
+        // Clean up test database
+        cleanup_test_db(db).await.unwrap();
+    }
+
+
+    async fn setup_projects_for_filter_tests(project_service: &ProjectService) -> Result<(), Error> {
+        // Create multiple projects for testing filters
+        let project1 = Project::new("Project 1".to_string(), "Description 1".to_string());
+        let project2 = Project::new("Project 2".to_string(), "Description 2".to_string());
+        let project3 = Project::new("Project 3".to_string(), "Description 3".to_string());
+
+        project_service.create_project(project1).await?;
+        project_service.create_project(project2).await?;
+        project_service.create_project(project3).await?;
+        
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get_projects_no_filter() {
+        let db = setup_test_db().await.unwrap();
+        cleanup_test_db(db.clone()).await.unwrap();
+        let project_service = ProjectService::new(db.clone());
+
+        // Setup test data
+        setup_projects_for_filter_tests(&project_service).await.unwrap();
+
+        // Test with empty filter (should return all projects)
+        let filter = ProjectFilter {
+            name: None,
+            description: None,
+            enabled: None,
+        };
+        
+        let result = project_service.get_projects(filter).await;
+        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
+        
+        let projects = result.unwrap();
+        assert_eq!(projects.len(), 3, "Should have retrieved all 3 projects with no filter");
+        
+        // Clean up test database
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_get_projects_filter_by_name() {
+        let db = setup_test_db().await.unwrap();
+        cleanup_test_db(db.clone()).await.unwrap();
+        let project_service = ProjectService::new(db.clone());
+
+        // Setup test data
+        setup_projects_for_filter_tests(&project_service).await.unwrap();
+
+        // Test filtering by name
+        let filter = ProjectFilter {
+            name: Some("Project 1".to_string()),
+            description: None,
+            enabled: None,
+        };
+        
+        let result = project_service.get_projects(filter).await;
+        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
+        
+        let projects = result.unwrap();
+        assert_eq!(projects.len(), 1, "Should have retrieved 1 project when filtering by name");
+        assert_eq!(projects[0].name(), "Project 1");
+        
+        // Clean up test database
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_get_projects_filter_by_description() {
+        let db = setup_test_db().await.unwrap();
+        cleanup_test_db(db.clone()).await.unwrap();
+        let project_service = ProjectService::new(db.clone());
+
+        // Setup test data
+        setup_projects_for_filter_tests(&project_service).await.unwrap();
+
+        // Test filtering by description
+        let filter = ProjectFilter {
+            name: None,
+            description: Some("Description 2".to_string()),
+            enabled: None,
+        };
+        
+        let result = project_service.get_projects(filter).await;
+        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
+        
+        let projects = result.unwrap();
+        assert_eq!(projects.len(), 1, "Should have retrieved 1 project when filtering by description");
+        assert_eq!(projects[0].description(), "Description 2");
+        
+        // Clean up test database
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_get_projects_filter_by_enabled() {
+        let db = setup_test_db().await.unwrap();
+        cleanup_test_db(db.clone()).await.unwrap();
+        let project_service = ProjectService::new(db.clone());
+
+        // Setup test data
+        setup_projects_for_filter_tests(&project_service).await.unwrap();
+
+        // Test filtering by enabled status
+        let filter = ProjectFilter {
+            name: None,
+            description: None,
+            enabled: Some(true),
+        };
+        
+        let result = project_service.get_projects(filter).await;
+        assert!(result.is_ok(), "Failed to get projects: {:?}", result.err());
+        
+        let projects = result.unwrap();
+        assert_eq!(projects.len(), 3, "Should have retrieved all 3 projects when filtering by enabled=true");
+        
         // Clean up test database
         cleanup_test_db(db).await.unwrap();
     }
