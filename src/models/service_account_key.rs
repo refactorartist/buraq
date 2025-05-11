@@ -28,11 +28,39 @@ pub struct ServiceAccountKey {
 impl ServiceAccountKey {
     /// Creates a new ServiceAccountKey with the given parameters
     ///
+    /// Automatically generates:
+    /// - Current UTC timestamp for created_at
+    /// - Sets enabled to true by default
+    ///
     /// # Arguments
     /// * `service_account_id` - ID of the associated service account
     /// * `algorithm` - The algorithm used for the key
     /// * `key` - The key value
     /// * `expires_at` - When the key expires
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::service_account_key::ServiceAccountKey;
+    /// use buraq::types::Algorithm;
+    /// use mongodb::bson::oid::ObjectId;
+    /// use chrono::{Utc, Duration};
+    ///
+    /// let service_account_id = ObjectId::new();
+    /// let algorithm = Algorithm::RSA;
+    /// let key = "service-key-123456".to_string();
+    /// let expires_at = Utc::now() + Duration::days(30);
+    ///
+    /// let service_key = ServiceAccountKey::new(
+    ///     service_account_id,
+    ///     algorithm,
+    ///     key.clone(),
+    ///     expires_at
+    /// );
+    /// assert_eq!(service_key.key(), "service-key-123456");
+    /// assert!(matches!(service_key.algorithm(), Algorithm::RSA));
+    /// assert!(!service_key.is_expired());
+    /// ```
     pub fn new(service_account_id: ObjectId, algorithm: Algorithm, key: String, expires_at: DateTime<Utc>) -> Self {
         Self {
             id: None,
@@ -46,6 +74,29 @@ impl ServiceAccountKey {
     }
 
     /// Returns the key's unique identifier
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::service_account_key::ServiceAccountKey;
+    /// use buraq::types::Algorithm;
+    /// use mongodb::bson::oid::ObjectId;
+    /// use chrono::{Utc, Duration};
+    ///
+    /// let service_account_id = ObjectId::new();
+    /// let mut key = ServiceAccountKey::new(
+    ///     service_account_id,
+    ///     Algorithm::RSA,
+    ///     "service-key".to_string(),
+    ///     Utc::now() + Duration::days(7)
+    /// );
+    ///
+    /// assert!(key.id().is_none());
+    ///
+    /// let id = ObjectId::new();
+    /// key.set_id(id);
+    /// assert!(key.id().is_some());
+    /// ```
     pub fn id(&self) -> Option<&ObjectId> {
         self.id.as_ref()
     }
@@ -56,36 +107,176 @@ impl ServiceAccountKey {
     }
 
     /// Returns the associated service account ID
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::service_account_key::ServiceAccountKey;
+    /// use buraq::types::Algorithm;
+    /// use mongodb::bson::oid::ObjectId;
+    /// use chrono::{Utc, Duration};
+    ///
+    /// let service_account_id = ObjectId::new();
+    /// let key = ServiceAccountKey::new(
+    ///     service_account_id,
+    ///     Algorithm::RSA,
+    ///     "service-key".to_string(),
+    ///     Utc::now() + Duration::days(7)
+    /// );
+    ///
+    /// assert_eq!(key.service_account_id(), &service_account_id);
+    /// ```
     pub fn service_account_id(&self) -> &ObjectId {
         &self.service_account_id
     }
 
     /// Returns the algorithm used
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::service_account_key::ServiceAccountKey;
+    /// use buraq::types::Algorithm;
+    /// use mongodb::bson::oid::ObjectId;
+    /// use chrono::{Utc, Duration};
+    ///
+    /// let key = ServiceAccountKey::new(
+    ///     ObjectId::new(),
+    ///     Algorithm::HMAC,
+    ///     "service-key".to_string(),
+    ///     Utc::now() + Duration::days(7)
+    /// );
+    ///
+    /// assert!(matches!(key.algorithm(), Algorithm::HMAC));
+    /// ```
     pub fn algorithm(&self) -> &Algorithm {
         &self.algorithm
     }
 
     /// Returns the key value
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::service_account_key::ServiceAccountKey;
+    /// use buraq::types::Algorithm;
+    /// use mongodb::bson::oid::ObjectId;
+    /// use chrono::{Utc, Duration};
+    ///
+    /// let key_value = "my-secret-service-key".to_string();
+    /// let key = ServiceAccountKey::new(
+    ///     ObjectId::new(),
+    ///     Algorithm::RSA,
+    ///     key_value.clone(),
+    ///     Utc::now() + Duration::days(7)
+    /// );
+    ///
+    /// assert_eq!(key.key(), key_value);
+    /// ```
     pub fn key(&self) -> &str {
         &self.key
     }
 
     /// Returns the expiration timestamp
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::service_account_key::ServiceAccountKey;
+    /// use buraq::types::Algorithm;
+    /// use mongodb::bson::oid::ObjectId;
+    /// use chrono::{Utc, Duration};
+    ///
+    /// let expires_at = Utc::now() + Duration::days(30);
+    /// let key = ServiceAccountKey::new(
+    ///     ObjectId::new(),
+    ///     Algorithm::RSA,
+    ///     "service-key".to_string(),
+    ///     expires_at
+    /// );
+    ///
+    /// assert_eq!(key.expires_at(), &expires_at);
+    /// ```
     pub fn expires_at(&self) -> &DateTime<Utc> {
         &self.expires_at
     }
 
     /// Returns the creation timestamp
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::service_account_key::ServiceAccountKey;
+    /// use buraq::types::Algorithm;
+    /// use mongodb::bson::oid::ObjectId;
+    /// use chrono::{Utc, Duration};
+    ///
+    /// let before = Utc::now();
+    /// let key = ServiceAccountKey::new(
+    ///     ObjectId::new(),
+    ///     Algorithm::RSA,
+    ///     "service-key".to_string(),
+    ///     Utc::now() + Duration::days(7)
+    /// );
+    /// let after = Utc::now();
+    ///
+    /// assert!(before <= *key.created_at() && *key.created_at() <= after);
+    /// ```
     pub fn created_at(&self) -> &DateTime<Utc> {
         &self.created_at
     }
 
     /// Returns whether the key is enabled
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::service_account_key::ServiceAccountKey;
+    /// use buraq::types::Algorithm;
+    /// use mongodb::bson::oid::ObjectId;
+    /// use chrono::{Utc, Duration};
+    ///
+    /// let key = ServiceAccountKey::new(
+    ///     ObjectId::new(),
+    ///     Algorithm::RSA,
+    ///     "service-key".to_string(),
+    ///     Utc::now() + Duration::days(7)
+    /// );
+    ///
+    /// assert!(key.enabled());
+    /// ```
     pub fn enabled(&self) -> bool {
         self.enabled
     }
 
     /// Checks if the key has expired
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::service_account_key::ServiceAccountKey;
+    /// use buraq::types::Algorithm;
+    /// use mongodb::bson::oid::ObjectId;
+    /// use chrono::{Utc, Duration};
+    ///
+    /// // Create a key that expires in the future
+    /// let valid_key = ServiceAccountKey::new(
+    ///     ObjectId::new(),
+    ///     Algorithm::RSA,
+    ///     "valid-key".to_string(),
+    ///     Utc::now() + Duration::days(7)
+    /// );
+    /// assert!(!valid_key.is_expired());
+    ///
+    /// // Create a key that has already expired
+    /// let expired_key = ServiceAccountKey::new(
+    ///     ObjectId::new(),
+    ///     Algorithm::RSA,
+    ///     "expired-key".to_string(),
+    ///     Utc::now() - Duration::hours(1)
+    /// );
+    /// assert!(expired_key.is_expired());
+    /// ```
     pub fn is_expired(&self) -> bool {
         Utc::now() > self.expires_at
     }
