@@ -41,6 +41,7 @@ impl Project {
     /// let project = Project::new("My Project".to_string(), "Project description".to_string());
     /// assert_eq!(project.name(), "My Project");
     /// assert_eq!(project.description(), "Project description");
+    /// assert!(project.enabled());
     /// ```
     pub fn new(name: String, description: String) -> Self {
         Self { 
@@ -54,6 +55,24 @@ impl Project {
     }
 
     /// Returns the project's unique identifier
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::project::Project;
+    /// use mongodb::bson::oid::ObjectId;
+    ///
+    /// let mut project = Project::new(
+    ///     "My Project".to_string(),
+    ///     "Project description".to_string()
+    /// );
+    ///
+    /// assert!(project.id().is_none());
+    ///
+    /// let id = ObjectId::new();
+    /// project.set_id(id);
+    /// assert!(project.id().is_some());
+    /// ```
     pub fn id(&self) -> Option<&ObjectId> {
         self.id.as_ref()
     }
@@ -64,26 +83,104 @@ impl Project {
     }
 
     /// Returns the project's name
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::project::Project;
+    ///
+    /// let name = "My Project".to_string();
+    /// let project = Project::new(
+    ///     name.clone(),
+    ///     "Project description".to_string()
+    /// );
+    ///
+    /// assert_eq!(project.name(), name);
+    /// ```
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Returns the project's description
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::project::Project;
+    ///
+    /// let description = "Project description".to_string();
+    /// let project = Project::new(
+    ///     "My Project".to_string(),
+    ///     description.clone()
+    /// );
+    ///
+    /// assert_eq!(project.description(), description);
+    /// ```
     pub fn description(&self) -> &str {
         &self.description
     }
 
     /// Returns the project's enabled status
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::project::Project;
+    ///
+    /// let project = Project::new(
+    ///     "My Project".to_string(),
+    ///     "Project description".to_string()
+    /// );
+    ///
+    /// // Projects are enabled by default
+    /// assert!(project.enabled());
+    /// ```
     pub fn enabled(&self) -> bool {
         self.enabled
     }
 
     /// Returns the project's creation timestamp
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::project::Project;
+    /// use chrono::Utc;
+    ///
+    /// let before = Utc::now();
+    /// let project = Project::new(
+    ///     "My Project".to_string(),
+    ///     "Project description".to_string()
+    /// );
+    /// let after = Utc::now();
+    ///
+    /// // Verify timestamp is between before and after
+    /// assert!(project.created_at() >= &before);
+    /// assert!(project.created_at() <= &after);
+    /// ```
     pub fn created_at(&self) -> &DateTime<Utc> {
         &self.created_at
     }
 
     /// Returns the project's last update timestamp
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use buraq::models::project::Project;
+    /// use chrono::Utc;
+    ///
+    /// let before = Utc::now();
+    /// let project = Project::new(
+    ///     "My Project".to_string(),
+    ///     "Project description".to_string()
+    /// );
+    /// let after = Utc::now();
+    ///
+    /// // Verify timestamp is between before and after
+    /// assert!(project.updated_at() >= &before);
+    /// assert!(project.updated_at() <= &after);
+    /// ```
     pub fn updated_at(&self) -> &DateTime<Utc> {
         &self.updated_at
     }
