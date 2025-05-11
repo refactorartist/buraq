@@ -1,52 +1,86 @@
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Utc};
 
-//service_account {
-//    ObjectID id PK "Primary Key"
-//    string email "Account email"
-//    string user "Username"
-//    string secret "Account secret"
-//    bool enabled "Account status"
-//}
-
+/// Represents a service account for API authentication
+///
+/// # Fields
+/// - `id`: Unique identifier for the service account (MongoDB ObjectId)
+/// - `email`: Email address associated with the account
+/// - `user`: Username for the account
+/// - `secret`: Secret key for authentication
+/// - `enabled`: Whether the account is currently active
+/// - `created_at`: Account creation timestamp
+/// - `updated_at`: Last update timestamp
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceAccount {
-    id: ObjectId,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
     email: String,
     user: String,
     secret: String,
     enabled: bool,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl ServiceAccount {
+    /// Creates a new ServiceAccount with the given parameters
+    ///
+    /// # Arguments
+    /// * `email` - Email address for the account
+    /// * `user` - Username for the account
+    /// * `secret` - Secret key for authentication
     pub fn new(email: String, user: String, secret: String) -> Self {
         Self {
-            id: ObjectId::new(),
+            id: None,
             email,
             user,
             secret,
             enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         }
     }
 
-    pub fn id(&self) -> &ObjectId {
-        &self.id
+    /// Returns the account's unique identifier
+    pub fn id(&self) -> Option<&ObjectId> {
+        self.id.as_ref()
     }
 
+    /// Sets the account's unique identifier
+    pub fn set_id(&mut self, id: ObjectId) {
+        self.id = Some(id);
+    }
+
+    /// Returns the account's email address
     pub fn email(&self) -> &str {
         &self.email
     }
 
+    /// Returns the account's username
     pub fn user(&self) -> &str {
         &self.user
     }
 
+    /// Returns the account's secret key
     pub fn secret(&self) -> &str {
         &self.secret
     }
 
+    /// Returns whether the account is enabled
     pub fn enabled(&self) -> bool {
         self.enabled
+    }
+
+    /// Returns the creation timestamp
+    pub fn created_at(&self) -> &DateTime<Utc> {
+        &self.created_at
+    }
+
+    /// Returns the last update timestamp
+    pub fn updated_at(&self) -> &DateTime<Utc> {
+        &self.updated_at
     }
 
     // Convert to MongoDB Document
@@ -62,7 +96,6 @@ impl ServiceAccount {
 
 #[cfg(test)]
 mod test {
-
     use super::*;
 
     #[test]
@@ -73,10 +106,11 @@ mod test {
 
         let service_account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
 
-        assert!(ObjectId::parse_str(service_account.id.to_string()).is_ok());
-        assert_eq!(service_account.email, email);
-        assert_eq!(service_account.user, user);
-        assert_eq!(service_account.secret, secret);
+        assert!(service_account.id().is_none());
+        assert_eq!(service_account.email(), email);
+        assert_eq!(service_account.user(), user);
+        assert_eq!(service_account.secret(), secret);
+        assert!(service_account.enabled());
     }
    
     #[test]
@@ -91,13 +125,13 @@ mod test {
         assert!(deserialized.is_ok());
         let deserialized_service_account = deserialized.unwrap();
 
-        assert_eq!(service_account.id, deserialized_service_account.id);
-        assert_eq!(service_account.email, deserialized_service_account.email);
-        assert_eq!(service_account.user, deserialized_service_account.user);
-        assert_eq!(service_account.secret, deserialized_service_account.secret);
+        assert_eq!(service_account.id(), deserialized_service_account.id());
+        assert_eq!(service_account.email(), deserialized_service_account.email());
+        assert_eq!(service_account.user(), deserialized_service_account.user());
+        assert_eq!(service_account.secret(), deserialized_service_account.secret());
         assert_eq!(
-            service_account.enabled,
-            deserialized_service_account.enabled
+            service_account.enabled(),
+            deserialized_service_account.enabled()
         );
     }
 
@@ -114,10 +148,10 @@ mod test {
         // Test conversion from BSON Document
         let deserialized = ServiceAccount::from_document(doc).unwrap();
 
-        assert_eq!(service_account.id, deserialized.id);
-        assert_eq!(service_account.email, deserialized.email);
-        assert_eq!(service_account.user, deserialized.user);
-        assert_eq!(service_account.secret, deserialized.secret);
-        assert_eq!(service_account.enabled, deserialized.enabled);
+        assert_eq!(service_account.id(), deserialized.id());
+        assert_eq!(service_account.email(), deserialized.email());
+        assert_eq!(service_account.user(), deserialized.user());
+        assert_eq!(service_account.secret(), deserialized.secret());
+        assert_eq!(service_account.enabled(), deserialized.enabled());
     }
 }
