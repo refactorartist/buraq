@@ -1,85 +1,152 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-You are an expert in Rust, async programming, and concurrent systems.
-Key Principles
-- Write clear, concise, and idiomatic Rust code with accurate examples.
-- Use async programming paradigms effectively, leveraging `tokio` for concurrency.
-- Prioritize modularity, clean code organization, and efficient resource management.
-- Use expressive variable names that convey intent (e.g., `is_ready`, `has_data`).
-- Adhere to Rust's naming conventions: snake_case for variables and functions, PascalCase for types and structs.
-- Avoid code duplication; use functions and modules to encapsulate reusable logic.
-- Write code with safety, concurrency, and performance in mind, embracing Rust's ownership and type system.
-Async Web Development
-- Use `hyper` as the primary HTTP server and client library.
-- Implement request handlers with clear separation of concerns.
-- Use middleware patterns for cross-cutting concerns like logging, authentication.
-- Leverage `tower` middleware ecosystem for composable request processing.
-- Implement robust error handling with custom error types.
-Database Interactions
-- Use `mongodb` for database operations with async support.
-- Implement repository pattern for database access.
-- Use connection pooling with `mongodb` client.
-- Implement efficient query strategies with minimal blocking.
-- Use `serde` for document serialization/deserialization.
-Async Programming
-- Use `tokio` as the async runtime for handling asynchronous tasks and I/O.
-- Implement async functions using `async fn` syntax.
-- Leverage `tokio::spawn` for task spawning and concurrency.
-- Use `tokio::select!` for managing multiple async tasks and cancellations.
-- Favor structured concurrency: prefer scoped tasks and clean cancellation paths.
-Channels and Concurrency
-- Use Rust's `tokio::sync::mpsc` for asynchronous, multi-producer, single-consumer channels.
-- Use `tokio::sync::broadcast` for broadcasting messages to multiple consumers.
-- Implement `tokio::sync::oneshot` for one-time communication between tasks.
-- Prefer bounded channels for backpressure; handle capacity limits gracefully.
-- Use `tokio::sync::Mutex` and `tokio::sync::RwLock` for shared state across tasks, avoiding deadlocks.
-Error Handling and Safety
-- Create a comprehensive application error type using `thiserror` or `anyhow`.
-- Use `Result` for all fallible operations.
-- Implement detailed error responses for HTTP endpoints.
-- Use the `?` operator for concise error propagation.
-- Handle errors with context and provide meaningful error messages.
-HTTP and Web Specifics
-- Use `hyper` for low-level HTTP handling.
-- Implement robust request parsing and validation.
-- Use `serde` for request/response JSON serialization.
-- Implement proper content negotiation and error responses.
-- Use middleware for common web concerns (logging, CORS, authentication).
-Testing
-- Write comprehensive unit and integration tests.
-- Use `tokio::test` for async test scenarios.
-- Use `devbox run test` to execute test suites.
-- Mock external dependencies like MongoDB.
-- Implement thorough error case testing.
-- Use `httptest` or similar for HTTP endpoint testing.
-Application Execution
-- Use `devbox run start` to launch the application
-- Ensure all configuration and environment setup is compatible with Devbox runtime
-Performance Optimization
-- Minimize async overhead; use sync code where possible.
-- Implement connection pooling for MongoDB.
-- Use efficient serialization with `serde`.
-- Optimize database queries and indexing.
-- Implement caching strategies where appropriate.
-Key Conventions
-1. Modular application structure with clear separation of concerns.
-2. Use environment-based configuration (e.g., `config` crate).
-3. Comprehensive logging with `tracing` or `log` crates.
-4. Implement health check and metrics endpoints.
-Ecosystem Recommendations
-- `hyper` for HTTP server/client
-- `mongodb` for database interactions
-- `serde` for serialization
-- `tower` for middleware
-- `tracing` for logging
-- `config` for configuration management
-Security Considerations
-- Implement proper input validation
-- Use secure defaults for MongoDB connections
-- Implement proper authentication and authorization
-- Protect against common web vulnerabilities
-- Use HTTPS and secure headers
-Refer to Hyper, MongoDB, and Tokio documentation for advanced patterns and best practices.
+# Rust Async Web Development Guide
+
+## Project Setup and Workflow
+
+### Development Commands
+
+- Run tests: `devbox run tests`
+- Start application: `devbox run start`
+
+### Prerequisites
+
+- Rust
+- Tokio
+- Actix-web
+- MongoDB
+- Devbox
+
+## Project Structure
+
+```
+project_root/
+|
+|= src/
+|     |
+|     main.rs
+|     lib.rs
+|    | routes/
+|     models/
+|     repositories/
+|     services/
+|
+|= tests/
+|    | integration/
+|    | unit/
+|
+|= Cargo.toml
+|=> devbox.json
+```
+
+## Devbox Configuration
+
+```json
+{
+  "packages": [
+    "rust",
+    "mongodb",
+    "openssl"
+  ],
+  "shell": {
+    "init_hook": [
+      "export RUST_BACKTRACE=3
+  L  }
+  },
+  "scripts": {
+    "test": "cargo test -- --nocapture",
+    "start": "cargo run",
+    "check": "cargo check",
+    "clippy": "cargo clippy"
+  }
+}
+```
+
+## Testing Workflow
+
+### Run All Tests
+```bash
+devbox run tests
+```
+
+### Run Specific Test Module
+```bash
+devbox run tests -- --test integration_tests
+```
+
+### Run with Verbose Output
+```bash
+devbox run tests -- --nocapture
+```
+
+## Key Development Principles
+
+### Async Programming
+- Use `tokio` for async runtime
+- Implement async functions with `async fn`
+- Leverage `tokio::spawn` for concurrency
+
+### Error Handling
+- Use `Result` for fallible operations
+- Implement comprehensive error types
+- Provide meaningful error messages
+
+### Database Interactions
+- Use `mongodb` with async support
+- Implement repository pattern
+- Use connection pooling
+- Leverage `serde` for serialization
+
+## Recommended Ecosystem
+
+- HTTP Server: Actix-web
+- Database: MongoDB
+- Serialization: Serde
+- Logging: Tracing
+- Configuration: Config crate
+
+## Performance Optimization
+
+- Minimize async overhead
+- Implement connection pooling
+- Optimize database queries
+- Use efficient serialization
+
+## Security Considerations
+
+- Input validation
+- Secure MongoDB connections
+- Implement authentication
+- Use HTTPS
+- Protect against web vulnerabilities
+
+## Best Practices
+
+1. Modular application structure
+2. Clear separation of concerns
+3. Comprehensive logging
+4. Environment-based configuration
+5. Thorough testing
+
+## Continuous Integration
+
+Ensure all tests pass:
+```bash
+devbox run tests
+```
+
+Start application:
+```bash
+devbox run start
+tests
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
+
+## License
+
+[Your License Here]
