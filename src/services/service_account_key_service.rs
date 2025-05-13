@@ -166,7 +166,7 @@ mod tests {
             .create_service_account_key(service_account_key)
             .await?;
         assert!(result.id().is_some());
-        assert_eq!(result.algorithm(), Algorithm::RSA);
+        assert_eq!(*result.algorithm(), Algorithm::RSA);
         assert_eq!(result.key(), "test_key");
         cleanup_test_db(db).await?;
         Ok(())
@@ -205,7 +205,7 @@ mod tests {
             .await?;
         assert!(service_account_key.is_some());
         let service_account_key = service_account_key.unwrap();
-        assert_eq!(service_account_key.algorithm(), Algorithm::RSA);
+        assert_eq!(*service_account_key.algorithm(), Algorithm::RSA);
         assert_eq!(service_account_key.key(), "test_key");
         cleanup_test_db(db).await?;
         Ok(())
@@ -235,7 +235,7 @@ mod tests {
             .update_service_account_key(*result.id().unwrap(), updated_service_account_key)
             .await?;
         assert!(result.id().is_some());
-        assert_eq!(result.algorithm(), Algorithm::HMAC);
+        assert_eq!(*result.algorithm(), Algorithm::HMAC);
         assert_eq!(result.key(), "updated_key");
         cleanup_test_db(db).await?;
         Ok(())
