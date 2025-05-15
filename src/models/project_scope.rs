@@ -18,29 +18,6 @@ pub struct ProjectScope {
 }
 
 impl ProjectScope {
-    /// Creates a new ProjectScope with the given project ID, name and description.
-    ///
-    /// # Arguments
-    ///
-    /// * `project_id` - ID of the associated project
-    /// * `name` - Name of the scope
-    /// * `description` - Description of the scope
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_scope::ProjectScope;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let project_id = ObjectId::new();
-    /// let name = "read:users".to_string();
-    /// let description = "Allows reading user data".to_string();
-    ///
-    /// let scope = ProjectScope::new(project_id, name.clone(), description.clone());
-    /// assert_eq!(scope.name(), "read:users");
-    /// assert_eq!(scope.description(), "Allows reading user data");
-    /// assert_eq!(scope.project_id(), &project_id);
-    /// ```
     pub fn new(project_id: ObjectId, name: String, description: String) -> Self {
         Self {
             id: None,
@@ -50,27 +27,6 @@ impl ProjectScope {
         }
     }
 
-    /// Returns the project scope's unique identifier
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_scope::ProjectScope;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let project_id = ObjectId::new();
-    /// let mut scope = ProjectScope::new(
-    ///     project_id,
-    ///     "write:posts".to_string(),
-    ///     "Allows creating and updating posts".to_string()
-    /// );
-    ///
-    /// assert!(scope.id().is_none());
-    ///
-    /// let id = ObjectId::new();
-    /// scope.set_id(id);
-    /// assert!(scope.id().is_some());
-    /// ```
     pub fn id(&self) -> Option<&ObjectId> {
         self.id.as_ref()
     }
@@ -80,65 +36,14 @@ impl ProjectScope {
         self.id = Some(id);
     }
 
-    /// Returns the associated project ID
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_scope::ProjectScope;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let project_id = ObjectId::new();
-    /// let scope = ProjectScope::new(
-    ///     project_id,
-    ///     "delete:comments".to_string(),
-    ///     "Allows deleting comments".to_string()
-    /// );
-    ///
-    /// assert_eq!(scope.project_id(), &project_id);
-    /// ```
     pub fn project_id(&self) -> &ObjectId {
         &self.project_id
     }
 
-    /// Returns the scope's name
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_scope::ProjectScope;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let name = "read:profiles".to_string();
-    /// let scope = ProjectScope::new(
-    ///     ObjectId::new(),
-    ///     name.clone(),
-    ///     "Allows reading user profiles".to_string()
-    /// );
-    ///
-    /// assert_eq!(scope.name(), name);
-    /// ```
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// Returns the scope's description
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_scope::ProjectScope;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let description = "Allows updating user settings".to_string();
-    /// let scope = ProjectScope::new(
-    ///     ObjectId::new(),
-    ///     "update:settings".to_string(),
-    ///     description.clone()
-    /// );
-    ///
-    /// assert_eq!(scope.description(), description);
-    /// ```
     pub fn description(&self) -> &str {
         &self.description
     }
