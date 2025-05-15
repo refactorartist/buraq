@@ -1,4 +1,5 @@
-use mongodb::bson::oid::ObjectId;
+use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, to_document, from_document, doc};
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use crate::types::Algorithm;
@@ -16,151 +17,140 @@ use crate::serializers::algorithm;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AccessToken {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    key: String,
+    pub id: Option<Uuid>,
+    pub key: String,
     #[serde(with = "algorithm")]
-    algorithm: Algorithm,
-    expires_at: DateTime<Utc>,
-    created_at: DateTime<Utc>,
-    enabled: bool,
+    pub algorithm: Algorithm,
+    pub expires_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub enabled: bool,
 }
 
-impl AccessToken {
-    pub fn new(key: String, algorithm: Algorithm, expires_at: DateTime<Utc>) -> Self {
-        Self {
-            id: None,
-            key,
-            algorithm,
-            expires_at,
-            created_at: Utc::now(),
-            enabled: true,
+impl From<AccessToken> for Document {
+    fn from(value: AccessToken) -> Self {
+        to_document(&value).unwrap()
+    }
+}
+
+impl From<Document> for AccessToken {
+    fn from(value: Document) -> Self {
+        from_document(value.clone()).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AccessTokenUpdatePayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AccessTokenFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<Algorithm>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_active: Option<bool>,
+}
+
+impl From<AccessTokenFilter> for Document {
+    fn from(value: AccessTokenFilter) -> Self {
+        let mut doc = Document::new();
+        if let Some(key) = value.key {
+            doc.insert("key", key);
         }
-    }
-
-    pub fn id(&self) -> Option<&ObjectId> {
-        self.id.as_ref()
-    }
-
-    /// Sets the token's unique identifier
-    pub fn set_id(&mut self, id: ObjectId) {
-        self.id = Some(id);
-    }
-
-    pub fn key(&self) -> &str {
-        &self.key
-    }
-
-    pub fn algorithm(&self) -> &Algorithm {
-        &self.algorithm
-    }
-
-    /// Returns the expiration timestamp
-    pub fn expires_at(&self) -> &DateTime<Utc> {
-        &self.expires_at
-    }
-
-    /// Returns the creation timestamp
-    pub fn created_at(&self) -> &DateTime<Utc> {
-        &self.created_at
-    }
-
-    /// Returns whether the token is enabled
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-
-    pub fn is_expired(&self) -> bool {
-        Utc::now() > self.expires_at
-    }
-
-    // Convert to MongoDB Document
-    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
-        mongodb::bson::to_document(self)
-    }
-
-    // Create from MongoDB Document
-    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
-        mongodb::bson::from_document(doc)
+        if let Some(algorithm) = value.algorithm {
+            doc.insert("algorithm", algorithm.to_string());
+        }
+        if let Some(is_enabled) = value.is_enabled {
+            doc.insert("enabled", is_enabled);
+        }
+        if let Some(is_active) = value.is_active {
+            if is_active {
+                doc.insert("expires_at", doc! { "$gt": mongodb::bson::DateTime::now() });
+            }
+        }
+        doc
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Duration;
 
     #[test]
-    fn test_new_access_token() {
-        let key = "test-key".to_string();
-        let algorithm = Algorithm::HMAC;
-        let expires_at = Utc::now() + chrono::Duration::days(7);
-
-        let token = AccessToken::new(key.clone(), algorithm, expires_at);
-
-        assert!(token.id().is_none());
-        assert_eq!(token.key(), key);
-        assert!(matches!(token.algorithm(), Algorithm::HMAC));
-        assert_eq!(token.expires_at(), &expires_at);
-        assert!(token.enabled());
-        assert!(!token.is_expired());
-    }
-
-    #[test]
-    fn test_mongodb_serialization() {
-        let key = "test-key".to_string();
-        let algorithm = Algorithm::RSA;
-        let expires_at = Utc::now() + chrono::Duration::days(7);
-
-        let mut token = AccessToken::new(key.clone(), algorithm, expires_at);
-        let id = ObjectId::new();
-        token.set_id(id);
-
-        // Test conversion to BSON Document
-        let doc = token.to_document().unwrap();
+    fn test_access_token_creation() {
+        let now = Utc::now();
+        let expires = now + Duration::hours(1);
         
-        // Test conversion from BSON Document
-        let deserialized = AccessToken::from_document(doc).unwrap();
+        let token = AccessToken {
+            id: Some(Uuid::new()),
+            key: "test-key".to_string(),
+            algorithm: Algorithm::RSA,
+            expires_at: expires,
+            created_at: now,
+            enabled: true,
+        };
 
-        assert_eq!(token.id(), deserialized.id());
-        assert_eq!(token.key(), deserialized.key());
-        assert!(matches!(deserialized.algorithm(), Algorithm::RSA));
-        assert_eq!(token.expires_at(), deserialized.expires_at());
-        assert_eq!(token.created_at(), deserialized.created_at());
-        assert_eq!(token.enabled(), deserialized.enabled());
+        assert_eq!(token.key, "test-key");
+        assert_eq!(token.algorithm, Algorithm::RSA);
+        assert!(token.enabled);
     }
 
     #[test]
-    fn test_algorithm_serialization() {
-        let key = "test-key".to_string();
-        let expires_at = Utc::now() + chrono::Duration::days(7);
+    fn test_access_token_document_conversion() {
+        let token = AccessToken {
+            id: Some(Uuid::new()),
+            key: "test-key".to_string(), 
+            algorithm: Algorithm::HMAC,
+            expires_at: Utc::now(),
+            created_at: Utc::now(),
+            enabled: true,
+        };
 
-        // Test RSA algorithm
-        let rsa_token = AccessToken::new(
-            key.clone(),
-            Algorithm::RSA,
-            expires_at
-        );
-        let doc = rsa_token.to_document().unwrap();
+        let doc: Document = token.clone().into();
+        let converted: AccessToken = doc.into();
+
+        assert_eq!(token.id, converted.id);
+        assert_eq!(token.key, converted.key);
+        assert_eq!(token.algorithm, converted.algorithm);
+        assert_eq!(token.enabled, converted.enabled);
+    }
+
+    #[test]
+    fn test_access_token_update_payload() {
+        let update = AccessTokenUpdatePayload {
+            key: Some("new-key".to_string()),
+            expires_at: Some(Utc::now()),
+            enabled: Some(false),
+        };
+
+        assert_eq!(update.key.unwrap(), "new-key");
+        assert!(!update.enabled.unwrap());
+    }
+
+    #[test]
+    fn test_access_token_filter() {
+        let filter = AccessTokenFilter {
+            key: Some("test-key".to_string()),
+            algorithm: Some(Algorithm::RSA),
+            is_enabled: Some(true),
+            is_active: Some(true),
+        };
+
+        let doc: Document = filter.into();
+        
+        assert_eq!(doc.get_str("key").unwrap(), "test-key");
         assert_eq!(doc.get_str("algorithm").unwrap(), "RSA");
-
-        // Test HMAC algorithm
-        let hmac_token = AccessToken::new(
-            key,
-            Algorithm::HMAC,
-            expires_at
-        );
-        let doc = hmac_token.to_document().unwrap();
-        assert_eq!(doc.get_str("algorithm").unwrap(), "HMAC");
-    }
-
-    #[test]
-    fn test_expiration() {
-        let expired_time = Utc::now() - chrono::Duration::hours(1);
-        let token = AccessToken::new(
-            "test-key".to_string(),
-            Algorithm::HMAC,
-            expired_time
-        );
-
-        assert!(token.is_expired());
+        assert!(doc.get_bool("enabled").unwrap());
+        assert!(doc.get_document("expires_at").unwrap().contains_key("$gt"));
     }
 }
