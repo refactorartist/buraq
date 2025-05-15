@@ -21,26 +21,6 @@ impl ProjectAccessRepository {
     ///
     /// Returns a Result containing the ProjectAccessRepository or an error if collection creation fails.
     ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use buraq::repositories::project_access::ProjectAccessRepository;
-    /// use mongodb::Client;
-    /// use buraq::utils::database::create_database_client;
-    /// use dotenvy::dotenv;
-    /// use buraq::config::AppConfig;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> anyhow::Result<()> {
-    ///     dotenv().ok();
-    ///
-    ///     let app_config = AppConfig::from_env(Some(true))?;
-    ///     let client = create_database_client(&app_config.application.database_uri).await?;
-    ///     let db = client.database("test_db");
-    ///     let repo = ProjectAccessRepository::new(db)?;
-    ///     Ok(())
-    /// }
-    /// ```
     pub fn new(database: Database) -> Result<Self, anyhow::Error> {
         let collection = database.collection::<ProjectAccess>("project_access");
         Ok(Self { collection })
