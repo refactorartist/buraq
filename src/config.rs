@@ -46,17 +46,6 @@ impl AppConfig {
     ///
     /// This function will return an error if any of the required environment variables (`BURAQ_DATABASE_URI`, `BURAQ_HOST`, `BURAQ_PORT`) are not set.
     ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use buraq::config::AppConfig;
-    ///
-    /// fn main() -> Result<(), anyhow::Error> {
-    ///     let config = AppConfig::from_env(Some(true))?;
-    ///     println!("Host: {}, Port: {}, Database URI: {}", config.application.host, config.application.port, config.application.database_uri);
-    ///     Ok(())
-    /// }
-    /// ```
     pub fn from_env(load_env: Option<bool>) -> Result<Self, anyhow::Error> {
         if load_env == Some(true) {
             dotenvy::dotenv().ok();
