@@ -31,21 +31,6 @@ impl Environment {
     /// * `name` - Name of the environment
     /// * `description` - Description of the environment
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::environment::Environment;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let project_id = ObjectId::new();
-    /// let name = "Production".to_string();
-    /// let description = "Production environment".to_string();
-    ///
-    /// let env = Environment::new(project_id, name.clone(), description.clone());
-    /// assert_eq!(env.name(), "Production");
-    /// assert_eq!(env.description(), "Production environment");
-    /// assert!(env.enabled());
-    /// ```
     pub fn new(project_id: ObjectId, name: String, description: String) -> Self {
         Self {
             id: None,

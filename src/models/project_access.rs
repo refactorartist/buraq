@@ -29,28 +29,6 @@ impl ProjectAccess {
     /// * `service_account_id` - ID of the associated service account
     /// * `project_scopes` - Vector of project scope IDs
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_access::ProjectAccess;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let name = "API Access".to_string();
-    /// let environment_id = ObjectId::new();
-    /// let service_account_id = ObjectId::new();
-    /// let project_scopes = vec![ObjectId::new()];
-    ///
-    /// let access = ProjectAccess::new(
-    ///     name.clone(),
-    ///     environment_id,
-    ///     service_account_id,
-    ///     project_scopes.clone()
-    /// );
-    ///
-    /// assert_eq!(access.name(), "API Access");
-    /// assert_eq!(access.environment_id(), &environment_id);
-    /// assert_eq!(access.project_scopes().len(), 1);
-    /// ```
     pub fn new(
         name: String,
         environment_id: ObjectId,

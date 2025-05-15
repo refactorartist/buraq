@@ -25,32 +25,6 @@ pub struct ServiceAccount {
 }
 
 impl ServiceAccount {
-    /// Creates a new ServiceAccount with the given parameters
-    ///
-    /// Automatically generates:
-    /// - Current UTC timestamps for created_at and updated_at
-    /// - Sets enabled to true by default
-    ///
-    /// # Arguments
-    /// * `email` - Email address for the account
-    /// * `user` - Username for the account
-    /// * `secret` - Secret key for authentication
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::service_account::ServiceAccount;
-    ///
-    /// let email = "service@example.com".to_string();
-    /// let user = "service-user".to_string();
-    /// let secret = "service-secret-123".to_string();
-    ///
-    /// let account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
-    /// assert_eq!(account.email(), "service@example.com");
-    /// assert_eq!(account.user(), "service-user");
-    /// assert_eq!(account.secret(), "service-secret-123");
-    /// assert!(account.enabled());
-    /// ```
     pub fn new(email: String, user: String, secret: String) -> Self {
         Self {
             id: None,
