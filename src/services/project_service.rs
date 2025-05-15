@@ -60,36 +60,6 @@ impl ProjectService {
         Ok(Self { project_repository })
     }
 
-    /// Creates a new project in the database
-    ///
-    /// # Arguments
-    ///
-    /// * `project` - The project to create
-    ///
-    /// # Returns
-    ///
-    /// The created project with its assigned ID
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::project_service::ProjectService;
-    /// # use buraq::models::project::Project;
-    /// # use mongodb::{Client, Database};
-    ///
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db)?;
-    /// let project = Project::new("My Project".to_string(), "A test project".to_string());
-    /// let created_project = project_service.create_project(project).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn create_project(&self, project: Project) -> Result<Project, Error> {
         let result = self.project_repository.create(project.clone()).await?;
         let id = result.inserted_id.as_object_id().unwrap();
@@ -104,71 +74,10 @@ impl ProjectService {
         Ok(inserted_project)
     }
 
-    /// Retrieves a project by its ID
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ObjectId of the project to retrieve
-    ///
-    /// # Returns
-    ///
-    /// An Option containing the project if found, or None if not found
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::project_service::ProjectService;
-    /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    ///
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db)?;
-    /// let project_id = ObjectId::new();
-    /// let project = project_service.get_project(project_id).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn get_project(&self, id: ObjectId) -> Result<Option<Project>, Error> {
         self.project_repository.read(id).await
     }
 
-    /// Updates an existing project
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ObjectId of the project to update
-    /// * `project` - The updated project data
-    ///
-    /// # Returns
-    ///
-    /// The updated project
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails or if the project is not found
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::project_service::ProjectService;
-    /// # use buraq::models::project::Project;
-    /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    ///
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db)?;
-    /// let project_id = ObjectId::new();
-    /// let updated_project = Project::new("Updated Name".to_string(), "Updated description".to_string());
-    /// let result = project_service.update_project(project_id, updated_project).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn update_project(&self, id: ObjectId, project: Project) -> Result<Project, Error> {
         let result = self.project_repository.update(id, project).await?;
 
@@ -187,76 +96,11 @@ impl ProjectService {
         Ok(updated_project)
     }
 
-    /// Deletes a project by its ID
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ObjectId of the project to delete
-    ///
-    /// # Returns
-    ///
-    /// A boolean indicating whether the project was successfully deleted
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::project_service::ProjectService;
-    /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    ///
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db)?;
-    /// let project_id = ObjectId::new();
-    /// let was_deleted = project_service.delete_project(project_id).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn delete_project(&self, id: ObjectId) -> Result<bool, Error> {
         let result = self.project_repository.delete(id).await?;
         Ok(result.deleted_count > 0)
     }
 
-    /// Retrieves projects based on the provided filter criteria
-    ///
-    /// # Arguments
-    ///
-    /// * `filter` - The filter criteria to apply when retrieving projects
-    ///
-    /// # Returns
-    ///
-    /// A vector of projects that match the filter criteria
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::project_service::{ProjectService, ProjectFilter};
-    /// # use mongodb::{Client, Database};
-    ///
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let project_service = ProjectService::new(db)?;
-    /// 
-    /// // Create a filter to find enabled projects
-    /// let filter = ProjectFilter {
-    ///     name: None,
-    ///     description: None,
-    ///     enabled: Some(true),
-    /// };
-    ///
-    /// let projects = project_service.get_projects(filter).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn get_projects(&self, filter: ProjectFilter) -> Result<Vec<Project>, Error> {
         let filter_doc = filter.into();
         let projects = self.project_repository.find(filter_doc).await?;

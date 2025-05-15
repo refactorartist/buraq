@@ -60,37 +60,6 @@ impl EnvironmentService {
         Ok(Self { environment_repository })
     }
 
-    /// Creates a new environment in the database
-    ///
-    /// # Arguments
-    ///
-    /// * `environment` - The environment to create
-    ///
-    /// # Returns
-    ///
-    /// The created environment with its assigned ID
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::environment_service::EnvironmentService;
-    /// # use buraq::models::environment::Environment;
-    /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    /// 
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let environment_service = EnvironmentService::new(db)?;
-    /// let project_id = ObjectId::new();
-    /// let environment = Environment::new(project_id, "Production".to_string(), "Production environment".to_string());
-    /// let created_environment = environment_service.create_environment(environment).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn create_environment(&self, environment: Environment) -> Result<Environment, Error> {
         let result = self.environment_repository.create(environment).await?;
         let id = result.inserted_id.as_object_id().unwrap();
@@ -102,72 +71,10 @@ impl EnvironmentService {
         Ok(inserted_environment)
     }
 
-    /// Retrieves an environment by its ID
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ObjectId of the environment to retrieve
-    ///
-    /// # Returns
-    ///
-    /// An Option containing the environment if found, or None if not found
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::environment_service::EnvironmentService;
-    /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    /// 
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let environment_service = EnvironmentService::new(db)?;
-    /// let environment_id = ObjectId::new();
-    /// let environment = environment_service.get_environment(environment_id).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn get_environment(&self, id: ObjectId) -> Result<Option<Environment>, Error> {
         self.environment_repository.read(id).await
     }
 
-    /// Updates an existing environment
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ObjectId of the environment to update
-    /// * `environment` - The updated environment data
-    ///
-    /// # Returns
-    ///
-    /// The updated environment
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails or if the environment is not found
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::environment_service::EnvironmentService;
-    /// # use buraq::models::environment::Environment;
-    /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    /// 
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let environment_service = EnvironmentService::new(db)?;
-    /// let environment_id = ObjectId::new();
-    /// let project_id = ObjectId::new();
-    /// let updated_environment = Environment::new(project_id, "Updated Name".to_string(), "Updated description".to_string());
-    /// let result = environment_service.update_environment(environment_id, updated_environment).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn update_environment(&self, id: ObjectId, environment: Environment) -> Result<Environment, Error> {
         let result = self.environment_repository.update(id, environment).await?;
 
@@ -183,77 +90,11 @@ impl EnvironmentService {
         Ok(updated_environment)
     }
 
-    /// Deletes an environment by its ID
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ObjectId of the environment to delete
-    ///
-    /// # Returns
-    ///
-    /// A boolean indicating whether the environment was successfully deleted
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::environment_service::EnvironmentService;
-    /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    /// 
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let environment_service = EnvironmentService::new(db)?;
-    /// let environment_id = ObjectId::new();
-    /// let was_deleted = environment_service.delete_environment(environment_id).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn delete_environment(&self, id: ObjectId) -> Result<bool, Error> {
         let result = self.environment_repository.delete(id).await?;
         Ok(result.deleted_count > 0)
     }
 
-    /// Retrieves environments based on the provided filter criteria
-    ///
-    /// # Arguments
-    ///
-    /// * `filter` - The filter criteria to apply when retrieving environments
-    ///
-    /// # Returns
-    ///
-    /// A vector of environments that match the filter criteria
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the database operation fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use buraq::services::environment_service::{EnvironmentService, EnvironmentFilter};
-    /// # use mongodb::{Client, Database, bson::oid::ObjectId};
-    /// 
-    /// # async fn example() -> anyhow::Result<()> {
-    /// # let client = Client::with_uri_str("mongodb://localhost:27017").await?;
-    /// # let db = client.database("test_db");
-    /// let environment_service = EnvironmentService::new(db)?;
-    /// 
-    /// // Create a filter to find environments for a specific project
-    /// let project_id = ObjectId::new();
-    /// let filter = EnvironmentFilter {
-    ///     project_id: Some(project_id),
-    ///     name: None,
-    ///     enabled: Some(true),
-    /// };
-    /// 
-    /// let environments = environment_service.get_environments(filter).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn get_environments(&self, filter: EnvironmentFilter) -> Result<Vec<Environment>, Error> {
         let filter_doc = filter.into();
         let environments = self.environment_repository.find(filter_doc).await?;
