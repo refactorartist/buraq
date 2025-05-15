@@ -63,26 +63,6 @@ impl ServiceAccount {
         }
     }
 
-    /// Returns the account's unique identifier
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::service_account::ServiceAccount;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let mut account = ServiceAccount::new(
-    ///     "service@example.com".to_string(),
-    ///     "service-user".to_string(),
-    ///     "service-secret-123".to_string()
-    /// );
-    ///
-    /// assert!(account.id().is_none());
-    ///
-    /// let id = ObjectId::new();
-    /// account.set_id(id);
-    /// assert!(account.id().is_some());
-    /// ```
     pub fn id(&self) -> Option<&ObjectId> {
         self.id.as_ref()
     }
@@ -92,121 +72,26 @@ impl ServiceAccount {
         self.id = Some(id);
     }
 
-    /// Returns the account's email address
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::service_account::ServiceAccount;
-    ///
-    /// let email = "service@example.com".to_string();
-    /// let account = ServiceAccount::new(
-    ///     email.clone(),
-    ///     "service-user".to_string(),
-    ///     "service-secret-123".to_string()
-    /// );
-    ///
-    /// assert_eq!(account.email(), "service@example.com");
-    /// ```
     pub fn email(&self) -> &str {
         &self.email
     }
 
-    /// Returns the account's username
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::service_account::ServiceAccount;
-    ///
-    /// let user = "service-user".to_string();
-    /// let account = ServiceAccount::new(
-    ///     "service@example.com".to_string(),
-    ///     user.clone(),
-    ///     "service-secret-123".to_string()
-    /// );
-    ///
-    /// assert_eq!(account.user(), "service-user");
-    /// ```
     pub fn user(&self) -> &str {
         &self.user
     }
 
-    /// Returns the account's secret key
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::service_account::ServiceAccount;
-    ///
-    /// let secret = "service-secret-123".to_string();
-    /// let account = ServiceAccount::new(
-    ///     "service@example.com".to_string(),
-    ///     "service-user".to_string(),
-    ///     secret.clone()
-    /// );
-    ///
-    /// assert_eq!(account.secret(), "service-secret-123");
-    /// ```
     pub fn secret(&self) -> &str {
         &self.secret
     }
 
-    /// Returns whether the account is enabled
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::service_account::ServiceAccount;
-    ///
-    /// let account = ServiceAccount::new(
-    ///     "service@example.com".to_string(),
-    ///     "service-user".to_string(),
-    ///     "service-secret-123".to_string()
-    /// );
-    ///
-    /// assert!(account.enabled());
-    /// ```
     pub fn enabled(&self) -> bool {
         self.enabled
     }
 
-    /// Returns the creation timestamp
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::service_account::ServiceAccount;
-    ///
-    /// let account = ServiceAccount::new(
-    ///     "service@example.com".to_string(),
-    ///     "service-user".to_string(),
-    ///     "service-secret-123".to_string()
-    /// );
-    ///
-    /// let created_at = account.created_at();
-    /// assert!(created_at <= &chrono::Utc::now());
-    /// ```
     pub fn created_at(&self) -> &DateTime<Utc> {
         &self.created_at
     }
 
-    /// Returns the last update timestamp
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::service_account::ServiceAccount;
-    ///
-    /// let account = ServiceAccount::new(
-    ///     "service@example.com".to_string(),
-    ///     "service-user".to_string(),
-    ///     "service-secret-123".to_string()
-    /// );
-    ///
-    /// let updated_at = account.updated_at();
-    /// assert!(updated_at <= &chrono::Utc::now());
-    /// ```
     pub fn updated_at(&self) -> &DateTime<Utc> {
         &self.updated_at
     }

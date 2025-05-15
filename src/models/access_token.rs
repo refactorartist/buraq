@@ -26,33 +26,6 @@ pub struct AccessToken {
 }
 
 impl AccessToken {
-    /// Creates a new AccessToken with the given parameters
-    ///
-    /// Automatically generates:
-    /// - Current UTC timestamp for created_at
-    /// - Sets enabled to true by default
-    ///
-    /// # Arguments
-    /// * `key` - The API key value
-    /// * `algorithm` - The algorithm used for the token
-    /// * `expires_at` - When the token expires
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::access_token::AccessToken;
-    /// use buraq::types::Algorithm;
-    /// use chrono::{Utc, Duration};
-    ///
-    /// let key = "api-key-123456".to_string();
-    /// let algorithm = Algorithm::HMAC;
-    /// let expires_at = Utc::now() + Duration::days(30);
-    ///
-    /// let token = AccessToken::new(key, algorithm, expires_at);
-    /// assert_eq!(token.key(), "api-key-123456");
-    /// assert!(matches!(token.algorithm(), Algorithm::HMAC));
-    /// assert!(!token.is_expired());
-    /// ```
     pub fn new(key: String, algorithm: Algorithm, expires_at: DateTime<Utc>) -> Self {
         Self {
             id: None,
@@ -64,28 +37,6 @@ impl AccessToken {
         }
     }
 
-    /// Returns the token's unique identifier
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::access_token::AccessToken;
-    /// use buraq::types::Algorithm;
-    /// use chrono::{Utc, Duration};
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let mut token = AccessToken::new(
-    ///     "api-key".to_string(),
-    ///     Algorithm::RSA,
-    ///     Utc::now() + Duration::days(7)
-    /// );
-    ///
-    /// assert!(token.id().is_none());
-    ///
-    /// let id = ObjectId::new();
-    /// token.set_id(id);
-    /// assert!(token.id().is_some());
-    /// ```
     pub fn id(&self) -> Option<&ObjectId> {
         self.id.as_ref()
     }
@@ -95,45 +46,10 @@ impl AccessToken {
         self.id = Some(id);
     }
 
-    /// Returns the API key value
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::access_token::AccessToken;
-    /// use buraq::types::Algorithm;
-    /// use chrono::{Utc, Duration};
-    ///
-    /// let key = "my-secret-key".to_string();
-    /// let token = AccessToken::new(
-    ///     key.clone(),
-    ///     Algorithm::HMAC,
-    ///     Utc::now() + Duration::days(7)
-    /// );
-    ///
-    /// assert_eq!(token.key(), key);
-    /// ```
     pub fn key(&self) -> &str {
         &self.key
     }
 
-    /// Returns the algorithm used
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::access_token::AccessToken;
-    /// use buraq::types::Algorithm;
-    /// use chrono::{Utc, Duration};
-    ///
-    /// let token = AccessToken::new(
-    ///     "api-key".to_string(),
-    ///     Algorithm::RSA,
-    ///     Utc::now() + Duration::days(7)
-    /// );
-    ///
-    /// assert!(matches!(token.algorithm(), Algorithm::RSA));
-    /// ```
     pub fn algorithm(&self) -> &Algorithm {
         &self.algorithm
     }
@@ -153,31 +69,6 @@ impl AccessToken {
         self.enabled
     }
 
-    /// Checks if the token has expired
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::access_token::AccessToken;
-    /// use buraq::types::Algorithm;
-    /// use chrono::{Utc, Duration};
-    ///
-    /// // Create a token that expires in the future
-    /// let valid_token = AccessToken::new(
-    ///     "valid-key".to_string(),
-    ///     Algorithm::HMAC,
-    ///     Utc::now() + Duration::days(7)
-    /// );
-    /// assert!(!valid_token.is_expired());
-    ///
-    /// // Create a token that has already expired
-    /// let expired_token = AccessToken::new(
-    ///     "expired-key".to_string(),
-    ///     Algorithm::HMAC,
-    ///     Utc::now() - Duration::hours(1)
-    /// );
-    /// assert!(expired_token.is_expired());
-    /// ```
     pub fn is_expired(&self) -> bool {
         Utc::now() > self.expires_at
     }

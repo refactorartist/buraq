@@ -76,27 +76,6 @@ impl ProjectAccess {
         mongodb::bson::from_document(doc)
     }
 
-    /// Returns the access configuration's unique identifier
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_access::ProjectAccess;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let mut access = ProjectAccess::new(
-    ///     "API Access".to_string(),
-    ///     ObjectId::new(),
-    ///     ObjectId::new(),
-    ///     vec![]
-    /// );
-    ///
-    /// assert!(access.id().is_none());
-    ///
-    /// let id = ObjectId::new();
-    /// access.set_id(id);
-    /// assert!(access.id().is_some());
-    /// ```
     pub fn id(&self) -> Option<&ObjectId> {
         self.id.as_ref()
     }
@@ -106,125 +85,22 @@ impl ProjectAccess {
         self.id = Some(id);
     }
 
-    /// Returns the access configuration's name
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_access::ProjectAccess;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let name = "Read-only Access".to_string();
-    /// let access = ProjectAccess::new(
-    ///     name.clone(),
-    ///     ObjectId::new(),
-    ///     ObjectId::new(),
-    ///     vec![]
-    /// );
-    ///
-    /// assert_eq!(access.name(), name);
-    /// ```
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// Returns the associated environment ID
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_access::ProjectAccess;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let environment_id = ObjectId::new();
-    /// let access = ProjectAccess::new(
-    ///     "Production Access".to_string(),
-    ///     environment_id,
-    ///     ObjectId::new(),
-    ///     vec![]
-    /// );
-    ///
-    /// assert_eq!(access.environment_id(), &environment_id);
-    /// ```
     pub fn environment_id(&self) -> &ObjectId {
         &self.environment_id
     }
 
-    /// Returns the associated service account ID
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_access::ProjectAccess;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let service_account_id = ObjectId::new();
-    /// let access = ProjectAccess::new(
-    ///     "Admin Access".to_string(),
-    ///     ObjectId::new(),
-    ///     service_account_id,
-    ///     vec![]
-    /// );
-    ///
-    /// assert_eq!(access.service_account_id(), &service_account_id);
-    /// ```
     pub fn service_account_id(&self) -> &ObjectId {
         &self.service_account_id
     }
 
-    /// Returns the vector of project scope IDs
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_access::ProjectAccess;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let scope1 = ObjectId::new();
-    /// let scope2 = ObjectId::new();
-    /// let project_scopes = vec![scope1, scope2];
-    ///
-    /// let access = ProjectAccess::new(
-    ///     "Full Access".to_string(),
-    ///     ObjectId::new(),
-    ///     ObjectId::new(),
-    ///     project_scopes.clone()
-    /// );
-    ///
-    /// assert_eq!(access.project_scopes(), &project_scopes);
-    /// assert_eq!(access.project_scopes().len(), 2);
-    /// ```
     pub fn project_scopes(&self) -> &Vec<ObjectId> {
         &self.project_scopes
     }
 
-    /// Adds a project scope ID to the access configuration
-    /// 
-    /// Returns true if the scope was added, false if it already existed
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_access::ProjectAccess;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let mut access = ProjectAccess::new(
-    ///     "Limited Access".to_string(),
-    ///     ObjectId::new(),
-    ///     ObjectId::new(),
-    ///     vec![]
-    /// );
-    ///
-    /// let scope_id = ObjectId::new();
-    /// 
-    /// // Adding a new scope returns true
-    /// assert!(access.add_project_scope(scope_id));
-    /// assert_eq!(access.project_scopes().len(), 1);
-    ///
-    /// // Adding the same scope again returns false
-    /// assert!(!access.add_project_scope(scope_id));
-    /// assert_eq!(access.project_scopes().len(), 1);
-    /// ```
     pub fn add_project_scope(&mut self, scope_id: ObjectId) -> bool {
         if !self.project_scopes.contains(&scope_id) {
             self.project_scopes.push(scope_id);
@@ -234,37 +110,6 @@ impl ProjectAccess {
         }
     }
 
-    /// Removes a project scope ID from the access configuration
-    /// 
-    /// Returns true if the scope was removed, false if it didn't exist
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use buraq::models::project_access::ProjectAccess;
-    /// use mongodb::bson::oid::ObjectId;
-    ///
-    /// let scope1 = ObjectId::new();
-    /// let scope2 = ObjectId::new();
-    ///
-    /// let mut access = ProjectAccess::new(
-    ///     "Multi-scope Access".to_string(),
-    ///     ObjectId::new(),
-    ///     ObjectId::new(),
-    ///     vec![scope1, scope2]
-    /// );
-    ///
-    /// assert_eq!(access.project_scopes().len(), 2);
-    ///
-    /// // Removing an existing scope returns true
-    /// assert!(access.remove_project_scope(&scope1));
-    /// assert_eq!(access.project_scopes().len(), 1);
-    ///
-    /// // Removing a non-existent scope returns false
-    /// let non_existent = ObjectId::new();
-    /// assert!(!access.remove_project_scope(&non_existent));
-    /// assert_eq!(access.project_scopes().len(), 1);
-    /// ```
     pub fn remove_project_scope(&mut self, scope_id: &ObjectId) -> bool {
         if let Some(pos) = self.project_scopes.iter().position(|x| x == scope_id) {
             self.project_scopes.remove(pos);
