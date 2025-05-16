@@ -1,27 +1,28 @@
-use mongodb::bson::oid::ObjectId;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, doc, from_document, to_document};
+use serde::{Deserialize, Serialize};
 
 /// Represents a service account for API authentication
 ///
 /// # Fields
-/// - `id`: Unique identifier for the service account (MongoDB ObjectId)
+/// - `id`: Unique identifier for the service account (UUID)
 /// - `email`: Email address associated with the account
 /// - `user`: Username for the account
 /// - `secret`: Secret key for authentication
 /// - `enabled`: Whether the account is currently active
 /// - `created_at`: Account creation timestamp
 /// - `updated_at`: Last update timestamp
-#[derive(Debug, Serialize, Deserialize,Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServiceAccount {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    email: String,
-    user: String,
-    secret: String,
-    enabled: bool,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub id: Option<Uuid>,
+    pub email: String,
+    pub user: String,
+    pub secret: String,
+    pub enabled: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl ServiceAccount {
@@ -36,109 +37,106 @@ impl ServiceAccount {
             updated_at: Utc::now(),
         }
     }
+}
 
-    pub fn id(&self) -> Option<&ObjectId> {
-        self.id.as_ref()
+impl From<ServiceAccount> for Document {
+    fn from(value: ServiceAccount) -> Self {
+        to_document(&value).unwrap()
     }
+}
 
-    /// Sets the account's unique identifier
-    pub fn set_id(&mut self, id: ObjectId) {
-        self.id = Some(id);
+impl From<Document> for ServiceAccount {
+    fn from(value: Document) -> Self {
+        from_document(value.clone()).unwrap()
     }
+}
 
-    pub fn email(&self) -> &str {
-        &self.email
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ServiceAccountUpdatePayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ServiceAccountFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_enabled: Option<bool>,
+}
+
+impl From<ServiceAccountFilter> for Document {
+    fn from(value: ServiceAccountFilter) -> Self {
+        let mut doc = Document::new();
+        if let Some(email) = value.email {
+            doc.insert("email", email);
+        }
+        if let Some(user) = value.user {
+            doc.insert("user", user);
+        }
+        if let Some(is_enabled) = value.is_enabled {
+            doc.insert("enabled", is_enabled);
+        }
+        doc
     }
-
-    pub fn user(&self) -> &str {
-        &self.user
-    }
-
-    pub fn secret(&self) -> &str {
-        &self.secret
-    }
-
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-
-    pub fn created_at(&self) -> &DateTime<Utc> {
-        &self.created_at
-    }
-
-    pub fn updated_at(&self) -> &DateTime<Utc> {
-        &self.updated_at
-    }
-
-    // Convert to MongoDB Document
-    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
-        mongodb::bson::to_document(self)
-    }
-
-    // Create from MongoDB Document
-    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
-        mongodb::bson::from_document(doc)
-    }    
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]
-    fn test_new_service_account() {
-        let email = "Examples@google.com".to_string();
-        let user = "Example123".to_string();
-        let secret = "ExampleSercet".to_string();
-
-        let service_account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
-
-        assert!(service_account.id().is_none());
-        assert_eq!(service_account.email(), email);
-        assert_eq!(service_account.user(), user);
-        assert_eq!(service_account.secret(), secret);
-        assert!(service_account.enabled());
-    }
-   
-    #[test]
-    fn test_serialization() {
-        let email = "Examples@google.com".to_string();
-        let user = "Example123".to_string();
-        let secret = "ExampleSercet".to_string();
-        let service_account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
-
-        let serialized = serde_json::to_string(&service_account);
-        let deserialized: Result<ServiceAccount, _> = serde_json::from_str(&serialized.unwrap());
-        assert!(deserialized.is_ok());
-        let deserialized_service_account = deserialized.unwrap();
-
-        assert_eq!(service_account.id(), deserialized_service_account.id());
-        assert_eq!(service_account.email(), deserialized_service_account.email());
-        assert_eq!(service_account.user(), deserialized_service_account.user());
-        assert_eq!(service_account.secret(), deserialized_service_account.secret());
-        assert_eq!(
-            service_account.enabled(),
-            deserialized_service_account.enabled()
+    fn test_service_account_creation() {
+        let account = ServiceAccount::new(
+            "test@example.com".to_string(),
+            "testuser".to_string(),
+            "secret123".to_string(),
         );
+
+        assert_eq!(account.email, "test@example.com");
+        assert_eq!(account.user, "testuser");
+        assert_eq!(account.secret, "secret123");
+        assert!(account.enabled);
     }
 
     #[test]
-    fn test_mongodb_serialization() {
-        let email = "Examples@google.com".to_string();
-        let user = "Example123".to_string();
-        let secret = "ExampleSercet".to_string();
-        let service_account = ServiceAccount::new(email.clone(), user.clone(), secret.clone());
+    fn test_service_account_document_conversion() {
+        let account = ServiceAccount::new(
+            "test@example.com".to_string(),
+            "testuser".to_string(),
+            "secret123".to_string(),
+        );
 
-        // Test conversion to BSON Document
-        let doc = service_account.to_document().unwrap();
-        
-        // Test conversion from BSON Document
-        let deserialized = ServiceAccount::from_document(doc).unwrap();
+        let doc: Document = account.clone().into();
+        let converted: ServiceAccount = doc.into();
 
-        assert_eq!(service_account.id(), deserialized.id());
-        assert_eq!(service_account.email(), deserialized.email());
-        assert_eq!(service_account.user(), deserialized.user());
-        assert_eq!(service_account.secret(), deserialized.secret());
-        assert_eq!(service_account.enabled(), deserialized.enabled());
+        assert_eq!(account.id, converted.id);
+        assert_eq!(account.email, converted.email);
+        assert_eq!(account.user, converted.user);
+        assert_eq!(account.secret, converted.secret);
+        assert_eq!(account.enabled, converted.enabled);
+    }
+
+    #[test]
+    fn test_service_account_filter() {
+        let filter = ServiceAccountFilter {
+            email: Some("test@example.com".to_string()),
+            user: Some("testuser".to_string()),
+            is_enabled: Some(true),
+        };
+
+        let doc: Document = filter.into();
+
+        assert_eq!(doc.get_str("email").unwrap(), "test@example.com");
+        assert_eq!(doc.get_str("user").unwrap(), "testuser");
+        assert!(doc.get_bool("enabled").unwrap());
     }
 }

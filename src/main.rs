@@ -1,8 +1,8 @@
-use actix_web::{web, App, HttpServer};
-use buraq::config::{AppConfig, AppData}; 
+use actix_web::{App, HttpServer, web};
+use buraq::config::{AppConfig, AppData};
 use buraq::utils::database::create_database_client;
-use tokio::signal;
 use std::time::Duration;
+use tokio::signal;
 
 /// The main entry point for the application.
 ///
@@ -24,13 +24,13 @@ async fn main() -> Result<(), anyhow::Error> {
     // Load environment variables from a .env file
     dotenvy::dotenv()?;
     // Initialize the logger
-    env_logger::init();  
+    env_logger::init();
 
     // Create application configuration from environment variables
-    let app_config = AppConfig::from_env(Some(true))?; 
+    let app_config = AppConfig::from_env(Some(true))?;
     let host = app_config.application.host.clone();
     let port = app_config.application.port;
-    
+
     // Create application data including the MongoDB client
     let app_data = web::Data::new(AppData {
         config: app_config.clone(),
@@ -61,15 +61,15 @@ async fn main() -> Result<(), anyhow::Error> {
         }
         _ = signal::ctrl_c() => {
             println!("Received ctrl+c signal, shutting down gracefully");
-            
+
             // Stop accepting new connections
             server_handle.stop(true).await;
-            
+
             // Give some time for cleanup
             tokio::time::sleep(Duration::from_secs(1)).await;
             println!("Cleanup completed, server shutting down");
         }
     }
-    
+
     Ok(())
 }

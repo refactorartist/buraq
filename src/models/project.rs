@@ -1,11 +1,12 @@
-use serde::{Serialize, Deserialize};
-use mongodb::bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
+use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, doc, from_document, to_document};
+use serde::{Deserialize, Serialize};
 
 /// Represents a project with metadata and timestamps.
 ///
 /// # Fields
-/// - `id`: Unique identifier for the project (MongoDB ObjectId)
+/// - `id`: Unique identifier for the project (MongoDB Uuid)
 /// - `name`: Name of the project
 /// - `description`: Description of the project
 /// - `created_at`: Timestamp when project was created
@@ -13,64 +14,55 @@ use chrono::{DateTime, Utc};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Project {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    name: String,
-    description: String,
-    enabled: bool,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub id: Option<Uuid>,
+    pub name: String,
+    pub description: String,
+    pub enabled: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
-impl Project {
-    pub fn new(name: String, description: String) -> Self {
-        Self { 
-            id: None,
-            name, 
-            description, 
-            enabled: true,
-            created_at: Utc::now(), 
-            updated_at: Utc::now() 
+impl From<Project> for Document {
+    fn from(value: Project) -> Self {
+        to_document(&value).unwrap()
+    }
+}
+
+impl From<Document> for Project {
+    fn from(value: Document) -> Self {
+        from_document(value.clone()).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectUpdatePayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_enabled: Option<bool>,
+}
+
+impl From<ProjectFilter> for Document {
+    fn from(value: ProjectFilter) -> Self {
+        let mut doc = Document::new();
+        if let Some(name) = value.name {
+            doc.insert("name", name);
         }
+        if let Some(is_enabled) = value.is_enabled {
+            doc.insert("enabled", is_enabled);
+        }
+        doc
     }
-
-    pub fn id(&self) -> Option<&ObjectId> {
-        self.id.as_ref()
-    }
-
-    /// Sets the project's unique identifier
-    pub fn set_id(&mut self, id: ObjectId) {
-        self.id = Some(id);
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-
-    pub fn created_at(&self) -> &DateTime<Utc> {
-        &self.created_at
-    }
-
-    pub fn updated_at(&self) -> &DateTime<Utc> {
-        &self.updated_at
-    }
-
-    // Convert to MongoDB Document
-    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
-        mongodb::bson::to_document(self)
-    }
-
-    // Create from MongoDB Document
-    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
-        mongodb::bson::from_document(doc)
-    }      
 }
 
 #[cfg(test)]
@@ -81,63 +73,81 @@ mod tests {
     fn test_new_project() {
         let name = "Test Project".to_string();
         let description = "Test Description".to_string();
-        
-        let project = Project::new(name.clone(), description.clone());
-        
+
+        let project = Project {
+            id: None,
+            name: name.clone(),
+            description: description.clone(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
         // Verify fields are set correctly
-        assert!(project.id().is_none());
-        assert_eq!(project.name(), name);
-        assert_eq!(project.description(), description);
-        assert!(project.enabled());
+        assert!(project.id.is_none());
+        assert_eq!(project.name, name);
+        assert_eq!(project.description, description);
+        assert!(project.enabled);
         // Verify timestamps are recent
         let now = Utc::now();
-        assert!(project.created_at() <= &now);
-        assert!(project.updated_at() <= &now);
+        assert!(project.created_at <= now);
+        assert!(project.updated_at <= now);
     }
 
     #[test]
     fn test_serialization() {
         let name = "Test Project".to_string();
         let description = "Test Description".to_string();
-        let project = Project::new(name.clone(), description.clone());
-        
+        let project = Project {
+            id: None,
+            name: name.clone(),
+            description: description.clone(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
         // Test serialization
         let serialized = serde_json::to_string(&project);
         assert!(serialized.is_ok());
-        
+
         // Test deserialization
         let deserialized: Result<Project, _> = serde_json::from_str(&serialized.unwrap());
         assert!(deserialized.is_ok());
-        
+
         let deserialized_project = deserialized.unwrap();
-        assert_eq!(project.id(), deserialized_project.id());
-        assert_eq!(project.name(), deserialized_project.name());
-        assert_eq!(project.description(), deserialized_project.description());
-        assert_eq!(project.enabled(), deserialized_project.enabled());
-        assert_eq!(project.created_at(), deserialized_project.created_at());
-        assert_eq!(project.updated_at(), deserialized_project.updated_at());
+        assert_eq!(project.id, deserialized_project.id);
+        assert_eq!(project.name, deserialized_project.name);
+        assert_eq!(project.description, deserialized_project.description);
+        assert_eq!(project.enabled, deserialized_project.enabled);
+        assert_eq!(project.created_at, deserialized_project.created_at);
+        assert_eq!(project.updated_at, deserialized_project.updated_at);
     }
 
     #[test]
     fn test_mongodb_serialization() {
         let name = "Test Project".to_string();
         let description = "Test Description".to_string();
-        
-        let mut project = Project::new(name.clone(), description.clone());
-        let id = ObjectId::new();
-        project.set_id(id);
 
-        // Test conversion to BSON Document
-        let doc = project.to_document().unwrap();
-        
-        // Test conversion from BSON Document
-        let deserialized = Project::from_document(doc).unwrap();
+        let mut project = Project {
+            id: None,
+            name: name.clone(),
+            description: description.clone(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        let id = Uuid::new();
+        project.id = Some(id);
 
-        assert_eq!(deserialized.id(), project.id());
-        assert_eq!(deserialized.name(), project.name());
-        assert_eq!(deserialized.description(), project.description());
-        assert_eq!(deserialized.enabled(), project.enabled());
-        assert_eq!(deserialized.created_at(), project.created_at());
-        assert_eq!(deserialized.updated_at(), project.updated_at());
+        let doc: Document = project.clone().into();
+        let converted: Project = doc.into();
+
+        assert_eq!(converted.id, project.id);
+        assert_eq!(converted.name, project.name);
+        assert_eq!(converted.description, project.description);
+        assert_eq!(converted.enabled, project.enabled);
+        assert_eq!(converted.created_at, project.created_at);
+        assert_eq!(converted.updated_at, project.updated_at);
     }
 }

@@ -1,61 +1,61 @@
-use mongodb::bson::oid::ObjectId;
+use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, from_document, to_document};
 use serde::{Deserialize, Serialize};
 
 /// Represents a project scope that defines permissions within a project.
 ///
 /// # Fields
-/// - `id`: Unique identifier for the project scope (MongoDB ObjectId)
+/// - `id`: Unique identifier for the project scope (UUID)
 /// - `project_id`: Foreign key reference to the associated project
 /// - `name`: Name of the scope
 /// - `description`: Description of what the scope allows
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectScope {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    project_id: ObjectId,
-    name: String,
-    description: String,
+    pub id: Option<Uuid>,
+    pub project_id: Uuid,
+    pub name: String,
+    pub description: String,
 }
 
-impl ProjectScope {
-    pub fn new(project_id: ObjectId, name: String, description: String) -> Self {
-        Self {
-            id: None,
-            project_id,
-            name,
-            description,
+impl From<ProjectScope> for Document {
+    fn from(value: ProjectScope) -> Self {
+        to_document(&value).unwrap()
+    }
+}
+
+impl From<Document> for ProjectScope {
+    fn from(value: Document) -> Self {
+        from_document(value.clone()).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectScopeUpdatePayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectScopeFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+impl From<ProjectScopeFilter> for Document {
+    fn from(value: ProjectScopeFilter) -> Self {
+        let mut doc = Document::new();
+        if let Some(project_id) = value.project_id {
+            doc.insert("project_id", project_id);
         }
-    }
-
-    pub fn id(&self) -> Option<&ObjectId> {
-        self.id.as_ref()
-    }
-
-    /// Sets the project scope's unique identifier
-    pub fn set_id(&mut self, id: ObjectId) {
-        self.id = Some(id);
-    }
-
-    pub fn project_id(&self) -> &ObjectId {
-        &self.project_id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-
-    // Convert to MongoDB Document
-    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
-        mongodb::bson::to_document(self)
-    }
-
-    // Create from MongoDB Document
-    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
-        mongodb::bson::from_document(doc)
+        if let Some(name) = value.name {
+            doc.insert("name", name);
+        }
+        doc
     }
 }
 
@@ -65,60 +65,58 @@ mod tests {
 
     #[test]
     fn test_new_project_scope() {
-        let project_id = ObjectId::new();
+        let project_id = Uuid::new();
         let name = "read:users".to_string();
         let description = "Allows reading user data".to_string();
 
-        let scope = ProjectScope::new(project_id, name.clone(), description.clone());
+        let scope = ProjectScope {
+            id: None,
+            project_id,
+            name: name.clone(),
+            description: description.clone(),
+        };
 
-        assert!(scope.id().is_none());
-        assert_eq!(scope.project_id(), &project_id);
-        assert_eq!(scope.name(), name);
-        assert_eq!(scope.description(), description);
+        assert!(scope.id.is_none());
+        assert_eq!(scope.project_id, project_id);
+        assert_eq!(scope.name, name);
+        assert_eq!(scope.description, description);
     }
 
     #[test]
-    fn test_mongodb_serialization() {
-        let project_id = ObjectId::new();
+    fn test_document_conversion() {
+        let project_id = Uuid::new();
         let name = "write:posts".to_string();
         let description = "Allows creating and updating posts".to_string();
 
-        let mut scope = ProjectScope::new(project_id, name.clone(), description.clone());
-        let id = ObjectId::new();
-        scope.set_id(id);
+        let mut scope = ProjectScope {
+            id: None,
+            project_id: project_id,
+            name: name.clone(),
+            description: description.clone(),
+        };
+        let id = Uuid::new();
+        scope.id = Some(id);
 
-        // Test conversion to BSON Document
-        let doc = scope.to_document().unwrap();
-        
-        // Test conversion from BSON Document
-        let deserialized = ProjectScope::from_document(doc).unwrap();
+        let doc: Document = scope.clone().into();
+        let converted: ProjectScope = doc.into();
 
-        assert_eq!(deserialized.id(), scope.id());
-        assert_eq!(deserialized.project_id, project_id);
-        assert_eq!(deserialized.name, name);
-        assert_eq!(deserialized.description, description);
+        assert_eq!(converted.id, scope.id);
+        assert_eq!(converted.project_id, project_id);
+        assert_eq!(converted.name, name);
+        assert_eq!(converted.description, description);
     }
 
     #[test]
-    fn test_serialization() {
-        let project_id = ObjectId::new();
-        let name = "example-scope".to_string();
-        let description = "example description".to_string();
+    fn test_project_scope_filter() {
+        let project_id = Uuid::new();
+        let filter = ProjectScopeFilter {
+            project_id: Some(project_id),
+            name: Some("test-scope".to_string()),
+        };
 
-        let mut scope = ProjectScope::new(
-            project_id,
-            name.clone(),
-            description.clone()
-        );
-        let id = ObjectId::new();
-        scope.set_id(id);
+        let doc: Document = filter.into();
 
-        let doc = scope.to_document().unwrap();
-
-        let deserialized = ProjectScope::from_document(doc).unwrap();
-        assert_eq!(deserialized.id(), scope.id());
-        assert_eq!(deserialized.project_id, project_id);
-        assert_eq!(deserialized.name, name);
-        assert_eq!(deserialized.description, description);
+        assert!(doc.contains_key("project_id"));
+        assert!(doc.contains_key("name"));
     }
 }

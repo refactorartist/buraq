@@ -1,4 +1,4 @@
-use mongodb::bson::oid::ObjectId;
+use mongodb::bson::{Document, Uuid, doc, from_document, to_document};
 use serde::{Deserialize, Serialize};
 
 /// Represents an environment associated with a project.
@@ -9,135 +9,149 @@ use serde::{Deserialize, Serialize};
 /// - `name`: Name of the environment
 /// - `description`: Description of the environment
 /// - `enabled`: Whether the environment is active/enabled
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Environment {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    project_id: ObjectId,
-    name: String,
-    description: String,
-    enabled: bool,
+    pub id: Option<Uuid>,
+    pub project_id: Uuid,
+    pub name: String,
+    pub description: String,
+    pub enabled: bool,
 }
 
-impl Environment {
-    /// Creates a new Environment with the given project ID, name and description.
-    ///
-    /// Automatically generates:
-    /// - Sets enabled to true by default
-    ///
-    /// # Arguments
-    ///
-    /// * `project_id` - ID of the associated project
-    /// * `name` - Name of the environment
-    /// * `description` - Description of the environment
-    ///
-    pub fn new(project_id: ObjectId, name: String, description: String) -> Self {
-        Self {
-            id: None,
-            project_id,
-            name,
-            description,
-            enabled: true,
+impl From<Environment> for Document {
+    fn from(value: Environment) -> Self {
+        to_document(&value).unwrap()
+    }
+}
+
+impl From<Document> for Environment {
+    fn from(value: Document) -> Self {
+        from_document(value.clone()).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EnvironmentUpdatePayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EnvironmentFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_enabled: Option<bool>,
+}
+
+impl From<EnvironmentFilter> for Document {
+    fn from(value: EnvironmentFilter) -> Self {
+        let mut doc = Document::new();
+        if let Some(project_id) = value.project_id {
+            doc.insert("project_id", project_id);
         }
-    }
-
-    pub fn id(&self) -> Option<&ObjectId> {
-        self.id.as_ref()
-    }
-
-    /// Sets the environment's unique identifier
-    pub fn set_id(&mut self, id: ObjectId) {
-        self.id = Some(id);
-    }
-
-    pub fn project_id(&self) -> &ObjectId {
-        &self.project_id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-
-    // Convert to MongoDB Document
-    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
-        mongodb::bson::to_document(self)
-    }
-
-    // Create from MongoDB Document
-    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
-        mongodb::bson::from_document(doc)
+        if let Some(name) = value.name {
+            doc.insert("name", name);
+        }
+        if let Some(is_enabled) = value.is_enabled {
+            doc.insert("enabled", is_enabled);
+        }
+        doc
     }
 }
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
     fn test_new_environment() {
-        let project_id = ObjectId::new();
+        let project_id = Uuid::new();
         let name = "Production".to_string();
         let description = "Production environment".to_string();
 
-        let env = Environment::new(project_id, name.clone(), description.clone());
+        let env = Environment {
+            id: None,
+            project_id,
+            name: name.clone(),
+            description: description.clone(),
+            enabled: true,
+        };
 
-        assert!(env.id().is_none());
-        assert_eq!(env.project_id(), &project_id);
-        assert_eq!(env.name(), name);
-        assert_eq!(env.description(), description);
-        assert!(env.enabled());
+        assert!(env.id.is_none());
+        assert_eq!(env.project_id, project_id);
+        assert_eq!(env.name, name);
+        assert_eq!(env.description, description);
+        assert!(env.enabled);
     }
 
     #[test]
     fn test_mongodb_serialization() {
-        let project_id = ObjectId::new();
+        let project_id = Uuid::new();
         let name = "example-name".to_string();
         let description = "example description".to_string();
-        let enable = true;
 
-        let mut environment = Environment::new(
+        let mut environment = Environment {
+            id: None,
             project_id,
-            name.clone(),
-            description.clone()
-        );
-        let id = ObjectId::new();
-        environment.set_id(id);
+            name,
+            description,
+            enabled: true,
+        };
+        let id = Uuid::new();
+        environment.id = Some(id);
 
-        let doc = environment.to_document().unwrap();
+        let doc: Document = environment.clone().into();
+        let converted: Environment = doc.into();
 
-        let deserialized = Environment::from_document(doc).unwrap();
-        assert_eq!(deserialized.id(), environment.id());
-        assert_eq!(deserialized.project_id, project_id);
-        assert_eq!(deserialized.name, name);
-        assert_eq!(deserialized.description, description);
-        assert_eq!(deserialized.enabled, enable);
+        assert_eq!(environment.id, converted.id);
+        assert_eq!(environment.project_id, converted.project_id);
+        assert_eq!(environment.name, converted.name);
+        assert_eq!(environment.description, converted.description);
+        assert_eq!(environment.enabled, converted.enabled);
     }
 
     #[test]
-    fn test_serialization() {
-        let project_id = ObjectId::new();
-        let name = "Staging".to_string();
-        let description = "Staging environment".to_string();
-        let mut env = Environment::new(project_id, name, description);
-        let id = ObjectId::new();
-        env.set_id(id);
+    fn test_environment_update_payload() {
+        let update = EnvironmentUpdatePayload {
+            name: Some("new-name".to_string()),
+            description: Some("new description".to_string()),
+            enabled: Some(false),
+        };
 
-        let serialized = serde_json::to_string(&env).unwrap();
-        let deserialized: Environment = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(update.name.unwrap(), "new-name");
+        assert_eq!(update.description.unwrap(), "new description");
+        assert!(!update.enabled.unwrap());
+    }
 
-        assert_eq!(env.id(), deserialized.id());
-        assert_eq!(env.project_id(), deserialized.project_id());
-        assert_eq!(env.name(), deserialized.name());
-        assert_eq!(env.description(), deserialized.description());
-        assert_eq!(env.enabled(), deserialized.enabled());
+    #[test]
+    fn test_environment_filter() {
+        let project_id = Uuid::new();
+        let filter = EnvironmentFilter {
+            project_id: Some(project_id),
+            name: Some("test-env".to_string()),
+            is_enabled: Some(true),
+        };
+
+        let doc: Document = filter.into();
+
+        // Extract UUID from the document
+        let extracted_uuid = match doc.get("project_id").unwrap() {
+            mongodb::bson::Bson::Binary(binary) => {
+                Uuid::from_bytes(binary.bytes.clone().try_into().unwrap())
+            }
+            _ => panic!("Expected UUID binary"),
+        };
+
+        assert_eq!(extracted_uuid, project_id);
+        assert_eq!(doc.get_str("name").unwrap(), "test-env");
+        assert!(doc.get_bool("enabled").unwrap());
     }
 }
