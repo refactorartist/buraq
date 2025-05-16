@@ -1,10 +1,11 @@
-use mongodb::bson::oid::ObjectId;
+use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, to_document, from_document};
 use serde::{Deserialize, Serialize};
 
 /// Represents access control configuration for a project environment.
 ///
 /// # Fields
-/// - `id`: Unique identifier for the project access (MongoDB ObjectId)
+/// - `id`: Unique identifier for the project access
 /// - `name`: Name of the access configuration
 /// - `environment_id`: Foreign key reference to the associated environment
 /// - `service_account_id`: Foreign key reference to the associated service account
@@ -12,11 +13,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectAccess {    
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    name: String,
-    environment_id: ObjectId,
-    service_account_id: ObjectId,
-    project_scopes: Vec<ObjectId>,
+    pub id: Option<Uuid>,
+    pub name: String,
+    pub environment_id: Uuid,
+    pub service_account_id: Uuid,
+    pub project_scopes: Vec<Uuid>,
 }
 
 impl ProjectAccess {
@@ -31,9 +32,9 @@ impl ProjectAccess {
     ///
     pub fn new(
         name: String,
-        environment_id: ObjectId,
-        service_account_id: ObjectId,
-        project_scopes: Vec<ObjectId>,
+        environment_id: Uuid,
+        service_account_id: Uuid,
+        project_scopes: Vec<Uuid>,
     ) -> Self {
         Self {
             id: None,
@@ -43,58 +44,51 @@ impl ProjectAccess {
             project_scopes,
         }
     }
+}
 
-    // Convert to MongoDB Document
-    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
-        mongodb::bson::to_document(self)
+impl From<ProjectAccess> for Document {
+    fn from(value: ProjectAccess) -> Self {
+        to_document(&value).unwrap()
     }
+}
 
-    // Create from MongoDB Document
-    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
-        mongodb::bson::from_document(doc)
+impl From<Document> for ProjectAccess {
+    fn from(value: Document) -> Self {
+        from_document(value.clone()).unwrap()
     }
+}
 
-    pub fn id(&self) -> Option<&ObjectId> {
-        self.id.as_ref()
-    }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectAccessUpdatePayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_scopes: Option<Vec<Uuid>>,
+}
 
-    /// Sets the access configuration's unique identifier
-    pub fn set_id(&mut self, id: ObjectId) {
-        self.id = Some(id);
-    }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectAccessFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub environment_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_account_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_scopes: Option<Vec<Uuid>>,
+}
 
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn environment_id(&self) -> &ObjectId {
-        &self.environment_id
-    }
-
-    pub fn service_account_id(&self) -> &ObjectId {
-        &self.service_account_id
-    }
-
-    pub fn project_scopes(&self) -> &Vec<ObjectId> {
-        &self.project_scopes
-    }
-
-    pub fn add_project_scope(&mut self, scope_id: ObjectId) -> bool {
-        if !self.project_scopes.contains(&scope_id) {
-            self.project_scopes.push(scope_id);
-            true
-        } else {
-            false
+impl From<ProjectAccessFilter> for Document {
+    fn from(value: ProjectAccessFilter) -> Self {
+        let mut doc = Document::new();
+        if let Some(env_id) = value.environment_id {
+            doc.insert("environment_id", env_id);
         }
-    }
-
-    pub fn remove_project_scope(&mut self, scope_id: &ObjectId) -> bool {
-        if let Some(pos) = self.project_scopes.iter().position(|x| x == scope_id) {
-            self.project_scopes.remove(pos);
-            true
-        } else {
-            false
+        if let Some(sa_id) = value.service_account_id {
+            doc.insert("service_account_id", sa_id);
         }
+        if let Some(scopes) = value.project_scopes {
+            doc.insert("project_scopes", scopes);
+        }
+        doc
     }
 }
 
@@ -103,11 +97,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_project_access() {
+    fn test_project_access_creation() {
         let name = "Test Access".to_string();
-        let environment_id = ObjectId::new();
-        let service_account_id = ObjectId::new();
-        let project_scopes = vec![ObjectId::new(), ObjectId::new()];
+        let environment_id = Uuid::new();
+        let service_account_id = Uuid::new();
+        let project_scopes = vec![Uuid::new(), Uuid::new()];
 
         let access = ProjectAccess::new(
             name.clone(),
@@ -116,96 +110,56 @@ mod tests {
             project_scopes.clone(),
         );
 
-        assert!(access.id().is_none());
-        assert_eq!(access.name(), name);
-        assert_eq!(access.environment_id(), &environment_id);
-        assert_eq!(access.service_account_id(), &service_account_id);
-        assert_eq!(access.project_scopes(), &project_scopes);
+        assert!(access.id.is_none());
+        assert_eq!(access.name, name);
+        assert_eq!(access.environment_id, environment_id);
+        assert_eq!(access.service_account_id, service_account_id);
+        assert_eq!(access.project_scopes, project_scopes);
     }
 
     #[test]
-    fn test_document_conversion() {
-        let mut access = ProjectAccess::new(
-            "Test Access".to_string(),
-            ObjectId::new(),
-            ObjectId::new(),
-            vec![ObjectId::new()],
-        );
-        let id = ObjectId::new();
-        access.set_id(id);
+    fn test_project_access_document_conversion() {
+        let access = ProjectAccess {
+            id: Some(Uuid::new()),
+            name: "Test Access".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
-        // Test conversion to document
-        let doc = access.to_document().unwrap();
+        let doc: Document = access.clone().into();
+        let converted: ProjectAccess = doc.into();
+
+        assert_eq!(access.id, converted.id);
+        assert_eq!(access.name, converted.name);
+        assert_eq!(access.environment_id, converted.environment_id);
+        assert_eq!(access.service_account_id, converted.service_account_id);
+        assert_eq!(access.project_scopes, converted.project_scopes);
+    }
+
+    #[test]
+    fn test_project_access_update_payload() {
+        let update = ProjectAccessUpdatePayload {
+            name: Some("New Name".to_string()),
+            project_scopes: Some(vec![Uuid::new()]),
+        };
+
+        assert_eq!(update.name.unwrap(), "New Name");
+        assert_eq!(update.project_scopes.unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_project_access_filter() {
+        let filter = ProjectAccessFilter {
+            environment_id: Some(Uuid::new()),
+            service_account_id: Some(Uuid::new()),
+            project_scopes: Some(vec![Uuid::new()]),
+        };
+
+        let doc: Document = filter.into();
         
-        // Test conversion from document
-        let converted = ProjectAccess::from_document(doc).unwrap();
-
-        assert_eq!(access.id(), converted.id());
-        assert_eq!(access.name(), converted.name());
-        assert_eq!(access.environment_id(), converted.environment_id());
-        assert_eq!(access.service_account_id(), converted.service_account_id());
-        assert_eq!(access.project_scopes(), converted.project_scopes());
-    }
-
-    #[test]
-    fn test_add_remove_project_scopes() {
-        let mut access = ProjectAccess::new(
-            "Test Access".to_string(),
-            ObjectId::new(),
-            ObjectId::new(),
-            vec![],
-        );
-
-        // Test adding new scope
-        let scope1 = ObjectId::new();
-        assert!(access.add_project_scope(scope1));
-        assert_eq!(access.project_scopes().len(), 1);
-        assert!(access.project_scopes().contains(&scope1));
-
-        // Test adding duplicate scope
-        assert!(!access.add_project_scope(scope1));
-        assert_eq!(access.project_scopes().len(), 1);
-
-        // Test adding another scope
-        let scope2 = ObjectId::new();
-        assert!(access.add_project_scope(scope2));
-        assert_eq!(access.project_scopes().len(), 2);
-        assert!(access.project_scopes().contains(&scope2));
-
-        // Test removing existing scope
-        assert!(access.remove_project_scope(&scope1));
-        assert_eq!(access.project_scopes().len(), 1);
-        assert!(!access.project_scopes().contains(&scope1));
-
-        // Test removing non-existent scope
-        let non_existent_scope = ObjectId::new();
-        assert!(!access.remove_project_scope(&non_existent_scope));
-        assert_eq!(access.project_scopes().len(), 1);
-    }
-
-    #[test]
-    fn test_serialization() {
-        let name = "Test Access".to_string();
-        let environment_id = ObjectId::new();
-        let service_account_id = ObjectId::new();
-        let project_scopes = vec![ObjectId::new(), ObjectId::new()];
-
-        let mut access = ProjectAccess::new(
-            name,
-            environment_id,
-            service_account_id,
-            project_scopes,
-        );
-        let id = ObjectId::new();
-        access.set_id(id);
-
-        let serialized = serde_json::to_string(&access).unwrap();
-        let deserialized: ProjectAccess = serde_json::from_str(&serialized).unwrap();
-
-        assert_eq!(access.id(), deserialized.id());
-        assert_eq!(access.name(), deserialized.name());
-        assert_eq!(access.environment_id(), deserialized.environment_id());
-        assert_eq!(access.service_account_id(), deserialized.service_account_id());
-        assert_eq!(access.project_scopes(), deserialized.project_scopes());
+        assert!(doc.contains_key("environment_id"));
+        assert!(doc.contains_key("service_account_id"));
+        assert!(doc.contains_key("project_scopes"));
     }
 }
