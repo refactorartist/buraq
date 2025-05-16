@@ -89,6 +89,7 @@ impl Repository<Environment> for EnvironmentRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::environment::EnvironmentFilter;
     use crate::test_utils::{setup_test_db, cleanup_test_db};
     use mongodb::options::IndexOptions;
     use mongodb::IndexModel;
@@ -111,11 +112,13 @@ mod tests {
         let repo = EnvironmentRepository::new(db.clone())?;
         
         let project_id = Uuid::new();
-        let environment = Environment::new(
+        let environment = Environment {
+            id: None,
             project_id,
-            "Test Environment".to_string(),
-            "Test Description".to_string(),
-        );
+            name: "Test Environment".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+        };
         
         let created = repo.create(environment).await?;
         assert!(created.id.is_some());
@@ -134,18 +137,22 @@ mod tests {
         let project_id = Uuid::new();
         let name = "Test Environment".to_string();
         
-        let environment1 = Environment::new(
-            project_id,
-            name.clone(),
-            "Test Description 1".to_string(),
-        );
-        repo.create(environment1).await?;
-        
-        let environment2 = Environment::new(
+        let environment1 = Environment {
+            id: None,
             project_id,
             name,
-            "Test Description 2".to_string(),
-        );
+            description: "Test Description 1".to_string(),
+            enabled: true,
+        };
+        repo.create(environment1).await?;
+        
+        let environment2 = Environment {
+            id: None,
+            project_id,
+            name: "Test Environment".to_string(),
+            description: "Test Description 2".to_string(),
+            enabled: true,
+        };
         let result = repo.create(environment2).await;
         
         assert!(result.is_err());
@@ -161,11 +168,13 @@ mod tests {
         let repo = EnvironmentRepository::new(db.clone())?;
 
         let project_id = Uuid::new();
-        let environment = Environment::new(
+        let environment = Environment {
+            id: None,
             project_id,
-            "Test Environment".to_string(),
-            "Test Description".to_string(),
-        );
+            name: "Test Environment".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+        };
         let created = repo.create(environment).await?;
 
         let read = repo.read(created.id.unwrap()).await?;
@@ -186,11 +195,13 @@ mod tests {
         let repo = EnvironmentRepository::new(db.clone())?;
 
         let project_id = Uuid::new();
-        let environment = Environment::new(
+        let environment = Environment {
+            id: None,
             project_id,
-            "Test Environment".to_string(),
-            "Test Description".to_string(),
-        );
+            name: "Test Environment".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+        };
         let created = repo.create(environment).await?;
 
         let update = EnvironmentUpdatePayload {
@@ -215,11 +226,13 @@ mod tests {
         let repo = EnvironmentRepository::new(db.clone())?;
 
         let project_id = Uuid::new();
-        let environment = Environment::new(
+        let environment = Environment {
+            id: None,
             project_id,
-            "Test Environment".to_string(),
-            "Test Description".to_string(),
-        );
+            name: "Test Environment".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+        };
         let created = repo.create(environment).await?;
 
         let deleted = repo.delete(created.id.unwrap()).await?;
@@ -239,16 +252,20 @@ mod tests {
         let repo = EnvironmentRepository::new(db.clone())?;
 
         let project_id = Uuid::new();
-        let environment1 = Environment::new(
+        let environment1 = Environment {
+            id: None,
             project_id,
-            "Environment 1".to_string(),
-            "Description 1".to_string(),
-        );
-        let environment2 = Environment::new(
+            name: "Environment 1".to_string(),
+            description: "Description 1".to_string(),
+            enabled: true,
+        };
+        let environment2 = Environment {
+            id: None,
             project_id,
-            "Environment 2".to_string(),
-            "Description 2".to_string(),
-        );
+            name: "Environment 2".to_string(),
+            description: "Description 2".to_string(),
+            enabled: true,
+        };
         repo.create(environment1).await?;
         repo.create(environment2).await?;
 
@@ -262,4 +279,91 @@ mod tests {
         cleanup_test_db(db).await?;
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_environment_filter_by_project_id() -> Result<()> {
+        let db = setup_test_db("environment").await?;
+        ensure_unique_index(&db).await?;
+        let repo = EnvironmentRepository::new(db.clone())?;
+
+        let project_id = Uuid::new();
+        let environment = Environment {
+            id: None,
+            project_id,
+            name: "Environment 1".to_string(), 
+            description: "Description 1".to_string(),
+            enabled: true,
+        };
+        repo.create(environment).await?;
+
+        let filter = EnvironmentFilter {
+            project_id: Some(project_id),
+            name: None,
+            is_enabled: None,
+        };
+        let environments = repo.find(filter.into()).await?;
+        assert_eq!(environments.len(), 1);
+        assert_eq!(environments[0].project_id, project_id);
+
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_environment_filter_by_name() -> Result<()> {
+        let db = setup_test_db("environment").await?;
+        ensure_unique_index(&db).await?;
+        let repo = EnvironmentRepository::new(db.clone())?;
+
+        let environment = Environment {
+            id: None,
+            project_id: Uuid::new(),
+            name: "Test Environment".to_string(),
+            description: "Description".to_string(),
+            enabled: true,
+        };
+        repo.create(environment).await?;
+
+        let filter = EnvironmentFilter {
+            project_id: None,
+            name: Some("Test Environment".to_string()),
+            is_enabled: None,
+        };
+        let environments = repo.find(filter.into()).await?;
+        assert_eq!(environments.len(), 1);
+        assert_eq!(environments[0].name, "Test Environment");
+
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_environment_filter_by_enabled() -> Result<()> {
+        let db = setup_test_db("environment").await?;
+        ensure_unique_index(&db).await?;
+        let repo = EnvironmentRepository::new(db.clone())?;
+
+        let environment = Environment {
+            id: None,
+            project_id: Uuid::new(),
+            name: "Environment".to_string(),
+            description: "Description".to_string(),
+            enabled: true,
+        };
+        repo.create(environment).await?;
+
+        let filter = EnvironmentFilter {
+            project_id: None,
+            name: None,
+            is_enabled: Some(true),
+        };
+        let environments = repo.find(filter.into()).await?;
+        assert_eq!(environments.len(), 1);
+        assert!(environments[0].enabled);
+
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
+    
 }
+

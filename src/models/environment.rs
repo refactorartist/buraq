@@ -67,29 +67,6 @@ impl From<EnvironmentFilter> for Document {
     }
 }
 
-impl Environment {
-    /// Creates a new Environment with the given project ID, name and description.
-    ///
-    /// Automatically generates:
-    /// - Sets enabled to true by default
-    ///
-    /// # Arguments
-    ///
-    /// * `project_id` - ID of the associated project
-    /// * `name` - Name of the environment
-    /// * `description` - Description of the environment
-    ///
-    pub fn new(project_id: Uuid, name: String, description: String) -> Self {
-        Self {
-            id: None,
-            project_id,
-            name,
-            description,
-            enabled: true,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,7 +77,13 @@ mod tests {
         let name = "Production".to_string();
         let description = "Production environment".to_string();
 
-        let env = Environment::new(project_id, name.clone(), description.clone());
+        let env = Environment {
+            id: None,
+            project_id,
+            name: name.clone(),
+            description: description.clone(),
+            enabled: true,
+        };
 
         assert!(env.id.is_none());
         assert_eq!(env.project_id, project_id);
@@ -115,11 +98,13 @@ mod tests {
         let name = "example-name".to_string();
         let description = "example description".to_string();
 
-        let mut environment = Environment::new(
+        let mut environment = Environment {
+            id: None,
             project_id,
-            name.clone(),
-            description.clone()
-        );
+            name,
+            description,
+            enabled: true,
+        };
         let id = Uuid::new();
         environment.id = Some(id);
 

@@ -55,11 +55,13 @@ mod tests {
     async fn test_create_environment() {
         let (service, db) = setup().await;
         let project_id = Uuid::new();
-        let environment = Environment::new(
+        let environment = Environment {
+            id: None,
             project_id,
-            "Test Environment".to_string(),
-            "Test Description".to_string(),
-        );
+            name: "Test Environment".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+        };
 
         let created = service.create(environment).await.unwrap();
         assert!(created.id.is_some());
@@ -74,11 +76,13 @@ mod tests {
     async fn test_get_environment() {
         let (service, db) = setup().await;
         let project_id = Uuid::new();
-        let environment = Environment::new(
+        let environment = Environment {
+            id: None,
             project_id,
-            "Test Environment".to_string(),
-            "Test Description".to_string(),
-        );
+            name: "Test Environment".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+        };
 
         let created = service.create(environment).await.unwrap();
         let retrieved = service.get_environment(created.id.unwrap()).await.unwrap().unwrap();
@@ -93,11 +97,14 @@ mod tests {
     async fn test_update_environment() {
         let (service, db) = setup().await;
         let project_id = Uuid::new();
-        let environment = Environment::new(
+        let environment = Environment {
+            id: None,
             project_id,
-            "Test Environment".to_string(),
-            "Test Description".to_string(),
-        );
+            name: "Test Environment".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+        };
+
 
         let created = service.create(environment).await.unwrap();
         let update = EnvironmentUpdatePayload {
@@ -118,11 +125,13 @@ mod tests {
     async fn test_delete_environment() {
         let (service, db) = setup().await;
         let project_id = Uuid::new();
-        let environment = Environment::new(
+        let environment = Environment {
+            id: None,
             project_id,
-            "Test Environment".to_string(),
-            "Test Description".to_string(),
-        );
+            name: "Test Environment".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+        };
 
         let created = service.create(environment).await.unwrap();
         let deleted = service.delete(created.id.unwrap()).await.unwrap();
@@ -138,16 +147,21 @@ mod tests {
     async fn test_find_environments() {
         let (service, db) = setup().await;
         let project_id = Uuid::new();
-        let environment1 = Environment::new(
+        let environment1 = Environment {
+            id: None,
             project_id,
-            "Environment 1".to_string(),
-            "Description 1".to_string(),
-        );
-        let environment2 = Environment::new(
+            name: "Environment 1".to_string(),
+            description: "Description 1".to_string(),
+            enabled: true,
+        };
+
+        let environment2 = Environment {
+            id: None,
             project_id,
-            "Environment 2".to_string(),
-            "Description 2".to_string(),
-        );
+            name: "Environment 2".to_string(),
+            description: "Description 2".to_string(),
+            enabled: true,
+        };
 
         service.create(environment1).await.unwrap();
         service.create(environment2).await.unwrap();
