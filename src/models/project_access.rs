@@ -20,31 +20,6 @@ pub struct ProjectAccess {
     pub project_scopes: Vec<Uuid>,
 }
 
-impl ProjectAccess {
-    /// Creates a new ProjectAccess with the given parameters.
-    ///
-    /// # Arguments
-    ///
-    /// * `name` - Name of the access configuration
-    /// * `environment_id` - ID of the associated environment
-    /// * `service_account_id` - ID of the associated service account
-    /// * `project_scopes` - Vector of project scope IDs
-    ///
-    pub fn new(
-        name: String,
-        environment_id: Uuid,
-        service_account_id: Uuid,
-        project_scopes: Vec<Uuid>,
-    ) -> Self {
-        Self {
-            id: None,
-            name,
-            environment_id,
-            service_account_id,
-            project_scopes,
-        }
-    }
-}
 
 impl From<ProjectAccess> for Document {
     fn from(value: ProjectAccess) -> Self {
@@ -103,12 +78,13 @@ mod tests {
         let service_account_id = Uuid::new();
         let project_scopes = vec![Uuid::new(), Uuid::new()];
 
-        let access = ProjectAccess::new(
-            name.clone(),
+        let access = ProjectAccess {
+            id: None,
+            name: name.clone(),
             environment_id,
             service_account_id,
-            project_scopes.clone(),
-        );
+            project_scopes: project_scopes.clone(),
+        };
 
         assert!(access.id.is_none());
         assert_eq!(access.name, name);

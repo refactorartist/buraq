@@ -91,12 +91,13 @@ mod tests {
     #[tokio::test]
     async fn test_create_project_access() -> Result<()> {
         let (repo, db) = setup().await;
-        let project_access = ProjectAccess::new(
-            "Test Access".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access = ProjectAccess {
+            id: None,
+            name: "Test Access".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         let created = repo.create(project_access.clone()).await.unwrap();
         assert!(created.id.is_some());
@@ -109,12 +110,13 @@ mod tests {
     #[tokio::test]
     async fn test_read_project_access() -> Result<()> {
         let (repo, db) = setup().await;
-        let project_access = ProjectAccess::new(
-            "Test Access".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access = ProjectAccess {
+            id: None,
+            name: "Test Access".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         let created = repo.create(project_access.clone()).await.unwrap();
         let read = repo.read(created.id.unwrap()).await.unwrap().unwrap();
@@ -128,12 +130,13 @@ mod tests {
     #[tokio::test]
     async fn test_update_project_access() -> Result<()> {
         let (repo, db) = setup().await;
-        let project_access = ProjectAccess::new(
-            "Test Access".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access = ProjectAccess {
+            id: None,
+            name: "Test Access".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         let created = repo.create(project_access).await.unwrap();
         let update = ProjectAccessUpdatePayload {
@@ -151,12 +154,13 @@ mod tests {
     #[tokio::test]
     async fn test_delete_project_access() -> Result<()> {
         let (repo, db) = setup().await;
-        let project_access = ProjectAccess::new(
-            "Test Access".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access = ProjectAccess {
+            id: None,
+            name: "Test Access".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         let created = repo.create(project_access).await.unwrap();
         let deleted = repo.delete(created.id.unwrap()).await.unwrap();
@@ -175,18 +179,20 @@ mod tests {
         let environment_id = Uuid::new();
         let service_account_id = Uuid::new();
 
-        let access1 = ProjectAccess::new(
-            "Access 1".to_string(),
+        let access1 = ProjectAccess {
+            id: None,
+            name: "Access 1".to_string(),
             environment_id,
             service_account_id,
-            vec![Uuid::new()],
-        );
-        let access2 = ProjectAccess::new(
-            "Access 2".to_string(),
+            project_scopes: vec![Uuid::new()],
+        };
+        let access2 = ProjectAccess {
+            id: None,
+            name: "Access 2".to_string(),
             environment_id,
             service_account_id,
-            vec![Uuid::new()],
-        );
+            project_scopes: vec![Uuid::new()],
+        };
 
         repo.create(access1).await.unwrap();
         repo.create(access2).await.unwrap();

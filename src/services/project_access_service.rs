@@ -62,12 +62,13 @@ mod tests {
     #[tokio::test]
     async fn test_create() {
         let (service, db) = setup().await;
-        let project_access = ProjectAccess::new(
-            "Test Access".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access = ProjectAccess {
+            id: None,
+            name: "Test Access".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         let created = service.create(project_access.clone()).await.unwrap();
         assert!(created.id.is_some());
@@ -79,12 +80,13 @@ mod tests {
     #[tokio::test]
     async fn test_get() {
         let (service, db) = setup().await;
-        let project_access = ProjectAccess::new(
-            "Test Access".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access = ProjectAccess {
+            id: None,
+            name: "Test Access".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         let created = service.create(project_access.clone()).await.unwrap();
         let retrieved = service.get(created.id.unwrap()).await.unwrap().unwrap();
@@ -97,12 +99,13 @@ mod tests {
     #[tokio::test]
     async fn test_update() {
         let (service, db) = setup().await;
-        let project_access = ProjectAccess::new(
-            "Test Access".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access = ProjectAccess {
+            id: None,
+            name: "Test Access".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         let created = service.create(project_access).await.unwrap();
         let update = ProjectAccessUpdatePayload {
@@ -119,12 +122,13 @@ mod tests {
     #[tokio::test]
     async fn test_delete() {
         let (service, db) = setup().await;
-        let project_access = ProjectAccess::new(
-            "Test Access".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access = ProjectAccess {
+            id: None,
+            name: "Test Access".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         let created = service.create(project_access).await.unwrap();
         let deleted = service.delete(created.id.unwrap()).await.unwrap();
@@ -140,18 +144,20 @@ mod tests {
     async fn test_find_by_environment() {
         let (service, db) = setup().await;
         let env_id = Uuid::new();
-        let project_access1 = ProjectAccess::new(
-            "Access 1".to_string(),
-            env_id,
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
-        let project_access2 = ProjectAccess::new(
-            "Access 2".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access1 = ProjectAccess {
+            id: None,
+            name: "Access 1".to_string(),
+            environment_id: env_id,
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
+        let project_access2 = ProjectAccess {
+            id: None,
+            name: "Access 2".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         service.create(project_access1).await.unwrap();
         service.create(project_access2).await.unwrap();
@@ -173,18 +179,20 @@ mod tests {
     async fn test_find_by_service_account() {
         let (service, db) = setup().await;
         let service_account_id = Uuid::new();
-        let project_access1 = ProjectAccess::new(
-            "Access 1".to_string(),
-            Uuid::new(),
+        let project_access1 = ProjectAccess {
+            id: None,
+            name: "Access 1".to_string(),
+            environment_id: Uuid::new(),
             service_account_id,
-            vec![Uuid::new()],
-        );
-        let project_access2 = ProjectAccess::new(
-            "Access 2".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+            project_scopes: vec![Uuid::new()],
+        };
+        let project_access2 = ProjectAccess {
+            id: None,
+            name: "Access 2".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         service.create(project_access1).await.unwrap();
         service.create(project_access2).await.unwrap();
@@ -196,6 +204,7 @@ mod tests {
         };
 
         let found = service.find(filter).await.unwrap();
+        dbg!(&found);
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].service_account_id, service_account_id);
 
@@ -206,18 +215,20 @@ mod tests {
     async fn test_find_by_project_scopes() {
         let (service, db) = setup().await;
         let scope_id = Uuid::new();
-        let project_access1 = ProjectAccess::new(
-            "Access 1".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![scope_id],
-        );
-        let project_access2 = ProjectAccess::new(
-            "Access 2".to_string(),
-            Uuid::new(),
-            Uuid::new(),
-            vec![Uuid::new()],
-        );
+        let project_access1 = ProjectAccess {
+            id: None,
+            name: "Access 1".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
+            project_scopes: vec![scope_id],
+        };
+        let project_access2 = ProjectAccess {
+            id:None,
+            name:"Access 2".to_string(),
+            environment_id:Uuid::new(),
+            service_account_id:Uuid::new(),
+            project_scopes: vec![Uuid::new()],
+        };
 
         service.create(project_access1).await.unwrap();
         service.create(project_access2).await.unwrap();
