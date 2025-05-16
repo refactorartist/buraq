@@ -1,7 +1,7 @@
-use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, to_document, from_document, doc};
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, doc, from_document, to_document};
+use serde::{Deserialize, Serialize};
 
 /// Represents a service account for API authentication
 ///
@@ -98,7 +98,7 @@ mod tests {
         let account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         assert_eq!(account.email, "test@example.com");
@@ -112,7 +112,7 @@ mod tests {
         let account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         let doc: Document = account.clone().into();
@@ -134,7 +134,7 @@ mod tests {
         };
 
         let doc: Document = filter.into();
-        
+
         assert_eq!(doc.get_str("email").unwrap(), "test@example.com");
         assert_eq!(doc.get_str("user").unwrap(), "testuser");
         assert!(doc.get_bool("enabled").unwrap());

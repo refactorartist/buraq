@@ -1,6 +1,8 @@
-use crate::models::project_access::{ProjectAccess, ProjectAccessFilter, ProjectAccessUpdatePayload};
-use crate::repositories::project_access_repository::ProjectAccessRepository;
+use crate::models::project_access::{
+    ProjectAccess, ProjectAccessFilter, ProjectAccessUpdatePayload,
+};
 use crate::repositories::base::Repository;
+use crate::repositories::project_access_repository::ProjectAccessRepository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
@@ -17,10 +19,7 @@ impl ProjectAccessService {
         })
     }
 
-    pub async fn create(
-        &self,
-        project_access: ProjectAccess,
-    ) -> Result<ProjectAccess, Error> {
+    pub async fn create(&self, project_access: ProjectAccess) -> Result<ProjectAccess, Error> {
         self.project_access_repository.create(project_access).await
     }
 
@@ -33,17 +32,16 @@ impl ProjectAccessService {
         id: Uuid,
         project_access: ProjectAccessUpdatePayload,
     ) -> Result<ProjectAccess, Error> {
-        self.project_access_repository.update(id, project_access).await
+        self.project_access_repository
+            .update(id, project_access)
+            .await
     }
 
     pub async fn delete(&self, id: Uuid) -> Result<bool, Error> {
         self.project_access_repository.delete(id).await
     }
 
-    pub async fn find(
-        &self,
-        filter: ProjectAccessFilter,
-    ) -> Result<Vec<ProjectAccess>, Error> {
+    pub async fn find(&self, filter: ProjectAccessFilter) -> Result<Vec<ProjectAccess>, Error> {
         self.project_access_repository.find(filter.into()).await
     }
 }
@@ -51,7 +49,7 @@ impl ProjectAccessService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     async fn setup() -> (ProjectAccessService, Database) {
         let db = setup_test_db("project_access_service").await.unwrap();
@@ -223,10 +221,10 @@ mod tests {
             project_scopes: vec![scope_id],
         };
         let project_access2 = ProjectAccess {
-            id:None,
-            name:"Access 2".to_string(),
-            environment_id:Uuid::new(),
-            service_account_id:Uuid::new(),
+            id: None,
+            name: "Access 2".to_string(),
+            environment_id: Uuid::new(),
+            service_account_id: Uuid::new(),
             project_scopes: vec![Uuid::new()],
         };
 

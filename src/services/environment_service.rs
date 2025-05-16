@@ -1,6 +1,6 @@
-use crate::models::environment::{Environment, EnvironmentUpdatePayload, EnvironmentFilter};
-use crate::repositories::environment_repository::EnvironmentRepository;
+use crate::models::environment::{Environment, EnvironmentFilter, EnvironmentUpdatePayload};
 use crate::repositories::base::Repository;
+use crate::repositories::environment_repository::EnvironmentRepository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
@@ -12,7 +12,9 @@ pub struct EnvironmentService {
 impl EnvironmentService {
     pub fn new(database: Database) -> Result<Self, Error> {
         let environment_repository = EnvironmentRepository::new(database)?;
-        Ok(Self { environment_repository })
+        Ok(Self {
+            environment_repository,
+        })
     }
 
     pub async fn create(&self, environment: Environment) -> Result<Environment, Error> {
@@ -43,7 +45,7 @@ impl EnvironmentService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     async fn setup() -> (EnvironmentService, Database) {
         let db = setup_test_db("environment_service").await.unwrap();
@@ -85,7 +87,11 @@ mod tests {
         };
 
         let created = service.create(environment).await.unwrap();
-        let retrieved = service.get_environment(created.id.unwrap()).await.unwrap().unwrap();
+        let retrieved = service
+            .get_environment(created.id.unwrap())
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(retrieved.id, created.id);
         assert_eq!(retrieved.name, created.name);
         assert_eq!(retrieved.description, created.description);
@@ -104,7 +110,6 @@ mod tests {
             description: "Test Description".to_string(),
             enabled: true,
         };
-
 
         let created = service.create(environment).await.unwrap();
         let update = EnvironmentUpdatePayload {

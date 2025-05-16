@@ -1,6 +1,8 @@
-use crate::models::service_account::{ServiceAccount, ServiceAccountFilter, ServiceAccountUpdatePayload};
-use crate::repositories::service_account_repository::ServiceAccountRepository;
+use crate::models::service_account::{
+    ServiceAccount, ServiceAccountFilter, ServiceAccountUpdatePayload,
+};
 use crate::repositories::base::Repository;
+use crate::repositories::service_account_repository::ServiceAccountRepository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
@@ -17,11 +19,10 @@ impl ServiceAccountService {
         })
     }
 
-    pub async fn create(
-        &self,
-        service_account: ServiceAccount,
-    ) -> Result<ServiceAccount, Error> {
-        self.service_account_repository.create(service_account).await
+    pub async fn create(&self, service_account: ServiceAccount) -> Result<ServiceAccount, Error> {
+        self.service_account_repository
+            .create(service_account)
+            .await
     }
 
     pub async fn get_service_account(&self, id: Uuid) -> Result<Option<ServiceAccount>, Error> {
@@ -33,17 +34,16 @@ impl ServiceAccountService {
         id: Uuid,
         service_account: ServiceAccountUpdatePayload,
     ) -> Result<ServiceAccount, Error> {
-        self.service_account_repository.update(id, service_account).await
+        self.service_account_repository
+            .update(id, service_account)
+            .await
     }
 
     pub async fn delete(&self, id: Uuid) -> Result<bool, Error> {
         self.service_account_repository.delete(id).await
     }
 
-    pub async fn find(
-        &self,
-        filter: ServiceAccountFilter,
-    ) -> Result<Vec<ServiceAccount>, Error> {
+    pub async fn find(&self, filter: ServiceAccountFilter) -> Result<Vec<ServiceAccount>, Error> {
         self.service_account_repository.find(filter.into()).await
     }
 }
@@ -51,8 +51,7 @@ impl ServiceAccountService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
-    
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     async fn setup() -> (ServiceAccountService, Database) {
         let db = setup_test_db("service_account_service").await.unwrap();
@@ -66,7 +65,7 @@ mod tests {
         let account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         let created = service.create(account.clone()).await.unwrap();
@@ -84,11 +83,15 @@ mod tests {
         let account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         let created = service.create(account.clone()).await.unwrap();
-        let retrieved = service.get_service_account(created.id.unwrap()).await.unwrap().unwrap();
+        let retrieved = service
+            .get_service_account(created.id.unwrap())
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(retrieved.id, created.id);
         assert_eq!(retrieved.email, created.email);
 
@@ -101,7 +104,7 @@ mod tests {
         let account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         let created = service.create(account).await.unwrap();
@@ -127,14 +130,17 @@ mod tests {
         let account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         let created = service.create(account).await.unwrap();
         let deleted = service.delete(created.id.unwrap()).await.unwrap();
         assert!(deleted);
 
-        let read = service.get_service_account(created.id.unwrap()).await.unwrap();
+        let read = service
+            .get_service_account(created.id.unwrap())
+            .await
+            .unwrap();
         assert!(read.is_none());
 
         cleanup_test_db(db).await.unwrap();
@@ -146,12 +152,12 @@ mod tests {
         let account1 = ServiceAccount::new(
             "test1@example.com".to_string(),
             "testuser1".to_string(),
-            "secret1".to_string()
+            "secret1".to_string(),
         );
         let account2 = ServiceAccount::new(
             "test2@example.com".to_string(),
             "testuser2".to_string(),
-            "secret2".to_string()
+            "secret2".to_string(),
         );
 
         service.create(account1).await.unwrap();

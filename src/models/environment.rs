@@ -1,4 +1,4 @@
-use mongodb::bson::{doc, from_document, to_document, Document, Uuid};
+use mongodb::bson::{Document, Uuid, doc, from_document, to_document};
 use serde::{Deserialize, Serialize};
 
 /// Represents an environment associated with a project.
@@ -144,7 +144,9 @@ mod tests {
 
         // Extract UUID from the document
         let extracted_uuid = match doc.get("project_id").unwrap() {
-            mongodb::bson::Bson::Binary(binary) => Uuid::from_bytes(binary.bytes.clone().try_into().unwrap()),
+            mongodb::bson::Bson::Binary(binary) => {
+                Uuid::from_bytes(binary.bytes.clone().try_into().unwrap())
+            }
             _ => panic!("Expected UUID binary"),
         };
 

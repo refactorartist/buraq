@@ -1,6 +1,6 @@
-use crate::models::project::{Project, ProjectUpdatePayload, ProjectFilter};
-use crate::repositories::project_repository::ProjectRepository;
+use crate::models::project::{Project, ProjectFilter, ProjectUpdatePayload};
 use crate::repositories::base::Repository;
+use crate::repositories::project_repository::ProjectRepository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
@@ -23,11 +23,7 @@ impl ProjectService {
         self.project_repository.read(id).await
     }
 
-    pub async fn update(
-        &self,
-        id: Uuid,
-        project: ProjectUpdatePayload,
-    ) -> Result<Project, Error> {
+    pub async fn update(&self, id: Uuid, project: ProjectUpdatePayload) -> Result<Project, Error> {
         self.project_repository.update(id, project).await
     }
 
@@ -45,7 +41,7 @@ mod tests {
     use chrono::Utc;
 
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     async fn setup() -> (ProjectService, Database) {
         let db = setup_test_db("project_service").await.unwrap();
@@ -64,7 +60,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        
+
         let created = service.create(project).await?;
         assert!(created.id.is_some());
         assert_eq!(created.name, "Test Project");

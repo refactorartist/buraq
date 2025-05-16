@@ -113,11 +113,11 @@ mod tests {
             ],
             || {
                 let config = AppConfig::from_env(Some(false)).expect("Failed to load config");
-                
+
                 assert_eq!(config.application.host, "127.0.0.1");
                 assert_eq!(config.application.port, 8080);
                 assert_eq!(config.application.database_uri, "mongodb://localhost:27017");
-            }
+            },
         );
     }
 
@@ -131,7 +131,7 @@ mod tests {
             || {
                 let result = AppConfig::from_env(Some(false));
                 assert!(result.is_err());
-            }
+            },
         );
     }
 
@@ -145,7 +145,7 @@ mod tests {
             || {
                 let result = AppConfig::from_env(Some(false));
                 assert!(result.is_err());
-            }
+            },
         );
     }
 
@@ -159,7 +159,7 @@ mod tests {
             || {
                 let result = AppConfig::from_env(Some(false));
                 assert!(result.is_err());
-            }
+            },
         );
     }
 }

@@ -1,7 +1,7 @@
-use mongodb::bson::{Document, to_document, from_document, doc};
-use mongodb::bson::uuid::Uuid;
-use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
+use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, doc, from_document, to_document};
+use serde::{Deserialize, Serialize};
 
 /// Represents a project with metadata and timestamps.
 ///
@@ -73,7 +73,7 @@ mod tests {
     fn test_new_project() {
         let name = "Test Project".to_string();
         let description = "Test Description".to_string();
-        
+
         let project = Project {
             id: None,
             name: name.clone(),
@@ -82,7 +82,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        
+
         // Verify fields are set correctly
         assert!(project.id.is_none());
         assert_eq!(project.name, name);
@@ -106,15 +106,15 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        
+
         // Test serialization
         let serialized = serde_json::to_string(&project);
         assert!(serialized.is_ok());
-        
+
         // Test deserialization
         let deserialized: Result<Project, _> = serde_json::from_str(&serialized.unwrap());
         assert!(deserialized.is_ok());
-        
+
         let deserialized_project = deserialized.unwrap();
         assert_eq!(project.id, deserialized_project.id);
         assert_eq!(project.name, deserialized_project.name);
@@ -128,7 +128,7 @@ mod tests {
     fn test_mongodb_serialization() {
         let name = "Test Project".to_string();
         let description = "Test Description".to_string();
-        
+
         let mut project = Project {
             id: None,
             name: name.clone(),
@@ -137,7 +137,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-            let id = Uuid::new();
+        let id = Uuid::new();
         project.id = Some(id);
 
         let doc: Document = project.clone().into();

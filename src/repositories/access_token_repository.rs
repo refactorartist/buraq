@@ -1,12 +1,12 @@
 use crate::models::access_token::{AccessToken, AccessTokenUpdatePayload};
 use crate::repositories::base::Repository;
+use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, to_document, doc};
+use mongodb::bson::{Document, doc, to_document};
 use mongodb::{Collection, Database};
-use anyhow::Error;
 
 /// Repository for managing AccessToken documents in MongoDB.
 ///
@@ -30,12 +30,18 @@ impl Repository<AccessToken> for AccessTokenRepository {
         if item.id.is_none() {
             item.id = Some(Uuid::new());
         }
-        self.collection.insert_one(&item).await.expect("Failed to create access token");
+        self.collection
+            .insert_one(&item)
+            .await
+            .expect("Failed to create access token");
         Ok(item)
     }
 
     async fn read(&self, id: Uuid) -> Result<Option<AccessToken>, Error> {
-        let result = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result)
     }
     async fn replace(&self, id: Uuid, mut item: AccessToken) -> Result<AccessToken, Error> {
@@ -43,25 +49,38 @@ impl Repository<AccessToken> for AccessTokenRepository {
             item.id = Some(id);
         }
         self.collection
-            .update_one(
-                doc! { "_id": id }, 
-                doc! { "$set": to_document(&item)? }
-            )
+            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
             .await
             .expect("Failed to update access token");
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
-    async fn update(&self, id: Uuid, item: Self::UpdatePayload) -> Result<AccessToken, Error> {        
+    async fn update(&self, id: Uuid, item: Self::UpdatePayload) -> Result<AccessToken, Error> {
         let document = to_document(&item)?;
-        self.collection.update_one(mongodb::bson::doc! { "_id": id }, mongodb::bson::doc! { "$set": document }).await?;
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        self.collection
+            .update_one(
+                mongodb::bson::doc! { "_id": id },
+                mongodb::bson::doc! { "$set": document },
+            )
+            .await?;
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, Error> {
-        let result = self.collection.delete_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .delete_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result.deleted_count > 0)
     }
 
@@ -79,9 +98,9 @@ impl Repository<AccessToken> for AccessTokenRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Utc, Duration};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
     use crate::types::Algorithm;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use chrono::{Duration, Utc};
 
     async fn setup() -> (AccessTokenRepository, Database) {
         let db = setup_test_db("access_token").await.unwrap();

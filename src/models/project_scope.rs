@@ -1,5 +1,5 @@
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, to_document, from_document};
+use mongodb::bson::{Document, from_document, to_document};
 use serde::{Deserialize, Serialize};
 
 /// Represents a project scope that defines permissions within a project.
@@ -90,7 +90,7 @@ mod tests {
 
         let mut scope = ProjectScope {
             id: None,
-            project_id: project_id.clone(),
+            project_id: project_id,
             name: name.clone(),
             description: description.clone(),
         };
@@ -115,7 +115,7 @@ mod tests {
         };
 
         let doc: Document = filter.into();
-        
+
         assert!(doc.contains_key("project_id"));
         assert!(doc.contains_key("name"));
     }

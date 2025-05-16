@@ -1,10 +1,10 @@
 use crate::models::project::{Project, ProjectUpdatePayload};
 use crate::repositories::base::Repository;
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
 use async_trait::async_trait;
 use futures::TryStreamExt;
-use mongodb::bson::{doc, to_document, Document};
 use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, doc, to_document};
 use mongodb::{Collection, Database};
 
 /// Repository for managing Project documents in MongoDB.
@@ -52,10 +52,7 @@ impl Repository<Project> for ProjectRepository {
             item.id = Some(id);
         }
         self.collection
-            .update_one(
-                doc! { "_id": id },
-                doc! { "$set": to_document(&item)? }
-            )
+            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
             .await?;
         let updated = self.collection.find_one(doc! { "_id": id }).await?.unwrap();
         Ok(updated)
@@ -66,7 +63,10 @@ impl Repository<Project> for ProjectRepository {
         self.collection
             .update_one(doc! { "_id": id }, doc! { "$set": document })
             .await?;
-        let updated = self.read(id).await?.ok_or_else(|| Error::msg("Project not found"))?;
+        let updated = self
+            .read(id)
+            .await?
+            .ok_or_else(|| Error::msg("Project not found"))?;
         Ok(updated)
     }
 
@@ -91,7 +91,7 @@ mod tests {
     use chrono::Utc;
 
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     #[tokio::test]
     async fn test_create_project() -> Result<()> {

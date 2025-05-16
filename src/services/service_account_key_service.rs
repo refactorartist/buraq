@@ -1,6 +1,8 @@
-use crate::models::service_account_key::{ServiceAccountKey, ServiceAccountKeyFilter, ServiceAccountKeyUpdatePayload};
-use crate::repositories::service_account_key_repository::ServiceAccountKeyRepository;
+use crate::models::service_account_key::{
+    ServiceAccountKey, ServiceAccountKeyFilter, ServiceAccountKeyUpdatePayload,
+};
 use crate::repositories::base::Repository;
+use crate::repositories::service_account_key_repository::ServiceAccountKeyRepository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
@@ -21,10 +23,15 @@ impl ServiceAccountKeyService {
         &self,
         service_account_key: ServiceAccountKey,
     ) -> Result<ServiceAccountKey, Error> {
-        self.service_account_key_repository.create(service_account_key).await
+        self.service_account_key_repository
+            .create(service_account_key)
+            .await
     }
 
-    pub async fn get_service_account_key(&self, id: Uuid) -> Result<Option<ServiceAccountKey>, Error> {
+    pub async fn get_service_account_key(
+        &self,
+        id: Uuid,
+    ) -> Result<Option<ServiceAccountKey>, Error> {
         self.service_account_key_repository.read(id).await
     }
 
@@ -33,7 +40,9 @@ impl ServiceAccountKeyService {
         id: Uuid,
         service_account_key: ServiceAccountKeyUpdatePayload,
     ) -> Result<ServiceAccountKey, Error> {
-        self.service_account_key_repository.update(id, service_account_key).await
+        self.service_account_key_repository
+            .update(id, service_account_key)
+            .await
     }
 
     pub async fn delete(&self, id: Uuid) -> Result<bool, Error> {
@@ -44,18 +53,18 @@ impl ServiceAccountKeyService {
         &self,
         filter: ServiceAccountKeyFilter,
     ) -> Result<Vec<ServiceAccountKey>, Error> {
-        self.service_account_key_repository.find(filter.into()).await
+        self.service_account_key_repository
+            .find(filter.into())
+            .await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
     use crate::types::Algorithm;
     use chrono::{Duration, Utc};
-    use futures::TryStreamExt;
-    use mongodb::bson::doc;
 
     async fn setup() -> (ServiceAccountKeyService, Database) {
         let db = setup_test_db("service_account_key_service").await.unwrap();
@@ -99,7 +108,11 @@ mod tests {
         };
 
         let created = service.create(key.clone()).await.unwrap();
-        let retrieved = service.get_service_account_key(created.id.unwrap()).await.unwrap().unwrap();
+        let retrieved = service
+            .get_service_account_key(created.id.unwrap())
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(retrieved.id, created.id);
         assert_eq!(retrieved.key, created.key);
 
@@ -150,7 +163,10 @@ mod tests {
         let deleted = service.delete(created.id.unwrap()).await.unwrap();
         assert!(deleted);
 
-        let read = service.get_service_account_key(created.id.unwrap()).await.unwrap();
+        let read = service
+            .get_service_account_key(created.id.unwrap())
+            .await
+            .unwrap();
         assert!(read.is_none());
 
         cleanup_test_db(db).await.unwrap();

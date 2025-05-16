@@ -1,13 +1,13 @@
+use anyhow::Error;
+use async_trait::async_trait;
 use mongodb::Collection;
 use mongodb::bson::Document;
 use mongodb::bson::uuid::Uuid;
-use anyhow::Error;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use async_trait::async_trait;
 
 #[async_trait]
-pub trait Repository<T: Send + Sync + Serialize + DeserializeOwned + 'static> {    
+pub trait Repository<T: Send + Sync + Serialize + DeserializeOwned + 'static> {
     type UpdatePayload: Send + Sync + Serialize + DeserializeOwned + 'static;
 
     async fn create(&self, mut item: T) -> Result<T, Error>;
@@ -24,4 +24,3 @@ pub trait Repository<T: Send + Sync + Serialize + DeserializeOwned + 'static> {
 
     fn collection(&self) -> Result<Collection<T>, Error>;
 }
-

@@ -1,5 +1,5 @@
 use crate::types::Algorithm;
-use serde::{Deserializer, Serializer, Deserialize};
+use serde::{Deserialize, Deserializer, Serializer};
 
 pub fn serialize<S>(algorithm: &Algorithm, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -27,7 +27,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
     use serde_json;
 
     #[derive(Serialize, Deserialize)]

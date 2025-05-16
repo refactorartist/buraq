@@ -1,9 +1,9 @@
-use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, to_document, from_document, doc};
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
-use crate::types::Algorithm;
 use crate::serializers::algorithm;
+use crate::types::Algorithm;
+use chrono::{DateTime, Utc};
+use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, doc, from_document, to_document};
+use serde::{Deserialize, Serialize};
 
 /// Represents a service account key for API authentication
 ///
@@ -81,7 +81,6 @@ impl From<ServiceAccountKeyFilter> for Document {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -132,7 +131,10 @@ mod test {
         let converted: ServiceAccountKey = doc.into();
 
         assert_eq!(service_account_key.id, converted.id);
-        assert_eq!(service_account_key.service_account_id, converted.service_account_id);
+        assert_eq!(
+            service_account_key.service_account_id,
+            converted.service_account_id
+        );
         assert_eq!(service_account_key.algorithm, converted.algorithm);
         assert_eq!(service_account_key.key, converted.key);
         assert_eq!(service_account_key.expires_at, converted.expires_at);

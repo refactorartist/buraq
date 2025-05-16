@@ -1,12 +1,12 @@
-use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, to_document, from_document, doc};
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
-use crate::types::Algorithm;
 use crate::serializers::algorithm;
+use crate::types::Algorithm;
+use chrono::{DateTime, Utc};
+use mongodb::bson::uuid::Uuid;
+use mongodb::bson::{Document, doc, from_document, to_document};
+use serde::{Deserialize, Serialize};
 
 /// Represents an access token for API authentication
-/// 
+///
 /// # Fields
 /// - `id`: Unique identifier for the access token (MongoDB ObjectId)
 /// - `key`: The actual API key value
@@ -90,7 +90,7 @@ mod tests {
     fn test_access_token_creation() {
         let now = Utc::now();
         let expires = now + Duration::hours(1);
-        
+
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
@@ -109,7 +109,7 @@ mod tests {
     fn test_access_token_document_conversion() {
         let token = AccessToken {
             id: Some(Uuid::new()),
-            key: "test-key".to_string(), 
+            key: "test-key".to_string(),
             algorithm: Algorithm::HMAC,
             expires_at: Utc::now(),
             created_at: Utc::now(),
@@ -147,7 +147,7 @@ mod tests {
         };
 
         let doc: Document = filter.into();
-        
+
         assert_eq!(doc.get_str("key").unwrap(), "test-key");
         assert_eq!(doc.get_str("algorithm").unwrap(), "RSA");
         assert!(doc.get_bool("enabled").unwrap());

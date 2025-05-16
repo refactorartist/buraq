@@ -1,12 +1,12 @@
 use crate::models::project_access::{ProjectAccess, ProjectAccessUpdatePayload};
 use crate::repositories::base::Repository;
+use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, to_document, doc};
+use mongodb::bson::{Document, doc, to_document};
 use mongodb::{Collection, Database};
-use anyhow::Error;
 
 /// Repository for managing ProjectAccess documents in MongoDB.
 ///
@@ -30,12 +30,18 @@ impl Repository<ProjectAccess> for ProjectAccessRepository {
         if item.id.is_none() {
             item.id = Some(Uuid::new());
         }
-        self.collection.insert_one(&item).await.expect("Failed to create project access");
+        self.collection
+            .insert_one(&item)
+            .await
+            .expect("Failed to create project access");
         Ok(item)
     }
 
     async fn read(&self, id: Uuid) -> Result<Option<ProjectAccess>, Error> {
-        let result = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result)
     }
 
@@ -44,25 +50,38 @@ impl Repository<ProjectAccess> for ProjectAccessRepository {
             item.id = Some(id);
         }
         self.collection
-            .update_one(
-                doc! { "_id": id },
-                doc! { "$set": to_document(&item)? }
-            )
+            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
             .await
             .expect("Failed to update project access");
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
     async fn update(&self, id: Uuid, item: Self::UpdatePayload) -> Result<ProjectAccess, Error> {
         let document = to_document(&item)?;
-        self.collection.update_one(mongodb::bson::doc! { "_id": id }, mongodb::bson::doc! { "$set": document }).await?;
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        self.collection
+            .update_one(
+                mongodb::bson::doc! { "_id": id },
+                mongodb::bson::doc! { "$set": document },
+            )
+            .await?;
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, Error> {
-        let result = self.collection.delete_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .delete_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result.deleted_count > 0)
     }
 
@@ -80,7 +99,7 @@ impl Repository<ProjectAccess> for ProjectAccessRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     async fn setup() -> (ProjectAccessRepository, Database) {
         let db = setup_test_db("project_access").await.unwrap();
@@ -197,7 +216,10 @@ mod tests {
         repo.create(access1).await.unwrap();
         repo.create(access2).await.unwrap();
 
-        let found = repo.find(doc! { "environment_id": environment_id }).await.unwrap();
+        let found = repo
+            .find(doc! { "environment_id": environment_id })
+            .await
+            .unwrap();
         assert_eq!(found.len(), 2);
 
         cleanup_test_db(db).await.unwrap();

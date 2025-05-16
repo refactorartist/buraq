@@ -1,12 +1,12 @@
 use crate::models::service_account::{ServiceAccount, ServiceAccountUpdatePayload};
 use crate::repositories::base::Repository;
+use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, to_document, doc};
+use mongodb::bson::{Document, doc, to_document};
 use mongodb::{Collection, Database};
-use anyhow::Error;
 
 /// Repository for managing ServiceAccount documents in MongoDB.
 ///
@@ -30,12 +30,18 @@ impl Repository<ServiceAccount> for ServiceAccountRepository {
         if item.id.is_none() {
             item.id = Some(Uuid::new());
         }
-        self.collection.insert_one(&item).await.expect("Failed to create service account");
+        self.collection
+            .insert_one(&item)
+            .await
+            .expect("Failed to create service account");
         Ok(item)
     }
 
     async fn read(&self, id: Uuid) -> Result<Option<ServiceAccount>, Error> {
-        let result = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result)
     }
 
@@ -44,25 +50,38 @@ impl Repository<ServiceAccount> for ServiceAccountRepository {
             item.id = Some(id);
         }
         self.collection
-            .update_one(
-                doc! { "_id": id },
-                doc! { "$set": to_document(&item)? }
-            )
+            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
             .await
             .expect("Failed to update service account");
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
     async fn update(&self, id: Uuid, item: Self::UpdatePayload) -> Result<ServiceAccount, Error> {
         let document = to_document(&item)?;
-        self.collection.update_one(mongodb::bson::doc! { "_id": id }, mongodb::bson::doc! { "$set": document }).await?;
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        self.collection
+            .update_one(
+                mongodb::bson::doc! { "_id": id },
+                mongodb::bson::doc! { "$set": document },
+            )
+            .await?;
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, Error> {
-        let result = self.collection.delete_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .delete_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result.deleted_count > 0)
     }
 
@@ -80,7 +99,7 @@ impl Repository<ServiceAccount> for ServiceAccountRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     async fn setup() -> (ServiceAccountRepository, Database) {
         let db = setup_test_db("service_account").await.unwrap();
@@ -94,7 +113,7 @@ mod tests {
         let service_account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         let created = repo.create(service_account.clone()).await?;
@@ -113,7 +132,7 @@ mod tests {
         let service_account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         let created = repo.create(service_account.clone()).await?;
@@ -133,7 +152,7 @@ mod tests {
         let service_account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         let created = repo.create(service_account).await?;
@@ -160,7 +179,7 @@ mod tests {
         let service_account = ServiceAccount::new(
             "test@example.com".to_string(),
             "testuser".to_string(),
-            "secret123".to_string()
+            "secret123".to_string(),
         );
 
         let created = repo.create(service_account).await?;
@@ -180,12 +199,12 @@ mod tests {
         let account1 = ServiceAccount::new(
             "test1@example.com".to_string(),
             "testuser1".to_string(),
-            "secret1".to_string()
+            "secret1".to_string(),
         );
         let account2 = ServiceAccount::new(
             "test2@example.com".to_string(),
             "testuser2".to_string(),
-            "secret2".to_string()
+            "secret2".to_string(),
         );
 
         repo.create(account1).await?;

@@ -1,11 +1,11 @@
 use crate::models::environment::{Environment, EnvironmentUpdatePayload};
 use crate::repositories::base::Repository;
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::bson::Uuid;
-use mongodb::{Collection, Database};
 use mongodb::bson::{Document, doc, to_document};
+use mongodb::{Collection, Database};
 
 /// Repository for managing Environment documents in MongoDB.
 ///
@@ -52,10 +52,7 @@ impl Repository<Environment> for EnvironmentRepository {
             item.id = Some(id);
         }
         self.collection
-            .update_one(
-                doc! { "_id": id },
-                doc! { "$set": to_document(&item)? }
-            )
+            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
             .await?;
         let updated = self.collection.find_one(doc! { "_id": id }).await?.unwrap();
         Ok(updated)
@@ -66,7 +63,10 @@ impl Repository<Environment> for EnvironmentRepository {
         self.collection
             .update_one(doc! { "_id": id }, doc! { "$set": document })
             .await?;
-        let updated = self.read(id).await?.ok_or_else(|| Error::msg("Environment not found"))?;
+        let updated = self
+            .read(id)
+            .await?
+            .ok_or_else(|| Error::msg("Environment not found"))?;
         Ok(updated)
     }
 
@@ -90,9 +90,9 @@ impl Repository<Environment> for EnvironmentRepository {
 mod tests {
     use super::*;
     use crate::models::environment::EnvironmentFilter;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
-    use mongodb::options::IndexOptions;
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
     use mongodb::IndexModel;
+    use mongodb::options::IndexOptions;
 
     async fn ensure_unique_index(db: &Database) -> Result<()> {
         let collection = db.collection::<Environment>("environments");
@@ -110,7 +110,7 @@ mod tests {
         let db = setup_test_db("environment").await?;
         ensure_unique_index(&db).await?;
         let repo = EnvironmentRepository::new(db.clone())?;
-        
+
         let project_id = Uuid::new();
         let environment = Environment {
             id: None,
@@ -119,11 +119,11 @@ mod tests {
             description: "Test Description".to_string(),
             enabled: true,
         };
-        
+
         let created = repo.create(environment).await?;
         assert!(created.id.is_some());
         assert_eq!(created.name, "Test Environment");
-        
+
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -133,10 +133,10 @@ mod tests {
         let db = setup_test_db("environment").await?;
         ensure_unique_index(&db).await?;
         let repo = EnvironmentRepository::new(db.clone())?;
-        
+
         let project_id = Uuid::new();
         let name = "Test Environment".to_string();
-        
+
         let environment1 = Environment {
             id: None,
             project_id,
@@ -145,7 +145,7 @@ mod tests {
             enabled: true,
         };
         repo.create(environment1).await?;
-        
+
         let environment2 = Environment {
             id: None,
             project_id,
@@ -154,9 +154,9 @@ mod tests {
             enabled: true,
         };
         let result = repo.create(environment2).await;
-        
+
         assert!(result.is_err());
-        
+
         cleanup_test_db(db).await?;
         Ok(())
     }
@@ -290,7 +290,7 @@ mod tests {
         let environment = Environment {
             id: None,
             project_id,
-            name: "Environment 1".to_string(), 
+            name: "Environment 1".to_string(),
             description: "Description 1".to_string(),
             enabled: true,
         };
@@ -364,6 +364,4 @@ mod tests {
         cleanup_test_db(db).await?;
         Ok(())
     }
-    
 }
-

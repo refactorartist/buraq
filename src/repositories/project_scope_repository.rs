@@ -1,12 +1,12 @@
 use crate::models::project_scope::{ProjectScope, ProjectScopeUpdatePayload};
 use crate::repositories::base::Repository;
+use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::TryStreamExt;
-use mongodb::bson::{Document, to_document, doc};
-use mongodb::{Collection, Database};
 use mongodb::bson::uuid::Uuid;
-use anyhow::Error;
+use mongodb::bson::{Document, doc, to_document};
+use mongodb::{Collection, Database};
 
 /// Repository for managing ProjectScope documents in MongoDB.
 ///
@@ -30,12 +30,18 @@ impl Repository<ProjectScope> for ProjectScopeRepository {
         if item.id.is_none() {
             item.id = Some(Uuid::new());
         }
-        self.collection.insert_one(&item).await.expect("Failed to create project scope");
+        self.collection
+            .insert_one(&item)
+            .await
+            .expect("Failed to create project scope");
         Ok(item)
     }
 
     async fn read(&self, id: Uuid) -> Result<Option<ProjectScope>, Error> {
-        let result = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result)
     }
 
@@ -44,25 +50,38 @@ impl Repository<ProjectScope> for ProjectScopeRepository {
             item.id = Some(id);
         }
         self.collection
-            .update_one(
-                doc! { "_id": id },
-                doc! { "$set": to_document(&item)? }
-            )
+            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
             .await
             .expect("Failed to update project scope");
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
     async fn update(&self, id: Uuid, item: Self::UpdatePayload) -> Result<ProjectScope, Error> {
         let document = to_document(&item)?;
-        self.collection.update_one(mongodb::bson::doc! { "_id": id }, mongodb::bson::doc! { "$set": document }).await?;
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        self.collection
+            .update_one(
+                mongodb::bson::doc! { "_id": id },
+                mongodb::bson::doc! { "$set": document },
+            )
+            .await?;
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, Error> {
-        let result = self.collection.delete_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .delete_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result.deleted_count > 0)
     }
 
@@ -80,7 +99,7 @@ impl Repository<ProjectScope> for ProjectScopeRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     async fn setup() -> (ProjectScopeRepository, Database) {
         let db = setup_test_db("project_scope").await.unwrap();

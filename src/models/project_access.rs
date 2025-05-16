@@ -1,5 +1,5 @@
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, to_document, from_document};
+use mongodb::bson::{Document, from_document, to_document};
 use serde::{Deserialize, Serialize};
 
 /// Represents access control configuration for a project environment.
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// - `service_account_id`: Foreign key reference to the associated service account
 /// - `project_scopes`: Array of project scope IDs this access is granted
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProjectAccess {    
+pub struct ProjectAccess {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<Uuid>,
     pub name: String,
@@ -19,7 +19,6 @@ pub struct ProjectAccess {
     pub service_account_id: Uuid,
     pub project_scopes: Vec<Uuid>,
 }
-
 
 impl From<ProjectAccess> for Document {
     fn from(value: ProjectAccess) -> Self {
@@ -133,7 +132,7 @@ mod tests {
         };
 
         let doc: Document = filter.into();
-        
+
         assert!(doc.contains_key("environment_id"));
         assert!(doc.contains_key("service_account_id"));
         assert!(doc.contains_key("project_scopes"));

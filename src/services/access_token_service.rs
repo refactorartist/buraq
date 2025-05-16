@@ -17,10 +17,7 @@ impl AccessTokenService {
         })
     }
 
-    pub async fn create(
-        &self,
-        access_token: AccessToken,
-    ) -> Result<AccessToken, Error> {
+    pub async fn create(&self, access_token: AccessToken) -> Result<AccessToken, Error> {
         self.access_token_repository.create(access_token).await
     }
 
@@ -40,10 +37,7 @@ impl AccessTokenService {
         self.access_token_repository.delete(id).await
     }
 
-    pub async fn find(
-        &self,
-        filter: AccessTokenFilter,
-    ) -> Result<Vec<AccessToken>, Error> {
+    pub async fn find(&self, filter: AccessTokenFilter) -> Result<Vec<AccessToken>, Error> {
         self.access_token_repository.find(filter.into()).await
     }
 }
@@ -51,7 +45,7 @@ impl AccessTokenService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
     use crate::types::Algorithm;
     use chrono::{Duration, Utc};
     use futures::TryStreamExt;
@@ -97,7 +91,11 @@ mod tests {
         };
 
         let created = service.create(token.clone()).await.unwrap();
-        let retrieved = service.get_access_token(created.id.unwrap()).await.unwrap().unwrap();
+        let retrieved = service
+            .get_access_token(created.id.unwrap())
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(retrieved.id, created.id);
         assert_eq!(retrieved.key, created.key);
 
@@ -157,7 +155,7 @@ mod tests {
         let (service, db) = setup().await;
         let token1 = AccessToken {
             id: Some(Uuid::new()),
-            key: "test-key-1".to_string(), 
+            key: "test-key-1".to_string(),
             algorithm: Algorithm::RSA,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
@@ -168,7 +166,7 @@ mod tests {
             key: "test-key-2".to_string(),
             algorithm: Algorithm::HMAC,
             expires_at: Utc::now() + Duration::hours(1),
-            created_at: Utc::now(), 
+            created_at: Utc::now(),
             enabled: false,
         };
 
@@ -177,7 +175,13 @@ mod tests {
 
         // Debug print: print all documents in the collection
         let collection = db.collection::<mongodb::bson::Document>("access_tokens");
-        let all_docs: Vec<_> = collection.find(doc!{}).await.unwrap().try_collect().await.unwrap();
+        let all_docs: Vec<_> = collection
+            .find(doc! {})
+            .await
+            .unwrap()
+            .try_collect()
+            .await
+            .unwrap();
         println!("All documents in access_tokens collection: {:#?}", all_docs);
 
         let filter = AccessTokenFilter {

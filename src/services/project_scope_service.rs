@@ -1,6 +1,6 @@
 use crate::models::project_scope::{ProjectScope, ProjectScopeFilter, ProjectScopeUpdatePayload};
-use crate::repositories::project_scope_repository::ProjectScopeRepository;
 use crate::repositories::base::Repository;
+use crate::repositories::project_scope_repository::ProjectScopeRepository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
@@ -17,10 +17,7 @@ impl ProjectScopeService {
         })
     }
 
-    pub async fn create(
-        &self,
-        project_scope: ProjectScope,
-    ) -> Result<ProjectScope, Error> {
+    pub async fn create(&self, project_scope: ProjectScope) -> Result<ProjectScope, Error> {
         self.project_scope_repository.create(project_scope).await
     }
 
@@ -33,17 +30,16 @@ impl ProjectScopeService {
         id: Uuid,
         project_scope: ProjectScopeUpdatePayload,
     ) -> Result<ProjectScope, Error> {
-        self.project_scope_repository.update(id, project_scope).await
+        self.project_scope_repository
+            .update(id, project_scope)
+            .await
     }
 
     pub async fn delete(&self, id: Uuid) -> Result<bool, Error> {
         self.project_scope_repository.delete(id).await
     }
 
-    pub async fn find(
-        &self,
-        filter: ProjectScopeFilter,
-    ) -> Result<Vec<ProjectScope>, Error> {
+    pub async fn find(&self, filter: ProjectScopeFilter) -> Result<Vec<ProjectScope>, Error> {
         self.project_scope_repository.find(filter.into()).await
     }
 }
@@ -51,7 +47,7 @@ impl ProjectScopeService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     async fn setup() -> (ProjectScopeService, Database) {
         let db = setup_test_db("project_scope_service").await.unwrap();
@@ -89,7 +85,11 @@ mod tests {
         };
 
         let created = service.create(scope.clone()).await.unwrap();
-        let retrieved = service.get_project_scope(created.id.unwrap()).await.unwrap().unwrap();
+        let retrieved = service
+            .get_project_scope(created.id.unwrap())
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(retrieved.id, created.id);
         assert_eq!(retrieved.name, created.name);
 
@@ -133,7 +133,10 @@ mod tests {
         let deleted = service.delete(created.id.unwrap()).await.unwrap();
         assert!(deleted);
 
-        let read = service.get_project_scope(created.id.unwrap()).await.unwrap();
+        let read = service
+            .get_project_scope(created.id.unwrap())
+            .await
+            .unwrap();
         assert!(read.is_none());
 
         cleanup_test_db(db).await.unwrap();

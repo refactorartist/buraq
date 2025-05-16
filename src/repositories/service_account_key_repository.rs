@@ -1,12 +1,12 @@
 use crate::models::service_account_key::{ServiceAccountKey, ServiceAccountKeyUpdatePayload};
 use crate::repositories::base::Repository;
+use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, to_document, doc};
+use mongodb::bson::{Document, doc, to_document};
 use mongodb::{Collection, Database};
-use anyhow::Error;
 
 /// Repository for managing ServiceAccountKey documents in MongoDB.
 ///
@@ -30,39 +30,66 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
         if item.id.is_none() {
             item.id = Some(Uuid::new());
         }
-        self.collection.insert_one(&item).await.expect("Failed to create service account key");
+        self.collection
+            .insert_one(&item)
+            .await
+            .expect("Failed to create service account key");
         Ok(item)
     }
 
     async fn read(&self, id: Uuid) -> Result<Option<ServiceAccountKey>, Error> {
-        let result = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result)
     }
 
-    async fn replace(&self, id: Uuid, mut item: ServiceAccountKey) -> Result<ServiceAccountKey, Error> {
+    async fn replace(
+        &self,
+        id: Uuid,
+        mut item: ServiceAccountKey,
+    ) -> Result<ServiceAccountKey, Error> {
         if item.id.is_none() || item.id.unwrap() != id {
             item.id = Some(id);
         }
         self.collection
-            .update_one(
-                doc! { "_id": id },
-                doc! { "$set": to_document(&item)? }
-            )
+            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
             .await
             .expect("Failed to update service account key");
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
-    async fn update(&self, id: Uuid, item: Self::UpdatePayload) -> Result<ServiceAccountKey, Error> {
+    async fn update(
+        &self,
+        id: Uuid,
+        item: Self::UpdatePayload,
+    ) -> Result<ServiceAccountKey, Error> {
         let document = to_document(&item)?;
-        self.collection.update_one(mongodb::bson::doc! { "_id": id }, mongodb::bson::doc! { "$set": document }).await?;
-        let updated = self.collection.find_one(mongodb::bson::doc! { "_id": id }).await?.unwrap();
+        self.collection
+            .update_one(
+                mongodb::bson::doc! { "_id": id },
+                mongodb::bson::doc! { "$set": document },
+            )
+            .await?;
+        let updated = self
+            .collection
+            .find_one(mongodb::bson::doc! { "_id": id })
+            .await?
+            .unwrap();
         Ok(updated)
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, Error> {
-        let result = self.collection.delete_one(mongodb::bson::doc! { "_id": id }).await?;
+        let result = self
+            .collection
+            .delete_one(mongodb::bson::doc! { "_id": id })
+            .await?;
         Ok(result.deleted_count > 0)
     }
 
@@ -80,13 +107,14 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Utc, Duration};
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
     use crate::types::Algorithm;
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
+    use chrono::{Duration, Utc};
 
     async fn setup() -> (ServiceAccountKeyRepository, Database) {
         let db = setup_test_db("service_account_key").await.unwrap();
-        let repo = ServiceAccountKeyRepository::new(db.clone()).expect("Failed to create repository");
+        let repo =
+            ServiceAccountKeyRepository::new(db.clone()).expect("Failed to create repository");
         (repo, db)
     }
 
