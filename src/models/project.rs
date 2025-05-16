@@ -1,11 +1,12 @@
+use mongodb::bson::{Document, to_document, from_document, doc};
+use mongodb::bson::uuid::Uuid;
 use serde::{Serialize, Deserialize};
-use mongodb::bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
 
 /// Represents a project with metadata and timestamps.
 ///
 /// # Fields
-/// - `id`: Unique identifier for the project (MongoDB ObjectId)
+/// - `id`: Unique identifier for the project (MongoDB Uuid)
 /// - `name`: Name of the project
 /// - `description`: Description of the project
 /// - `created_at`: Timestamp when project was created
@@ -13,12 +14,55 @@ use chrono::{DateTime, Utc};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Project {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
+    pub id: Option<Uuid>,
     name: String,
     description: String,
     enabled: bool,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+}
+
+impl From<Project> for Document {
+    fn from(value: Project) -> Self {
+        to_document(&value).unwrap()
+    }
+}
+
+impl From<Document> for Project {
+    fn from(value: Document) -> Self {
+        from_document(value.clone()).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectUpdatePayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_enabled: Option<bool>,
+}
+
+impl From<ProjectFilter> for Document {
+    fn from(value: ProjectFilter) -> Self {
+        let mut doc = Document::new();
+        if let Some(name) = value.name {
+            doc.insert("name", name);
+        }
+        if let Some(is_enabled) = value.is_enabled {
+            doc.insert("enabled", is_enabled);
+        }
+        doc
+    }
 }
 
 impl Project {
@@ -33,12 +77,12 @@ impl Project {
         }
     }
 
-    pub fn id(&self) -> Option<&ObjectId> {
+    pub fn id(&self) -> Option<&Uuid> {
         self.id.as_ref()
     }
 
     /// Sets the project's unique identifier
-    pub fn set_id(&mut self, id: ObjectId) {
+    pub fn set_id(&mut self, id: Uuid) {
         self.id = Some(id);
     }
 
@@ -61,16 +105,6 @@ impl Project {
     pub fn updated_at(&self) -> &DateTime<Utc> {
         &self.updated_at
     }
-
-    // Convert to MongoDB Document
-    pub fn to_document(&self) -> Result<mongodb::bson::Document, mongodb::bson::ser::Error> {
-        mongodb::bson::to_document(self)
-    }
-
-    // Create from MongoDB Document
-    pub fn from_document(doc: mongodb::bson::Document) -> Result<Self, mongodb::bson::de::Error> {
-        mongodb::bson::from_document(doc)
-    }      
 }
 
 #[cfg(test)]
@@ -124,20 +158,17 @@ mod tests {
         let description = "Test Description".to_string();
         
         let mut project = Project::new(name.clone(), description.clone());
-        let id = ObjectId::new();
+        let id = Uuid::new();
         project.set_id(id);
 
-        // Test conversion to BSON Document
-        let doc = project.to_document().unwrap();
-        
-        // Test conversion from BSON Document
-        let deserialized = Project::from_document(doc).unwrap();
+        let doc: Document = project.clone().into();
+        let converted: Project = doc.into();
 
-        assert_eq!(deserialized.id(), project.id());
-        assert_eq!(deserialized.name(), project.name());
-        assert_eq!(deserialized.description(), project.description());
-        assert_eq!(deserialized.enabled(), project.enabled());
-        assert_eq!(deserialized.created_at(), project.created_at());
-        assert_eq!(deserialized.updated_at(), project.updated_at());
+        assert_eq!(converted.id(), project.id());
+        assert_eq!(converted.name(), project.name());
+        assert_eq!(converted.description(), project.description());
+        assert_eq!(converted.enabled(), project.enabled());
+        assert_eq!(converted.created_at(), project.created_at());
+        assert_eq!(converted.updated_at(), project.updated_at());
     }
 }
