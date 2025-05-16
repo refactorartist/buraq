@@ -88,6 +88,8 @@ impl Repository<Project> for ProjectRepository {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
+
     use super::*;
     use crate::test_utils::{setup_test_db, cleanup_test_db};
 
@@ -96,13 +98,20 @@ mod tests {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
+        let project = Project {
+            id: None,
+            name: "Test Project".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         let created = repo.create(project).await?;
 
         assert!(created.id.is_some());
-        assert_eq!(created.name(), "Test Project");
-        assert_eq!(created.description(), "Test Description");
-        assert!(created.enabled());
+        assert_eq!(created.name, "Test Project");
+        assert_eq!(created.description, "Test Description");
+        assert!(created.enabled);
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -113,15 +122,22 @@ mod tests {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
+        let project = Project {
+            id: None,
+            name: "Test Project".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         let created = repo.create(project).await?;
 
         let read = repo.read(created.id.unwrap()).await?;
         assert!(read.is_some());
         let read = read.unwrap();
-        assert_eq!(read.name(), "Test Project");
-        assert_eq!(read.description(), "Test Description");
-        assert!(read.enabled());
+        assert_eq!(read.name, "Test Project");
+        assert_eq!(read.description, "Test Description");
+        assert!(read.enabled);
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -132,7 +148,14 @@ mod tests {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
+        let project = Project {
+            id: None,
+            name: "Test Project".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         let created = repo.create(project).await?;
 
         let update = ProjectUpdatePayload {
@@ -142,9 +165,9 @@ mod tests {
         };
 
         let updated = repo.update(created.id.unwrap(), update).await?;
-        assert_eq!(updated.name(), "Updated Project");
-        assert_eq!(updated.description(), "Updated Description");
-        assert!(!updated.enabled());
+        assert_eq!(updated.name, "Updated Project");
+        assert_eq!(updated.description, "Updated Description");
+        assert!(!updated.enabled);
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -155,7 +178,14 @@ mod tests {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
+        let project = Project {
+            id: None,
+            name: "Test Project".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         let created = repo.create(project).await?;
 
         let deleted = repo.delete(created.id.unwrap()).await?;
@@ -173,8 +203,22 @@ mod tests {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
 
-        let project1 = Project::new("Project 1".to_string(), "Description 1".to_string());
-        let project2 = Project::new("Project 2".to_string(), "Description 2".to_string());
+        let project1 = Project {
+            id: None,
+            name: "Project 1".to_string(),
+            description: "Description 1".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        let project2 = Project {
+            id: None,
+            name: "Project 2".to_string(),
+            description: "Description 2".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
 
         repo.create(project1).await?;
         repo.create(project2).await?;
@@ -184,7 +228,7 @@ mod tests {
 
         let projects = repo.find(doc! { "name": "Project 1" }).await?;
         assert_eq!(projects.len(), 1);
-        assert_eq!(projects[0].name(), "Project 1");
+        assert_eq!(projects[0].name, "Project 1");
 
         cleanup_test_db(db).await?;
         Ok(())

@@ -42,6 +42,8 @@ impl ProjectService {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
+
     use super::*;
     use crate::test_utils::{setup_test_db, cleanup_test_db};
 
@@ -54,13 +56,20 @@ mod tests {
     #[tokio::test]
     async fn test_create_project() -> Result<(), Error> {
         let (service, db) = setup().await;
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
+        let project = Project {
+            id: None,
+            name: "Test Project".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         
         let created = service.create(project).await?;
         assert!(created.id.is_some());
-        assert_eq!(created.name(), "Test Project");
-        assert_eq!(created.description(), "Test Description");
-        assert!(created.enabled());
+        assert_eq!(created.name, "Test Project");
+        assert_eq!(created.description, "Test Description");
+        assert!(created.enabled);
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -69,13 +78,20 @@ mod tests {
     #[tokio::test]
     async fn test_get_project() -> Result<(), Error> {
         let (service, db) = setup().await;
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-        
+        let project = Project {
+            id: None,
+            name: "Test Project".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         let created = service.create(project).await?;
         let retrieved = service.get_project(created.id.unwrap()).await?.unwrap();
         assert_eq!(retrieved.id, created.id);
-        assert_eq!(retrieved.name(), "Test Project");
-        assert_eq!(retrieved.description(), "Test Description");
+        assert_eq!(retrieved.name, "Test Project");
+        assert_eq!(retrieved.description, "Test Description");
+        assert!(retrieved.enabled);
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -84,8 +100,14 @@ mod tests {
     #[tokio::test]
     async fn test_update_project() -> Result<(), Error> {
         let (service, db) = setup().await;
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-        
+        let project = Project {
+            id: None,
+            name: "Test Project".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         let created = service.create(project).await?;
         let update = ProjectUpdatePayload {
             name: Some("Updated Project".to_string()),
@@ -94,9 +116,9 @@ mod tests {
         };
 
         let updated = service.update(created.id.unwrap(), update).await?;
-        assert_eq!(updated.name(), "Updated Project");
-        assert_eq!(updated.description(), "Updated Description");
-        assert!(!updated.enabled());
+        assert_eq!(updated.name, "Updated Project");
+        assert_eq!(updated.description, "Updated Description");
+        assert!(!updated.enabled);
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -105,8 +127,14 @@ mod tests {
     #[tokio::test]
     async fn test_delete_project() -> Result<(), Error> {
         let (service, db) = setup().await;
-        let project = Project::new("Test Project".to_string(), "Test Description".to_string());
-        
+        let project = Project {
+            id: None,
+            name: "Test Project".to_string(),
+            description: "Test Description".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         let created = service.create(project).await?;
         let deleted = service.delete(created.id.unwrap()).await?;
         assert!(deleted);
@@ -121,9 +149,22 @@ mod tests {
     #[tokio::test]
     async fn test_find_projects() -> Result<(), Error> {
         let (service, db) = setup().await;
-        let project1 = Project::new("Project 1".to_string(), "Description 1".to_string());
-        let project2 = Project::new("Project 2".to_string(), "Description 2".to_string());
-
+        let project1 = Project {
+            id: None,
+            name: "Project 1".to_string(),
+            description: "Description 1".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        let project2 = Project {
+            id: None,
+            name: "Project 2".to_string(),
+            description: "Description 2".to_string(),
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         service.create(project1).await?;
         service.create(project2).await?;
 
@@ -134,7 +175,7 @@ mod tests {
 
         let found = service.find(filter).await?;
         assert_eq!(found.len(), 1);
-        assert_eq!(found[0].name(), "Project 1");
+        assert_eq!(found[0].name, "Project 1");
 
         cleanup_test_db(db).await?;
         Ok(())
