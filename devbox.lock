@@ -1,6 +1,54 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "bruno@latest": {
+      "last_modified": "2025-05-16T20:19:48Z",
+      "resolved": "github:NixOS/nixpkgs/12a55407652e04dcf2309436eb06fef0d3713ef3#bruno",
+      "source": "devbox-search",
+      "version": "2.2.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/8g2isfk6ba4g9hgy4639v3xdi1zj1hfp-bruno-2.2.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/8g2isfk6ba4g9hgy4639v3xdi1zj1hfp-bruno-2.2.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/77mr9nqds2rjmsbbxasdy1g3c1jkdmp5-bruno-2.2.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/77mr9nqds2rjmsbbxasdy1g3c1jkdmp5-bruno-2.2.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ssjm070yfis7a5vqwi80bzqjlhfn7q8m-bruno-2.2.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ssjm070yfis7a5vqwi80bzqjlhfn7q8m-bruno-2.2.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/xnxk00xn6c4cvj0h7bqwsacxngzzyzs5-bruno-2.2.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/xnxk00xn6c4cvj0h7bqwsacxngzzyzs5-bruno-2.2.0"
+        }
+      }
+    },
     "docker": {
       "resolved": "github:NixOS/nixpkgs/18dd725c29603f582cf1900e0d25f9f1063dbf11?narHash=sha256-awS2zRgF4uTwrOKwwiJcByDzDOdo3Q1rPZbiHQg%2FN38%3D#docker",
       "source": "nixpkg"
