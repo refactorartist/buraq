@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{doc, to_document, Bson, DateTime, Document};
+use mongodb::bson::{Bson, Document, doc, to_document};
 use mongodb::{Collection, Database};
 
 /// Repository for managing Project documents in MongoDB.
@@ -93,9 +93,9 @@ impl Repository<Project> for ProjectRepository {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
+    use chrono::Utc;
 
     async fn create_test_project(repo: &ProjectRepository) -> Result<Project> {
         let project = Project {
@@ -134,7 +134,7 @@ mod tests {
 
         let created = create_test_project(&repo).await?;
         let read = repo.read(created.id.unwrap()).await?;
-        
+
         assert!(read.is_some());
         let read = read.unwrap();
         assert_eq!(read.id, created.id);
@@ -176,14 +176,16 @@ mod tests {
         assert!(updated.updated_at.unwrap() > created.updated_at.unwrap());
 
         // Test updating non-existent project
-        let non_existent_update = repo.update(
-            Uuid::new(),
-            ProjectUpdatePayload {
-                name: Some("Test".to_string()),
-                description: None,
-                enabled: None,
-            },
-        ).await;
+        let non_existent_update = repo
+            .update(
+                Uuid::new(),
+                ProjectUpdatePayload {
+                    name: Some("Test".to_string()),
+                    description: None,
+                    enabled: None,
+                },
+            )
+            .await;
         assert!(non_existent_update.is_err());
 
         cleanup_test_db(db).await?;

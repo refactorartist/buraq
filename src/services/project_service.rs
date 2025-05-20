@@ -4,14 +4,15 @@ use crate::repositories::project_repository::ProjectRepository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
+use std::sync::Arc;
 
 pub struct ProjectService {
     project_repository: ProjectRepository,
 }
 
 impl ProjectService {
-    pub fn new(database: Database) -> Result<Self, Error> {
-        let project_repository = ProjectRepository::new(database)?;
+    pub fn new(database: Arc<Database>) -> Result<Self, Error> {
+        let project_repository = ProjectRepository::new(database.as_ref().clone())?;
         Ok(Self { project_repository })
     }
 
@@ -45,7 +46,7 @@ mod tests {
 
     async fn setup() -> (ProjectService, Database) {
         let db = setup_test_db("project_service").await.unwrap();
-        let service = ProjectService::new(db.clone()).unwrap();
+        let service = ProjectService::new(Arc::new(db.clone())).unwrap();
         (service, db)
     }
 
