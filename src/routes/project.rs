@@ -4,7 +4,6 @@ use crate::services::project_service::ProjectService;
 use mongodb::bson::uuid::Uuid;
 
 use actix_web::{Error, HttpResponse, web};
-use std::sync::Arc;
 
 pub async fn create_project(
     data: web::Data<AppData>,
@@ -35,7 +34,7 @@ pub async fn get_project(
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = ProjectService::new(database.clone()).unwrap();
-    let project_id = Uuid::parse_str(&path.into_inner()).unwrap();
+    let project_id = Uuid::parse_str(path.into_inner()).unwrap();
     let project = service.get_project(project_id).await;
 
     match project {
@@ -58,7 +57,7 @@ pub async fn update_project(
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = ProjectService::new(database.clone()).unwrap();
-    let project_id = Uuid::parse_str(&path.into_inner()).unwrap();
+    let project_id = Uuid::parse_str(path.into_inner()).unwrap();
 
     let project = service.update(project_id, payload.into_inner()).await;
 
@@ -80,7 +79,7 @@ pub async fn delete_project(
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = ProjectService::new(database.clone()).unwrap();
-    let project_id = Uuid::parse_str(&path.into_inner()).unwrap();
+    let project_id = Uuid::parse_str(path.into_inner()).unwrap();
 
     let result = service.delete(project_id).await;
 
@@ -118,7 +117,7 @@ mod tests {
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use actix_web::{App, test};
     use chrono::Utc;
-    use mongodb::Database;
+    
 
     #[actix_web::test]
     async fn test_create_project_success() {
