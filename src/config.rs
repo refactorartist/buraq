@@ -24,13 +24,13 @@ pub struct AppConfig {
 }
 
 /// Holds the application configuration and a MongoDB client.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AppData {
     /// The application configuration.
-    pub config: AppConfig,
+    pub config: Option<AppConfig>,
     /// The MongoDB client wrapped in an `Arc`.
-    pub mongo_client: Arc<mongodb::Client>,
-    pub database: Arc<mongodb::Database>,
+    pub mongo_client: Option<Arc<mongodb::Client>>,
+    pub database: Option<Arc<mongodb::Database>>,
 }
 
 impl AppConfig {
@@ -66,7 +66,9 @@ impl AppConfig {
         let database_name = match env::var("BURAQ_DATABASE_NAME") {
             Ok(name) => name,
             Err(_) => {
-                return Err(anyhow::anyhow!("BURAQ_DATABASE_NAME environment variable is not set"));
+                return Err(anyhow::anyhow!(
+                    "BURAQ_DATABASE_NAME environment variable is not set"
+                ));
             }
         };
 
