@@ -57,8 +57,8 @@ mod tests {
             name: "Test Project".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let created = service.create(project).await?;
@@ -79,8 +79,8 @@ mod tests {
             name: "Test Project".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let created = service.create(project).await?;
         let retrieved = service.get_project(created.id.unwrap()).await?.unwrap();
@@ -101,8 +101,8 @@ mod tests {
             name: "Test Project".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let created = service.create(project).await?;
         let update = ProjectUpdatePayload {
@@ -128,8 +128,8 @@ mod tests {
             name: "Test Project".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let created = service.create(project).await?;
         let deleted = service.delete(created.id.unwrap()).await?;
@@ -150,16 +150,16 @@ mod tests {
             name: "Project 1".to_string(),
             description: "Description 1".to_string(),
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let project2 = Project {
             id: None,
             name: "Project 2".to_string(),
             description: "Description 2".to_string(),
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         service.create(project1).await?;
         service.create(project2).await?;

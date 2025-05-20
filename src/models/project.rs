@@ -18,8 +18,8 @@ pub struct Project {
     pub name: String,
     pub description: String,
     pub enabled: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 impl From<Project> for Document {
@@ -79,8 +79,8 @@ mod tests {
             name: name.clone(),
             description: description.clone(),
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         // Verify fields are set correctly
@@ -90,8 +90,8 @@ mod tests {
         assert!(project.enabled);
         // Verify timestamps are recent
         let now = Utc::now();
-        assert!(project.created_at <= now);
-        assert!(project.updated_at <= now);
+        assert!(project.created_at.unwrap() <= now);
+        assert!(project.updated_at.unwrap() <= now);
     }
 
     #[test]
@@ -103,8 +103,8 @@ mod tests {
             name: name.clone(),
             description: description.clone(),
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         // Test serialization
@@ -134,8 +134,8 @@ mod tests {
             name: name.clone(),
             description: description.clone(),
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let id = Uuid::new();
         project.id = Some(id);
