@@ -4,7 +4,8 @@
     "rustup@latest",
     "mermaid-cli@latest",
     "docker",
-    "docker-compose"
+    "docker-compose",
+    "bruno@latest"
   ],
   "shell": {
     "init_hook": [
@@ -13,17 +14,17 @@
     ],
     "scripts": {
       "test": [
-        "docker compose up -d",  
+        "docker compose up -d",
         "cargo test",
         "devbox run shutdown"
       ],
       "start": [
-        "docker-compose up -d",
+        "docker compose up -d",
         "cargo run",
         "devbox run shutdown"
       ],
       "shutdown": [
-        "docker-compose down"
+        "docker compose down"
       ]
     }
   }

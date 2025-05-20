@@ -12,6 +12,8 @@ pub struct ApplicationConfig {
     pub port: u16,
     /// The URI for the application's database.
     pub database_uri: String,
+    /// The name of the database.
+    pub database_name: String,
 }
 
 /// Wrapper for application configuration.
@@ -22,12 +24,13 @@ pub struct AppConfig {
 }
 
 /// Holds the application configuration and a MongoDB client.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AppData {
     /// The application configuration.
-    pub config: AppConfig,
+    pub config: Option<AppConfig>,
     /// The MongoDB client wrapped in an `Arc`.
-    pub database: Arc<mongodb::Client>,
+    pub mongo_client: Option<Arc<mongodb::Client>>,
+    pub database: Option<Arc<mongodb::Database>>,
 }
 
 impl AppConfig {
@@ -51,11 +54,6 @@ impl AppConfig {
             dotenvy::dotenv().ok();
         }
 
-        println!(
-            "env::var(\"BURAQ_DATABASE_URI\"): {:?}",
-            env::var("BURAQ_DATABASE_URI")
-        );
-
         let database_uri = match env::var("BURAQ_DATABASE_URI") {
             Ok(uri) => uri,
             Err(_) => {
@@ -65,7 +63,14 @@ impl AppConfig {
             }
         };
 
-        println!("database_uri: {}", database_uri);
+        let database_name = match env::var("BURAQ_DATABASE_NAME") {
+            Ok(name) => name,
+            Err(_) => {
+                return Err(anyhow::anyhow!(
+                    "BURAQ_DATABASE_NAME environment variable is not set"
+                ));
+            }
+        };
 
         let host = match env::var("BURAQ_HOST") {
             Ok(h) => h,
@@ -76,8 +81,6 @@ impl AppConfig {
             }
         };
 
-        println!("host: {}", host);
-
         let port = match env::var("BURAQ_PORT") {
             Ok(p) => p,
             Err(_) => {
@@ -87,13 +90,12 @@ impl AppConfig {
             }
         };
 
-        println!("port: {}", port);
-
         Ok(Self {
             application: ApplicationConfig {
                 host,
                 port: port.parse()?,
                 database_uri,
+                database_name,
             },
         })
     }
@@ -108,6 +110,7 @@ mod tests {
         temp_env::with_vars(
             vec![
                 ("BURAQ_DATABASE_URI", Some("mongodb://localhost:27017")),
+                ("BURAQ_DATABASE_NAME", Some("test_db")),
                 ("BURAQ_HOST", Some("127.0.0.1")),
                 ("BURAQ_PORT", Some("8080")),
             ],
@@ -117,6 +120,7 @@ mod tests {
                 assert_eq!(config.application.host, "127.0.0.1");
                 assert_eq!(config.application.port, 8080);
                 assert_eq!(config.application.database_uri, "mongodb://localhost:27017");
+                assert_eq!(config.application.database_name, "test_db");
             },
         );
     }
@@ -125,12 +129,36 @@ mod tests {
     fn test_app_config_missing_database_uri() {
         temp_env::with_vars(
             vec![
+                ("BURAQ_DATABASE_NAME", Some("test_db")),
                 ("BURAQ_HOST", Some("127.0.0.1")),
                 ("BURAQ_PORT", Some("8080")),
             ],
             || {
                 let result = AppConfig::from_env(Some(false));
                 assert!(result.is_err());
+                assert_eq!(
+                    result.unwrap_err().to_string(),
+                    "BURAQ_DATABASE_URI environment variable is not set"
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn test_app_config_missing_database_name() {
+        temp_env::with_vars(
+            vec![
+                ("BURAQ_DATABASE_URI", Some("mongodb://localhost:27017")),
+                ("BURAQ_HOST", Some("127.0.0.1")),
+                ("BURAQ_PORT", Some("8080")),
+            ],
+            || {
+                let result = AppConfig::from_env(Some(false));
+                assert!(result.is_err());
+                assert_eq!(
+                    result.unwrap_err().to_string(),
+                    "BURAQ_DATABASE_NAME environment variable is not set"
+                );
             },
         );
     }
@@ -140,11 +168,16 @@ mod tests {
         temp_env::with_vars(
             vec![
                 ("BURAQ_DATABASE_URI", Some("mongodb://localhost:27017")),
+                ("BURAQ_DATABASE_NAME", Some("test_db")),
                 ("BURAQ_PORT", Some("8080")),
             ],
             || {
                 let result = AppConfig::from_env(Some(false));
                 assert!(result.is_err());
+                assert_eq!(
+                    result.unwrap_err().to_string(),
+                    "BURAQ_HOST environment variable is not set"
+                );
             },
         );
     }
@@ -154,11 +187,16 @@ mod tests {
         temp_env::with_vars(
             vec![
                 ("BURAQ_DATABASE_URI", Some("mongodb://localhost:27017")),
+                ("BURAQ_DATABASE_NAME", Some("test_db")),
                 ("BURAQ_HOST", Some("127.0.0.1")),
             ],
             || {
                 let result = AppConfig::from_env(Some(false));
                 assert!(result.is_err());
+                assert_eq!(
+                    result.unwrap_err().to_string(),
+                    "BURAQ_PORT environment variable is not set"
+                );
             },
         );
     }

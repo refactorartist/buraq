@@ -1,6 +1,7 @@
 use actix_web::{App, HttpServer, web};
 use buraq::config::{AppConfig, AppData};
 use buraq::utils::database::create_database_client;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::signal;
 
@@ -32,9 +33,12 @@ async fn main() -> Result<(), anyhow::Error> {
     let port = app_config.application.port;
 
     // Create application data including the MongoDB client
+    let mongo_client = create_database_client(&app_config.application.database_uri).await?;
+    let database = Arc::new(mongo_client.database(&app_config.application.database_name));
     let app_data = web::Data::new(AppData {
-        config: app_config.clone(),
-        database: create_database_client(&app_config.application.database_uri).await?,
+        config: Some(app_config.clone()),
+        mongo_client: Some(mongo_client),
+        database: Some(database),
     });
 
     println!("Starting the server on {}:{}", &host, &port);
@@ -43,7 +47,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let server = HttpServer::new(move || {
         App::new()
             .app_data(app_data.clone())
-            .route("/", web::get().to(|| async { "Hello, World!" }))
+            .configure(buraq::routes::project::configure_routes)
     })
     .bind((host, port))?
     .shutdown_timeout(30) // 30 seconds graceful shutdown timeout

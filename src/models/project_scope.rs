@@ -90,7 +90,7 @@ mod tests {
 
         let mut scope = ProjectScope {
             id: None,
-            project_id: project_id,
+            project_id,
             name: name.clone(),
             description: description.clone(),
         };
