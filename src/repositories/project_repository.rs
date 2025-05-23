@@ -1,11 +1,13 @@
-use crate::models::project::{Project, ProjectUpdatePayload};
+use crate::models::project::{Project, ProjectFilter, ProjectUpdatePayload, ProjectSortableFields};
+use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
+use crate::models::pagination::Pagination;
 use anyhow::{Error, Result};
 use async_trait::async_trait;
 use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Bson, Document, doc, to_document};
+use mongodb::bson::{Bson, doc, to_document};
 use mongodb::{Collection, Database};
 
 /// Repository for managing Project documents in MongoDB.
@@ -34,6 +36,8 @@ impl ProjectRepository {
 #[async_trait]
 impl Repository<Project> for ProjectRepository {
     type UpdatePayload = ProjectUpdatePayload;
+    type Filter = ProjectFilter;
+    type Sort = ProjectSortableFields;
 
     async fn create(&self, mut item: Project) -> Result<Project, Error> {
         if item.id.is_none() {
@@ -80,8 +84,22 @@ impl Repository<Project> for ProjectRepository {
         Ok(result.deleted_count > 0)
     }
 
-    async fn find(&self, filter: Document) -> Result<Vec<Project>, Error> {
-        let result = self.collection.find(filter).await?;
+    async fn find(&self, filter: Self::Filter, sort: Option<SortBuilder<Self::Sort>>, pagination: Option<Pagination>) -> Result<Vec<Project>, Error> {
+        let filter_doc = filter.into();
+        
+        // Create FindOptions
+        let mut options = mongodb::options::FindOptions::default();
+        
+        if let Some(s) = sort {
+            options.sort = Some(s.to_document());
+        }
+        
+        if let Some(p) = pagination {
+            options.skip = Some(((p.page - 1) * p.limit) as u64);
+            options.limit = Some(p.limit as i64);
+        }
+        
+        let result = self.collection.find(filter_doc).with_options(options).await?;
         let items: Vec<Project> = result.try_collect().await?;
         Ok(items)
     }
@@ -243,25 +261,30 @@ mod tests {
         repo.create(project2).await?;
 
         // Test finding all projects
-        let all_projects = repo.find(doc! {}).await?;
+        let filter = ProjectFilter { name: None, is_enabled: None };
+        let all_projects = repo.find(filter, None, None).await?;
         assert_eq!(all_projects.len(), 2);
 
         // Test finding by name
-        let projects = repo.find(doc! { "name": "Project 1" }).await?;
+        let name_filter = ProjectFilter { name: Some("Project 1".to_string()), is_enabled: None };
+        let projects = repo.find(name_filter, None, None).await?;
         assert_eq!(projects.len(), 1);
         assert_eq!(projects[0].name, "Project 1");
 
         // Test finding by enabled status
-        let enabled_projects = repo.find(doc! { "enabled": true }).await?;
+        let enabled_filter = ProjectFilter { name: None, is_enabled: Some(true) };
+        let enabled_projects = repo.find(enabled_filter, None, None).await?;
         assert_eq!(enabled_projects.len(), 1);
         assert!(enabled_projects[0].enabled);
 
-        let disabled_projects = repo.find(doc! { "enabled": false }).await?;
+        let disabled_filter = ProjectFilter { name: None, is_enabled: Some(false) };
+        let disabled_projects = repo.find(disabled_filter, None, None).await?;
         assert_eq!(disabled_projects.len(), 1);
         assert!(!disabled_projects[0].enabled);
 
         // Test finding with non-matching criteria
-        let non_matching = repo.find(doc! { "name": "Non-existent" }).await?;
+        let non_matching_filter = ProjectFilter { name: Some("Non-existent".to_string()), is_enabled: None };
+        let non_matching = repo.find(non_matching_filter, None, None).await?;
         assert_eq!(non_matching.len(), 0);
 
         cleanup_test_db(db).await?;
