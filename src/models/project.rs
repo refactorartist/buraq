@@ -65,6 +65,26 @@ impl From<ProjectFilter> for Document {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ProjectSortableFields {
+    Id,
+    Name,
+    UpdatedAt,
+    CreatedAt,
+}
+
+impl From<ProjectSortableFields> for String {
+    fn from(value: ProjectSortableFields) -> Self {
+        match value {
+            ProjectSortableFields::Id => "id".to_string(),
+            ProjectSortableFields::Name => "name".to_string(),
+            ProjectSortableFields::UpdatedAt => "updated_at".to_string(),
+            ProjectSortableFields::CreatedAt => "created_at".to_string(),
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;

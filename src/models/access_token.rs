@@ -81,6 +81,27 @@ impl From<AccessTokenFilter> for Document {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum AccessTokenSortableFields {
+    Id,
+    Key,
+    Algorithm,
+    ExpiresAt,
+    CreatedAt,
+}
+
+impl From<AccessTokenSortableFields> for String {
+    fn from(value: AccessTokenSortableFields) -> Self {
+        match value {
+            AccessTokenSortableFields::Id => "id".to_string(),
+            AccessTokenSortableFields::Key => "key".to_string(),
+            AccessTokenSortableFields::Algorithm => "algorithm".to_string(),
+            AccessTokenSortableFields::ExpiresAt => "expires_at".to_string(),
+            AccessTokenSortableFields::CreatedAt => "created_at".to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -152,5 +173,14 @@ mod tests {
         assert_eq!(doc.get_str("algorithm").unwrap(), "RSA");
         assert!(doc.get_bool("enabled").unwrap());
         assert!(doc.get_document("expires_at").unwrap().contains_key("$gt"));
+    }
+
+    #[test]
+    fn test_access_token_sortable_fields() {
+        assert_eq!(String::from(AccessTokenSortableFields::Id), "id");
+        assert_eq!(String::from(AccessTokenSortableFields::Key), "key");
+        assert_eq!(String::from(AccessTokenSortableFields::Algorithm), "algorithm");
+        assert_eq!(String::from(AccessTokenSortableFields::ExpiresAt), "expires_at");
+        assert_eq!(String::from(AccessTokenSortableFields::CreatedAt), "created_at");
     }
 }

@@ -1,10 +1,13 @@
-use crate::models::environment::{Environment, EnvironmentUpdatePayload};
+use crate::models::environment::{Environment, EnvironmentFilter, EnvironmentUpdatePayload, EnvironmentSortableFields};
+use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
+use crate::models::pagination::Pagination;
 use anyhow::{Error, Result};
 use async_trait::async_trait;
+use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::Uuid;
-use mongodb::bson::{Document, doc, to_document};
+use mongodb::bson::{Bson, doc, to_document};
 use mongodb::{Collection, Database};
 
 /// Repository for managing Environment documents in MongoDB.
@@ -33,11 +36,15 @@ impl EnvironmentRepository {
 #[async_trait]
 impl Repository<Environment> for EnvironmentRepository {
     type UpdatePayload = EnvironmentUpdatePayload;
+    type Filter = EnvironmentFilter;
+    type Sort = EnvironmentSortableFields;
 
     async fn create(&self, mut item: Environment) -> Result<Environment, Error> {
         if item.id.is_none() {
             item.id = Some(Uuid::new());
         }
+        item.created_at = Some(Utc::now());
+        item.updated_at = Some(Utc::now());
         self.collection.insert_one(&item).await?;
         Ok(item)
     }
@@ -59,7 +66,9 @@ impl Repository<Environment> for EnvironmentRepository {
     }
 
     async fn update(&self, id: Uuid, payload: Self::UpdatePayload) -> Result<Environment, Error> {
-        let document = to_document(&payload)?;
+        let mut document = to_document(&payload)?;
+        document.insert("updated_at", Bson::String(Utc::now().to_rfc3339()));
+
         self.collection
             .update_one(doc! { "_id": id }, doc! { "$set": document })
             .await?;
@@ -75,8 +84,22 @@ impl Repository<Environment> for EnvironmentRepository {
         Ok(result.deleted_count > 0)
     }
 
-    async fn find(&self, filter: Document) -> Result<Vec<Environment>, Error> {
-        let result = self.collection.find(filter).await?;
+    async fn find(&self, filter: Self::Filter, sort: Option<SortBuilder<Self::Sort>>, pagination: Option<Pagination>) -> Result<Vec<Environment>, Error> {
+        let filter_doc = filter.into();
+        
+        // Create FindOptions
+        let mut options = mongodb::options::FindOptions::default();
+        
+        if let Some(s) = sort {
+            options.sort = Some(s.to_document());
+        }
+        
+        if let Some(p) = pagination {
+            options.skip = Some(((p.page - 1) * p.limit) as u64);
+            options.limit = Some(p.limit as i64);
+        }
+        
+        let result = self.collection.find(filter_doc).with_options(options).await?;
         let items: Vec<Environment> = result.try_collect().await?;
         Ok(items)
     }
@@ -89,7 +112,6 @@ impl Repository<Environment> for EnvironmentRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::environment::EnvironmentFilter;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use mongodb::IndexModel;
     use mongodb::options::IndexOptions;
@@ -118,6 +140,8 @@ mod tests {
             name: "Test Environment".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let created = repo.create(environment).await?;
@@ -140,18 +164,22 @@ mod tests {
         let environment1 = Environment {
             id: None,
             project_id,
-            name,
+            name: name.clone(),
             description: "Test Description 1".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         repo.create(environment1).await?;
 
         let environment2 = Environment {
             id: None,
             project_id,
-            name: "Test Environment".to_string(),
+            name,
             description: "Test Description 2".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let result = repo.create(environment2).await;
 
@@ -174,6 +202,8 @@ mod tests {
             name: "Test Environment".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let created = repo.create(environment).await?;
 
@@ -201,6 +231,8 @@ mod tests {
             name: "Test Environment".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let created = repo.create(environment).await?;
 
@@ -232,6 +264,8 @@ mod tests {
             name: "Test Environment".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let created = repo.create(environment).await?;
 
@@ -258,23 +292,48 @@ mod tests {
             name: "Environment 1".to_string(),
             description: "Description 1".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let environment2 = Environment {
             id: None,
             project_id,
             name: "Environment 2".to_string(),
             description: "Description 2".to_string(),
-            enabled: true,
+            enabled: false,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
+
         repo.create(environment1).await?;
         repo.create(environment2).await?;
 
-        let environments = repo.find(doc! {}).await?;
-        assert_eq!(environments.len(), 2);
+        // Test finding all environments
+        let filter = EnvironmentFilter { project_id: None, name: None, is_enabled: None };
+        let all_environments = repo.find(filter, None, None).await?;
+        assert_eq!(all_environments.len(), 2);
 
-        let environments = repo.find(doc! { "name": "Environment 1" }).await?;
+        // Test finding by name
+        let name_filter = EnvironmentFilter { project_id: None, name: Some("Environment 1".to_string()), is_enabled: None };
+        let environments = repo.find(name_filter, None, None).await?;
         assert_eq!(environments.len(), 1);
         assert_eq!(environments[0].name, "Environment 1");
+
+        // Test finding by enabled status
+        let enabled_filter = EnvironmentFilter { project_id: None, name: None, is_enabled: Some(true) };
+        let enabled_environments = repo.find(enabled_filter, None, None).await?;
+        assert_eq!(enabled_environments.len(), 1);
+        assert!(enabled_environments[0].enabled);
+
+        let disabled_filter = EnvironmentFilter { project_id: None, name: None, is_enabled: Some(false) };
+        let disabled_environments = repo.find(disabled_filter, None, None).await?;
+        assert_eq!(disabled_environments.len(), 1);
+        assert!(!disabled_environments[0].enabled);
+
+        // Test finding with non-matching criteria
+        let non_matching_filter = EnvironmentFilter { project_id: None, name: Some("Non-existent".to_string()), is_enabled: None };
+        let non_matching = repo.find(non_matching_filter, None, None).await?;
+        assert_eq!(non_matching.len(), 0);
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -293,6 +352,8 @@ mod tests {
             name: "Environment 1".to_string(),
             description: "Description 1".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         repo.create(environment).await?;
 
@@ -301,7 +362,7 @@ mod tests {
             name: None,
             is_enabled: None,
         };
-        let environments = repo.find(filter.into()).await?;
+        let environments = repo.find(filter, None, None).await?;
         assert_eq!(environments.len(), 1);
         assert_eq!(environments[0].project_id, project_id);
 
@@ -321,6 +382,8 @@ mod tests {
             name: "Test Environment".to_string(),
             description: "Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         repo.create(environment).await?;
 
@@ -329,7 +392,7 @@ mod tests {
             name: Some("Test Environment".to_string()),
             is_enabled: None,
         };
-        let environments = repo.find(filter.into()).await?;
+        let environments = repo.find(filter, None, None).await?;
         assert_eq!(environments.len(), 1);
         assert_eq!(environments[0].name, "Test Environment");
 
@@ -349,6 +412,8 @@ mod tests {
             name: "Environment".to_string(),
             description: "Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         repo.create(environment).await?;
 
@@ -357,7 +422,7 @@ mod tests {
             name: None,
             is_enabled: Some(true),
         };
-        let environments = repo.find(filter.into()).await?;
+        let environments = repo.find(filter, None, None).await?;
         assert_eq!(environments.len(), 1);
         assert!(environments[0].enabled);
 

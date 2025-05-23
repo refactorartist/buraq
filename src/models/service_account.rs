@@ -21,8 +21,8 @@ pub struct ServiceAccount {
     pub user: String,
     pub secret: String,
     pub enabled: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 impl ServiceAccount {
@@ -33,8 +33,8 @@ impl ServiceAccount {
             user,
             secret,
             enabled: true,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         }
     }
 }
@@ -86,6 +86,27 @@ impl From<ServiceAccountFilter> for Document {
             doc.insert("enabled", is_enabled);
         }
         doc
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ServiceAccountSortableFields {
+    Id,
+    Email,
+    User,
+    UpdatedAt,
+    CreatedAt,
+}
+
+impl From<ServiceAccountSortableFields> for String {
+    fn from(value: ServiceAccountSortableFields) -> Self {
+        match value {
+            ServiceAccountSortableFields::Id => "id".to_string(),
+            ServiceAccountSortableFields::Email => "email".to_string(),
+            ServiceAccountSortableFields::User => "user".to_string(),
+            ServiceAccountSortableFields::UpdatedAt => "updated_at".to_string(),
+            ServiceAccountSortableFields::CreatedAt => "created_at".to_string(),
+        }
     }
 }
 
