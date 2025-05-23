@@ -117,7 +117,6 @@ mod tests {
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use actix_web::{App, test};
     use chrono::Utc;
-    
 
     #[actix_web::test]
     async fn test_create_project_success() {

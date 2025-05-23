@@ -1,4 +1,6 @@
-use crate::models::access_token::{AccessToken, AccessTokenFilter, AccessTokenSortableFields, AccessTokenUpdatePayload};
+use crate::models::access_token::{
+    AccessToken, AccessTokenFilter, AccessTokenSortableFields, AccessTokenUpdatePayload,
+};
 use crate::models::pagination::Pagination;
 use crate::models::sort::SortBuilder;
 use crate::repositories::access_token_repository::AccessTokenRepository;
@@ -40,8 +42,15 @@ impl AccessTokenService {
         self.access_token_repository.delete(id).await
     }
 
-    pub async fn find(&self, filter: AccessTokenFilter, sort: Option<SortBuilder<AccessTokenSortableFields>>, pagination: Option<Pagination>) -> Result<Vec<AccessToken>, Error> {
-        self.access_token_repository.find(filter, sort, pagination).await
+    pub async fn find(
+        &self,
+        filter: AccessTokenFilter,
+        sort: Option<SortBuilder<AccessTokenSortableFields>>,
+        pagination: Option<Pagination>,
+    ) -> Result<Vec<AccessToken>, Error> {
+        self.access_token_repository
+            .find(filter, sort, pagination)
+            .await
     }
 }
 
@@ -194,7 +203,7 @@ mod tests {
     #[tokio::test]
     async fn test_find_access_tokens_with_pagination() -> Result<(), Error> {
         let (service, db) = setup().await;
-        
+
         // Create 5 test tokens
         for i in 1..=5 {
             let token = AccessToken {
@@ -210,14 +219,36 @@ mod tests {
 
         // Test first page
         let pagination = Pagination { page: 1, limit: 2 };
-        let found = service.find(AccessTokenFilter { key: None, algorithm: None, is_enabled: None, is_active: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                AccessTokenFilter {
+                    key: None,
+                    algorithm: None,
+                    is_enabled: None,
+                    is_active: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].key, "test-key-1");
         assert_eq!(found[1].key, "test-key-2");
 
         // Test second page
         let pagination = Pagination { page: 2, limit: 2 };
-        let found = service.find(AccessTokenFilter { key: None, algorithm: None, is_enabled: None, is_active: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                AccessTokenFilter {
+                    key: None,
+                    algorithm: None,
+                    is_enabled: None,
+                    is_active: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].key, "test-key-3");
         assert_eq!(found[1].key, "test-key-4");

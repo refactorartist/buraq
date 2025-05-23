@@ -35,13 +35,11 @@ pub struct SortBuilder<T> {
 
 impl<T> Default for SortBuilder<T> {
     fn default() -> Self {
-        Self {
-            sorts: Vec::new(),
-        }
+        Self { sorts: Vec::new() }
     }
 }
 
-impl<T> SortBuilder<T> 
+impl<T> SortBuilder<T>
 where
     T: Into<String> + Clone,
 {
@@ -50,10 +48,7 @@ where
     }
 
     pub fn add_sort(mut self, field: T, direction: SortDirection) -> Self {
-        self.sorts.push(Sort {
-            field,
-            direction,
-        });
+        self.sorts.push(Sort { field, direction });
         self
     }
 
@@ -99,7 +94,7 @@ mod tests {
         let builder = SortBuilder::new()
             .add_sort("name".to_string(), SortDirection::Ascending)
             .add_sort("age".to_string(), SortDirection::Descending);
-        
+
         let sorts = builder.build();
         assert_eq!(sorts.len(), 2);
         assert_eq!(sorts[0].field, "name");
@@ -113,7 +108,7 @@ mod tests {
         let builder = SortBuilder::new()
             .ascending("name".to_string())
             .descending("age".to_string());
-        
+
         let sorts = builder.build();
         assert_eq!(sorts.len(), 2);
         assert_eq!(sorts[0].field, "name");

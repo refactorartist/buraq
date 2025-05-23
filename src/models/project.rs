@@ -84,7 +84,6 @@ impl From<ProjectSortableFields> for String {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

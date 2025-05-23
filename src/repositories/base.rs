@@ -1,10 +1,10 @@
+use crate::models::{pagination::Pagination, sort::SortBuilder};
 use anyhow::Error;
 use async_trait::async_trait;
 use mongodb::Collection;
 use mongodb::bson::uuid::Uuid;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use crate::models::{pagination::Pagination, sort::SortBuilder};
 
 #[async_trait]
 pub trait Repository<T: Send + Sync + Serialize + DeserializeOwned + 'static> {
@@ -22,8 +22,12 @@ pub trait Repository<T: Send + Sync + Serialize + DeserializeOwned + 'static> {
 
     async fn delete(&self, id: Uuid) -> Result<bool, Error>;
 
-    async fn find(&self, filter: Self::Filter, sort: Option<SortBuilder<Self::Sort>>, pagination: Option<Pagination>) -> Result<Vec<T>, Error>;
+    async fn find(
+        &self,
+        filter: Self::Filter,
+        sort: Option<SortBuilder<Self::Sort>>,
+        pagination: Option<Pagination>,
+    ) -> Result<Vec<T>, Error>;
 
     fn collection(&self) -> Result<Collection<T>, Error>;
 }
-

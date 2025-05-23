@@ -60,7 +60,7 @@ impl ServiceAccountService {
 
 #[cfg(test)]
 mod tests {
-    
+
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
 
@@ -150,9 +150,7 @@ mod tests {
         let deleted = service.delete(created.id.unwrap()).await?;
         assert!(deleted);
 
-        let read = service
-            .get_service_account(created.id.unwrap())
-            .await?;
+        let read = service.get_service_account(created.id.unwrap()).await?;
         assert!(read.is_none());
 
         cleanup_test_db(db).await?;
@@ -193,7 +191,7 @@ mod tests {
     #[tokio::test]
     async fn test_find_service_accounts_with_pagination() -> Result<(), Error> {
         let (service, db) = setup().await;
-        
+
         // Create 5 test accounts
         for i in 1..=5 {
             let account = ServiceAccount::new(
@@ -206,14 +204,34 @@ mod tests {
 
         // Test first page
         let pagination = Pagination { page: 1, limit: 2 };
-        let found = service.find(ServiceAccountFilter { email: None, user: None, is_enabled: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ServiceAccountFilter {
+                    email: None,
+                    user: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].user, "testuser1");
         assert_eq!(found[1].user, "testuser2");
 
         // Test second page
         let pagination = Pagination { page: 2, limit: 2 };
-        let found = service.find(ServiceAccountFilter { email: None, user: None, is_enabled: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ServiceAccountFilter {
+                    email: None,
+                    user: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].user, "testuser3");
         assert_eq!(found[1].user, "testuser4");

@@ -1,4 +1,6 @@
-use crate::models::environment::{Environment, EnvironmentFilter, EnvironmentSortableFields, EnvironmentUpdatePayload};
+use crate::models::environment::{
+    Environment, EnvironmentFilter, EnvironmentSortableFields, EnvironmentUpdatePayload,
+};
 use crate::models::pagination::Pagination;
 use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
@@ -40,16 +42,23 @@ impl EnvironmentService {
         self.environment_repository.delete(id).await
     }
 
-    pub async fn find(&self, filter: EnvironmentFilter, sort: Option<SortBuilder<EnvironmentSortableFields>>, pagination: Option<Pagination>) -> Result<Vec<Environment>, Error> {
-        self.environment_repository.find(filter, sort, pagination).await
+    pub async fn find(
+        &self,
+        filter: EnvironmentFilter,
+        sort: Option<SortBuilder<EnvironmentSortableFields>>,
+        pagination: Option<Pagination>,
+    ) -> Result<Vec<Environment>, Error> {
+        self.environment_repository
+            .find(filter, sort, pagination)
+            .await
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
+    use chrono::Utc;
 
     async fn setup() -> (EnvironmentService, Database) {
         let db = setup_test_db("environment_service").await.unwrap();
