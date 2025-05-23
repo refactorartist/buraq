@@ -1,17 +1,20 @@
-use crate::models::environment::{Environment, EnvironmentFilter, EnvironmentUpdatePayload};
+use crate::models::environment::{Environment, EnvironmentFilter, EnvironmentSortableFields, EnvironmentUpdatePayload};
+use crate::models::pagination::Pagination;
+use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
 use crate::repositories::environment_repository::EnvironmentRepository;
 use anyhow::Error;
 use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
+use std::sync::Arc;
 
 pub struct EnvironmentService {
     environment_repository: EnvironmentRepository,
 }
 
 impl EnvironmentService {
-    pub fn new(database: Database) -> Result<Self, Error> {
-        let environment_repository = EnvironmentRepository::new(database)?;
+    pub fn new(database: Arc<Database>) -> Result<Self, Error> {
+        let environment_repository = EnvironmentRepository::new(database.as_ref().clone())?;
         Ok(Self {
             environment_repository,
         })
@@ -37,19 +40,20 @@ impl EnvironmentService {
         self.environment_repository.delete(id).await
     }
 
-    pub async fn find(&self, filter: EnvironmentFilter) -> Result<Vec<Environment>, Error> {
-        self.environment_repository.find(filter.into()).await
+    pub async fn find(&self, filter: EnvironmentFilter, sort: Option<SortBuilder<EnvironmentSortableFields>>, pagination: Option<Pagination>) -> Result<Vec<Environment>, Error> {
+        self.environment_repository.find(filter, sort, pagination).await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
 
     async fn setup() -> (EnvironmentService, Database) {
         let db = setup_test_db("environment_service").await.unwrap();
-        let service = EnvironmentService::new(db.clone()).unwrap();
+        let service = EnvironmentService::new(Arc::new(db.clone())).unwrap();
         (service, db)
     }
 
@@ -63,6 +67,8 @@ mod tests {
             name: "Test Environment".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let created = service.create(environment).await.unwrap();
@@ -84,6 +90,8 @@ mod tests {
             name: "Test Environment".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let created = service.create(environment).await.unwrap();
@@ -109,6 +117,8 @@ mod tests {
             name: "Test Environment".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let created = service.create(environment).await.unwrap();
@@ -136,6 +146,8 @@ mod tests {
             name: "Test Environment".to_string(),
             description: "Test Description".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let created = service.create(environment).await.unwrap();
@@ -158,6 +170,8 @@ mod tests {
             name: "Environment 1".to_string(),
             description: "Description 1".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let environment2 = Environment {
@@ -166,6 +180,8 @@ mod tests {
             name: "Environment 2".to_string(),
             description: "Description 2".to_string(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         service.create(environment1).await.unwrap();
@@ -177,7 +193,7 @@ mod tests {
             is_enabled: None,
         };
 
-        let found = service.find(filter).await.unwrap();
+        let found = service.find(filter, None, None).await.unwrap();
         assert_eq!(found.len(), 2);
 
         let filter = EnvironmentFilter {
@@ -186,7 +202,7 @@ mod tests {
             is_enabled: None,
         };
 
-        let found = service.find(filter).await.unwrap();
+        let found = service.find(filter, None, None).await.unwrap();
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].name, "Environment 1");
 
