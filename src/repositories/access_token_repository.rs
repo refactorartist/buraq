@@ -1,5 +1,7 @@
-use crate::models::access_token::{AccessToken, AccessTokenUpdatePayload};
+use crate::models::access_token::{AccessToken, AccessTokenUpdatePayload, AccessTokenFilter, AccessTokenSortableFields};
+use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
+use crate::models::pagination::Pagination;
 use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -25,6 +27,8 @@ impl AccessTokenRepository {
 #[async_trait]
 impl Repository<AccessToken> for AccessTokenRepository {
     type UpdatePayload = AccessTokenUpdatePayload;
+    type Filter = AccessTokenFilter;
+    type Sort = AccessTokenSortableFields;
 
     async fn create(&self, mut item: AccessToken) -> Result<AccessToken, Error> {
         if item.id.is_none() {
@@ -44,6 +48,7 @@ impl Repository<AccessToken> for AccessTokenRepository {
             .await?;
         Ok(result)
     }
+
     async fn replace(&self, id: Uuid, mut item: AccessToken) -> Result<AccessToken, Error> {
         if item.id.is_none() || item.id.unwrap() != id {
             item.id = Some(id);
@@ -84,8 +89,22 @@ impl Repository<AccessToken> for AccessTokenRepository {
         Ok(result.deleted_count > 0)
     }
 
-    async fn find(&self, filter: Document) -> Result<Vec<AccessToken>, Error> {
-        let result = self.collection.find(filter).await?;
+    async fn find(&self, filter: Self::Filter, sort: Option<SortBuilder<Self::Sort>>, pagination: Option<Pagination>) -> Result<Vec<AccessToken>, Error> {
+        let filter_doc = filter.into();
+        
+        // Create FindOptions
+        let mut options = mongodb::options::FindOptions::default();
+        
+        if let Some(s) = sort {
+            options.sort = Some(s.to_document());
+        }
+        
+        if let Some(p) = pagination {
+            options.skip = Some(((p.page - 1) * p.limit) as u64);
+            options.limit = Some(p.limit as i64);
+        }
+        
+        let result = self.collection.find(filter_doc).with_options(options).await?;
         let items: Vec<AccessToken> = result.try_collect().await?;
         Ok(items)
     }
@@ -220,7 +239,14 @@ mod tests {
         repo.create(token1).await.unwrap();
         repo.create(token2).await.unwrap();
 
-        let found = repo.find(doc! { "enabled": true }).await.unwrap();
+        let filter = AccessTokenFilter {
+            key: None,
+            algorithm: None,
+            is_enabled: Some(true),
+            is_active: None,
+        };
+
+        let found = repo.find(filter, None, None).await.unwrap();
         assert_eq!(found.len(), 2);
 
         cleanup_test_db(db).await.unwrap();
