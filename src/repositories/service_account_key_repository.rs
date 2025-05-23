@@ -1,11 +1,14 @@
-use crate::models::service_account_key::{ServiceAccountKey, ServiceAccountKeyUpdatePayload};
+use crate::models::pagination::Pagination;
+use crate::models::service_account_key::{ServiceAccountKey, ServiceAccountKeyUpdatePayload, ServiceAccountKeyFilter, ServiceAccountKeySortableFields};
+use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
 use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
+use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, doc, to_document};
+use mongodb::bson::{Bson, Document, doc, to_document};
 use mongodb::{Collection, Database};
 
 /// Repository for managing ServiceAccountKey documents in MongoDB.
@@ -25,76 +28,70 @@ impl ServiceAccountKeyRepository {
 #[async_trait]
 impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
     type UpdatePayload = ServiceAccountKeyUpdatePayload;
+    type Filter = ServiceAccountKeyFilter;
+    type Sort = ServiceAccountKeySortableFields;
 
     async fn create(&self, mut item: ServiceAccountKey) -> Result<ServiceAccountKey, Error> {
         if item.id.is_none() {
             item.id = Some(Uuid::new());
         }
-        self.collection
-            .insert_one(&item)
-            .await
-            .expect("Failed to create service account key");
+        item.created_at = Some(Utc::now());
+        item.updated_at = Some(Utc::now());
+        self.collection.insert_one(&item).await?;
         Ok(item)
     }
 
     async fn read(&self, id: Uuid) -> Result<Option<ServiceAccountKey>, Error> {
-        let result = self
-            .collection
-            .find_one(mongodb::bson::doc! { "_id": id })
-            .await?;
+        let result = self.collection.find_one(doc! { "_id": id }).await?;
         Ok(result)
     }
 
-    async fn replace(
-        &self,
-        id: Uuid,
-        mut item: ServiceAccountKey,
-    ) -> Result<ServiceAccountKey, Error> {
+    async fn replace(&self, id: Uuid, mut item: ServiceAccountKey) -> Result<ServiceAccountKey, Error> {
         if item.id.is_none() || item.id.unwrap() != id {
             item.id = Some(id);
         }
         self.collection
             .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
-            .await
-            .expect("Failed to update service account key");
-        let updated = self
-            .collection
-            .find_one(mongodb::bson::doc! { "_id": id })
-            .await?
-            .unwrap();
+            .await?;
+        let updated = self.collection.find_one(doc! { "_id": id }).await?.unwrap();
         Ok(updated)
     }
 
-    async fn update(
-        &self,
-        id: Uuid,
-        item: Self::UpdatePayload,
-    ) -> Result<ServiceAccountKey, Error> {
-        let document = to_document(&item)?;
+    async fn update(&self, id: Uuid, payload: Self::UpdatePayload) -> Result<ServiceAccountKey, Error> {
+        let mut document = to_document(&payload)?;
+        document.insert("updated_at", Bson::String(Utc::now().to_rfc3339()));
+
         self.collection
-            .update_one(
-                mongodb::bson::doc! { "_id": id },
-                mongodb::bson::doc! { "$set": document },
-            )
+            .update_one(doc! { "_id": id }, doc! { "$set": document })
             .await?;
         let updated = self
-            .collection
-            .find_one(mongodb::bson::doc! { "_id": id })
+            .read(id)
             .await?
-            .unwrap();
+            .ok_or_else(|| Error::msg("ServiceAccountKey not found"))?;
         Ok(updated)
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, Error> {
-        let result = self
-            .collection
-            .delete_one(mongodb::bson::doc! { "_id": id })
-            .await?;
+        let result = self.collection.delete_one(doc! { "_id": id }).await?;
         Ok(result.deleted_count > 0)
     }
 
-    async fn find(&self, filter: Document) -> Result<Vec<ServiceAccountKey>, Error> {
-        let result = self.collection.find(filter).await?;
+    async fn find(&self, filter: Self::Filter, sort: Option<SortBuilder<Self::Sort>>, pagination: Option<Pagination>) -> Result<Vec<ServiceAccountKey>, Error> {
+        let filter_doc = filter.into();
+        
+        // Create FindOptions
+        let mut options = mongodb::options::FindOptions::default();
+        
+        if let Some(s) = sort {
+            options.sort = Some(s.to_document());
+        }
+        
+        if let Some(p) = pagination {
+            options.skip = Some(((p.page - 1) * p.limit) as u64);
+            options.limit = Some(p.limit as i64);
+        }
+        
+        let result = self.collection.find(filter_doc).with_options(options).await?;
         let items: Vec<ServiceAccountKey> = result.try_collect().await?;
         Ok(items)
     }
@@ -113,8 +110,7 @@ mod tests {
 
     async fn setup() -> (ServiceAccountKeyRepository, Database) {
         let db = setup_test_db("service_account_key").await.unwrap();
-        let repo =
-            ServiceAccountKeyRepository::new(db.clone()).expect("Failed to create repository");
+        let repo = ServiceAccountKeyRepository::new(db.clone()).expect("Failed to create repository");
         (repo, db)
     }
 
@@ -129,8 +125,9 @@ mod tests {
             algorithm: Algorithm::RSA,
             key: "test-key".to_string(),
             expires_at: now + Duration::hours(1),
-            created_at: now,
             enabled: true,
+            created_at: Some(now),
+            updated_at: Some(now),
         };
 
         let created = repo.create(key.clone()).await.unwrap();
@@ -149,8 +146,9 @@ mod tests {
             algorithm: Algorithm::RSA,
             key: "test-key".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
-            created_at: Utc::now(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let created = repo.create(key.clone()).await.unwrap();
@@ -170,8 +168,9 @@ mod tests {
             algorithm: Algorithm::RSA,
             key: "test-key".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
-            created_at: Utc::now(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let created = repo.create(key).await.unwrap();
@@ -197,8 +196,9 @@ mod tests {
             algorithm: Algorithm::RSA,
             key: "test-key".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
-            created_at: Utc::now(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         let created = repo.create(key).await.unwrap();
@@ -220,8 +220,9 @@ mod tests {
             algorithm: Algorithm::RSA,
             key: "test-key-1".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
-            created_at: Utc::now(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
         let key2 = ServiceAccountKey {
             id: Some(Uuid::new()),
@@ -229,15 +230,33 @@ mod tests {
             algorithm: Algorithm::HMAC,
             key: "test-key-2".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
-            created_at: Utc::now(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         repo.create(key1).await.unwrap();
         repo.create(key2).await.unwrap();
 
-        let found = repo.find(doc! { "enabled": true }).await.unwrap();
-        assert_eq!(found.len(), 2);
+        // Test finding all keys
+        let filter = ServiceAccountKeyFilter {
+            service_account_id: None,
+            algorithm: None,
+            is_enabled: None,
+            is_active: None,
+        };
+        let all_keys = repo.find(filter, None, None).await.unwrap();
+        assert_eq!(all_keys.len(), 2);
+
+        // Test finding by enabled status
+        let enabled_filter = ServiceAccountKeyFilter {
+            service_account_id: None,
+            algorithm: None,
+            is_enabled: Some(true),
+            is_active: None,
+        };
+        let enabled_keys = repo.find(enabled_filter, None, None).await.unwrap();
+        assert_eq!(enabled_keys.len(), 2);
 
         cleanup_test_db(db).await.unwrap();
     }

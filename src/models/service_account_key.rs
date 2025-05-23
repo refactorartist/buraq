@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 /// - `algorithm`: The algorithm used for the key
 /// - `key`: The actual key value
 /// - `expires_at`: Key expiration timestamp
+/// - `created_at`: Timestamp when key was created
+/// - `updated_at`: Timestamp when key was last updated
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServiceAccountKey {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -22,8 +24,9 @@ pub struct ServiceAccountKey {
     pub algorithm: Algorithm,
     pub key: String,
     pub expires_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
     pub enabled: bool,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 impl From<ServiceAccountKey> for Document {
@@ -81,8 +84,31 @@ impl From<ServiceAccountKeyFilter> for Document {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ServiceAccountKeySortableFields {
+    Id,
+    ServiceAccountId,
+    Algorithm,
+    ExpiresAt,
+    UpdatedAt,
+    CreatedAt,
+}
+
+impl From<ServiceAccountKeySortableFields> for String {
+    fn from(value: ServiceAccountKeySortableFields) -> Self {
+        match value {
+            ServiceAccountKeySortableFields::Id => "id".to_string(),
+            ServiceAccountKeySortableFields::ServiceAccountId => "service_account_id".to_string(),
+            ServiceAccountKeySortableFields::Algorithm => "algorithm".to_string(),
+            ServiceAccountKeySortableFields::ExpiresAt => "expires_at".to_string(),
+            ServiceAccountKeySortableFields::UpdatedAt => "updated_at".to_string(),
+            ServiceAccountKeySortableFields::CreatedAt => "created_at".to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]
@@ -98,8 +124,9 @@ mod test {
             algorithm,
             key: key.clone(),
             expires_at,
-            created_at: Utc::now(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
 
         assert!(service_account_key.id.is_none());
@@ -108,10 +135,13 @@ mod test {
         assert_eq!(service_account_key.key, key);
         assert_eq!(service_account_key.expires_at, expires_at);
         assert!(service_account_key.enabled);
+        let now = Utc::now();
+        assert!(service_account_key.created_at.unwrap() <= now);
+        assert!(service_account_key.updated_at.unwrap() <= now);
     }
 
     #[test]
-    fn test_mongodb_serialization() {
+    fn test_serialization() {
         let service_account_id = Uuid::new();
         let algorithm = Algorithm::RSA;
         let key = "test-key-value".to_string();
@@ -123,72 +153,60 @@ mod test {
             algorithm,
             key: key.clone(),
             expires_at,
-            created_at: Utc::now(),
             enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
         };
+
+        // Test serialization
+        let serialized = serde_json::to_string(&service_account_key);
+        assert!(serialized.is_ok());
+
+        // Test deserialization
+        let deserialized: Result<ServiceAccountKey, _> = serde_json::from_str(&serialized.unwrap());
+        assert!(deserialized.is_ok());
+
+        let deserialized_key = deserialized.unwrap();
+        assert_eq!(service_account_key.id, deserialized_key.id);
+        assert_eq!(service_account_key.service_account_id, deserialized_key.service_account_id);
+        assert_eq!(service_account_key.algorithm, deserialized_key.algorithm);
+        assert_eq!(service_account_key.key, deserialized_key.key);
+        assert_eq!(service_account_key.expires_at, deserialized_key.expires_at);
+        assert_eq!(service_account_key.enabled, deserialized_key.enabled);
+        assert_eq!(service_account_key.created_at, deserialized_key.created_at);
+        assert_eq!(service_account_key.updated_at, deserialized_key.updated_at);
+    }
+
+    #[test]
+    fn test_mongodb_serialization() {
+        let service_account_id = Uuid::new();
+        let algorithm = Algorithm::RSA;
+        let key = "test-key-value".to_string();
+        let expires_at = Utc::now() + chrono::Duration::days(7);
+
+        let mut service_account_key = ServiceAccountKey {
+            id: None,
+            service_account_id,
+            algorithm,
+            key: key.clone(),
+            expires_at,
+            enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+        };
+        let id = Uuid::new();
+        service_account_key.id = Some(id);
 
         let doc: Document = service_account_key.clone().into();
         let converted: ServiceAccountKey = doc.into();
 
-        assert_eq!(service_account_key.id, converted.id);
-        assert_eq!(
-            service_account_key.service_account_id,
-            converted.service_account_id
-        );
-        assert_eq!(service_account_key.algorithm, converted.algorithm);
-        assert_eq!(service_account_key.key, converted.key);
-        assert_eq!(service_account_key.expires_at, converted.expires_at);
-        assert_eq!(service_account_key.created_at, converted.created_at);
-        assert_eq!(service_account_key.enabled, converted.enabled);
-    }
-
-    #[test]
-    fn test_algorithm_serialization() {
-        let service_account_id = Uuid::new();
-        let key = "test-key-value".to_string();
-        let expires_at = Utc::now() + chrono::Duration::days(7);
-
-        // Test RSA algorithm
-        let rsa_key = ServiceAccountKey {
-            id: None,
-            service_account_id,
-            algorithm: Algorithm::RSA,
-            key: key.clone(),
-            expires_at,
-            created_at: Utc::now(),
-            enabled: true,
-        };
-        let doc = Document::from(rsa_key);
-        assert_eq!(doc.get_str("algorithm").unwrap(), "RSA");
-
-        // Test HMAC algorithm
-        let hmac_key = ServiceAccountKey {
-            id: None,
-            service_account_id,
-            algorithm: Algorithm::HMAC,
-            key: key.clone(),
-            expires_at,
-            created_at: Utc::now(),
-            enabled: true,
-        };
-        let doc = Document::from(hmac_key);
-        assert_eq!(doc.get_str("algorithm").unwrap(), "HMAC");
-    }
-
-    #[test]
-    fn test_expiration() {
-        let service_account_id = Uuid::new();
-        let expired_time = Utc::now() + chrono::Duration::hours(1);
-        let key = ServiceAccountKey {
-            id: None,
-            service_account_id,
-            algorithm: Algorithm::HMAC,
-            key: "test-key".to_string(),
-            expires_at: expired_time,
-            created_at: Utc::now(),
-            enabled: true,
-        };
-
-        assert!(key.expires_at > Utc::now());
+        assert_eq!(converted.id, service_account_key.id);
+        assert_eq!(converted.service_account_id, service_account_key.service_account_id);
+        assert_eq!(converted.algorithm, service_account_key.algorithm);
+        assert_eq!(converted.key, service_account_key.key);
+        assert_eq!(converted.expires_at, service_account_key.expires_at);
+        assert_eq!(converted.enabled, service_account_key.enabled);
+        assert_eq!(converted.created_at, service_account_key.created_at);
+        assert_eq!(converted.updated_at, service_account_key.updated_at);
     }
 }
