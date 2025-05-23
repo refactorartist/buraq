@@ -1,5 +1,7 @@
 use crate::models::pagination::Pagination;
-use crate::models::project_scope::{ProjectScope, ProjectScopeFilter, ProjectScopeUpdatePayload, ProjectScopeSortableFields};
+use crate::models::project_scope::{
+    ProjectScope, ProjectScopeFilter, ProjectScopeSortableFields, ProjectScopeUpdatePayload,
+};
 use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
 use crate::repositories::project_scope_repository::ProjectScopeRepository;
@@ -42,16 +44,23 @@ impl ProjectScopeService {
         self.project_scope_repository.delete(id).await
     }
 
-    pub async fn find(&self, filter: ProjectScopeFilter, sort: Option<SortBuilder<ProjectScopeSortableFields>>, pagination: Option<Pagination>) -> Result<Vec<ProjectScope>, Error> {
-        self.project_scope_repository.find(filter, sort, pagination).await
+    pub async fn find(
+        &self,
+        filter: ProjectScopeFilter,
+        sort: Option<SortBuilder<ProjectScopeSortableFields>>,
+        pagination: Option<Pagination>,
+    ) -> Result<Vec<ProjectScope>, Error> {
+        self.project_scope_repository
+            .find(filter, sort, pagination)
+            .await
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
+    use chrono::Utc;
 
     async fn setup() -> (ProjectScopeService, Database) {
         let db = setup_test_db("project_scope_service").await.unwrap();
@@ -160,9 +169,7 @@ mod tests {
         let deleted = service.delete(created.id.unwrap()).await?;
         assert!(deleted);
 
-        let read = service
-            .get_project_scope(created.id.unwrap())
-            .await?;
+        let read = service.get_project_scope(created.id.unwrap()).await?;
         assert!(read.is_none());
 
         cleanup_test_db(db).await?;
@@ -214,7 +221,7 @@ mod tests {
     async fn test_find_project_scopes_with_pagination() -> Result<(), Error> {
         let (service, db) = setup().await;
         let project_id = Uuid::new();
-        
+
         // Create 5 test scopes
         for i in 1..=5 {
             let scope = ProjectScope {
@@ -231,17 +238,47 @@ mod tests {
 
         // Test first page
         let pagination = Pagination { page: 1, limit: 2 };
-        let found = service.find(ProjectScopeFilter { project_id: Some(project_id), name: None, is_enabled: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ProjectScopeFilter {
+                    project_id: Some(project_id),
+                    name: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
 
         // Test second page
         let pagination = Pagination { page: 2, limit: 2 };
-        let found = service.find(ProjectScopeFilter { project_id: Some(project_id), name: None, is_enabled: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ProjectScopeFilter {
+                    project_id: Some(project_id),
+                    name: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
 
         // Test last page
         let pagination = Pagination { page: 3, limit: 2 };
-        let found = service.find(ProjectScopeFilter { project_id: Some(project_id), name: None, is_enabled: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ProjectScopeFilter {
+                    project_id: Some(project_id),
+                    name: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 1);
 
         cleanup_test_db(db).await?;

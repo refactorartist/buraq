@@ -1,10 +1,9 @@
 use crate::config::AppData;
-use crate::models::access_token::{AccessToken,AccessTokenUpdatePayload};
+use crate::models::access_token::{AccessToken, AccessTokenUpdatePayload};
 use crate::services::access_token_service::AccessTokenService;
 use mongodb::bson::uuid::Uuid;
 
 use actix_web::{Error, HttpResponse, web};
-
 
 pub async fn create_access_token(
     data: web::Data<AppData>,
@@ -25,7 +24,6 @@ pub async fn create_access_token(
         }
     }
 }
-
 
 pub async fn get_access_token(
     data: web::Data<AppData>,
@@ -72,7 +70,6 @@ pub async fn update_access_token(
     }
 }
 
-
 pub async fn delete_access_token(
     data: web::Data<AppData>,
     path: web::Path<String>,
@@ -101,9 +98,6 @@ pub async fn delete_access_token(
     }
 }
 
-
-
-
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/projects")
@@ -120,10 +114,10 @@ pub fn configure_routes(config: &mut web::ServiceConfig) {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use actix_web::{App, test};
-    use chrono::{Utc, Duration};
     use crate::types::Algorithm;
-    
+    use actix_web::{App, test};
+    use chrono::{Duration, Utc};
+
     #[actix_web::test]
     async fn test_create_access_token_success() {
         // Setup
@@ -145,7 +139,7 @@ mod tests {
             ),
         )
         .await;
-        
+
         // Test
         let now = Utc::now();
         let expires = now + Duration::hours(1);
@@ -157,25 +151,25 @@ mod tests {
             created_at: now,
             enabled: true,
         };
-        
+
         let resp = test::TestRequest::post()
             .uri("/access_tokens")
             .set_json(&access_token)
             .send_request(&app)
             .await;
-        
+
         assert!(resp.status().is_success());
         let created_access_token: AccessToken = test::read_body_json(resp).await;
-        
+
         assert_eq!(created_access_token.key, access_token.key);
         assert_eq!(created_access_token.algorithm, access_token.algorithm);
         assert!(created_access_token.id.is_some());
         assert!(created_access_token.enabled);
-        
+
         // Cleanup
         cleanup_test_db(db).await.unwrap();
     }
-    
+
     #[actix_web::test]
     async fn test_get_access_token_success() {
         // Setup
@@ -197,7 +191,7 @@ mod tests {
             ),
         )
         .await;
-        
+
         // First create an access token
         let now = Utc::now();
         let expires = now + Duration::hours(1);
@@ -209,32 +203,32 @@ mod tests {
             created_at: now,
             enabled: true,
         };
-        
+
         let resp = test::TestRequest::post()
             .uri("/access_tokens")
             .set_json(&access_token)
             .send_request(&app)
             .await;
-        
+
         let created_access_token: AccessToken = test::read_body_json(resp).await;
         let access_token_id = created_access_token.id.unwrap();
-        
+
         // Then get the access token
         let resp = test::TestRequest::get()
             .uri(&format!("/access_tokens/{}", access_token_id))
             .send_request(&app)
             .await;
-        
+
         assert!(resp.status().is_success());
         let retrieved_access_token: AccessToken = test::read_body_json(resp).await;
-        
+
         assert_eq!(retrieved_access_token.id, created_access_token.id);
         assert_eq!(retrieved_access_token.key, created_access_token.key);
-        
+
         // Cleanup
         cleanup_test_db(db).await.unwrap();
     }
-    
+
     #[actix_web::test]
     async fn test_update_access_token_success() {
         // Setup
@@ -256,7 +250,7 @@ mod tests {
             ),
         )
         .await;
-        
+
         // First create an access token
         let now = Utc::now();
         let expires = now + Duration::hours(1);
@@ -268,16 +262,16 @@ mod tests {
             created_at: now,
             enabled: true,
         };
-        
+
         let resp = test::TestRequest::post()
             .uri("/access_tokens")
             .set_json(&access_token)
             .send_request(&app)
             .await;
-        
+
         let created_access_token: AccessToken = test::read_body_json(resp).await;
         let access_token_id = created_access_token.id.unwrap();
-        
+
         // Then update the access token
         let new_expires = now + Duration::hours(2);
         let update_payload = AccessTokenUpdatePayload {
@@ -285,24 +279,24 @@ mod tests {
             expires_at: Some(new_expires),
             enabled: Some(false),
         };
-        
+
         let resp = test::TestRequest::patch()
             .uri(&format!("/access_tokens/{}", access_token_id))
             .set_json(&update_payload)
             .send_request(&app)
             .await;
-        
+
         assert!(resp.status().is_success());
         let updated_access_token: AccessToken = test::read_body_json(resp).await;
-        
+
         assert_eq!(updated_access_token.key, "updated-key");
         assert_eq!(updated_access_token.expires_at, new_expires);
         assert!(!updated_access_token.enabled);
-        
+
         // Cleanup
         cleanup_test_db(db).await.unwrap();
     }
-    
+
     #[actix_web::test]
     async fn test_delete_access_token_success() {
         // Setup
@@ -324,7 +318,7 @@ mod tests {
             ),
         )
         .await;
-        
+
         // First create an access token
         let now = Utc::now();
         let expires = now + Duration::hours(1);
@@ -336,36 +330,36 @@ mod tests {
             created_at: now,
             enabled: true,
         };
-        
+
         let resp = test::TestRequest::post()
             .uri("/access_tokens")
             .set_json(&access_token)
             .send_request(&app)
             .await;
-        
+
         let created_access_token: AccessToken = test::read_body_json(resp).await;
         let access_token_id = created_access_token.id.unwrap();
-        
+
         // Then delete the access token
         let resp = test::TestRequest::delete()
             .uri(&format!("/access_tokens/{}", access_token_id))
             .send_request(&app)
             .await;
-        
+
         assert!(resp.status().is_success());
-        
+
         // Verify access token is deleted
         let resp = test::TestRequest::get()
             .uri(&format!("/access_tokens/{}", access_token_id))
             .send_request(&app)
             .await;
-        
+
         assert!(resp.status().is_client_error());
-        
+
         // Cleanup
         cleanup_test_db(db).await.unwrap();
     }
-    
+
     #[actix_web::test]
     async fn test_get_nonexistent_access_token() {
         // Setup
@@ -387,15 +381,15 @@ mod tests {
             ),
         )
         .await;
-        
+
         let nonexistent_id = Uuid::new();
         let resp = test::TestRequest::get()
             .uri(&format!("/access_tokens/{}", nonexistent_id))
             .send_request(&app)
             .await;
-        
+
         assert!(resp.status().is_client_error());
-        
+
         // Cleanup
         cleanup_test_db(db).await.unwrap();
     }

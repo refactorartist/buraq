@@ -1,5 +1,8 @@
 use crate::models::pagination::Pagination;
-use crate::models::service_account_key::{ServiceAccountKey, ServiceAccountKeyUpdatePayload, ServiceAccountKeyFilter, ServiceAccountKeySortableFields};
+use crate::models::service_account_key::{
+    ServiceAccountKey, ServiceAccountKeyFilter, ServiceAccountKeySortableFields,
+    ServiceAccountKeyUpdatePayload,
+};
 use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
 use anyhow::Error;
@@ -46,7 +49,11 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
         Ok(result)
     }
 
-    async fn replace(&self, id: Uuid, mut item: ServiceAccountKey) -> Result<ServiceAccountKey, Error> {
+    async fn replace(
+        &self,
+        id: Uuid,
+        mut item: ServiceAccountKey,
+    ) -> Result<ServiceAccountKey, Error> {
         if item.id.is_none() || item.id.unwrap() != id {
             item.id = Some(id);
         }
@@ -57,7 +64,11 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
         Ok(updated)
     }
 
-    async fn update(&self, id: Uuid, payload: Self::UpdatePayload) -> Result<ServiceAccountKey, Error> {
+    async fn update(
+        &self,
+        id: Uuid,
+        payload: Self::UpdatePayload,
+    ) -> Result<ServiceAccountKey, Error> {
         let mut document = to_document(&payload)?;
         document.insert("updated_at", Bson::String(Utc::now().to_rfc3339()));
 
@@ -76,22 +87,31 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
         Ok(result.deleted_count > 0)
     }
 
-    async fn find(&self, filter: Self::Filter, sort: Option<SortBuilder<Self::Sort>>, pagination: Option<Pagination>) -> Result<Vec<ServiceAccountKey>, Error> {
+    async fn find(
+        &self,
+        filter: Self::Filter,
+        sort: Option<SortBuilder<Self::Sort>>,
+        pagination: Option<Pagination>,
+    ) -> Result<Vec<ServiceAccountKey>, Error> {
         let filter_doc = filter.into();
-        
+
         // Create FindOptions
         let mut options = mongodb::options::FindOptions::default();
-        
+
         if let Some(s) = sort {
             options.sort = Some(s.to_document());
         }
-        
+
         if let Some(p) = pagination {
             options.skip = Some(((p.page - 1) * p.limit) as u64);
             options.limit = Some(p.limit as i64);
         }
-        
-        let result = self.collection.find(filter_doc).with_options(options).await?;
+
+        let result = self
+            .collection
+            .find(filter_doc)
+            .with_options(options)
+            .await?;
         let items: Vec<ServiceAccountKey> = result.try_collect().await?;
         Ok(items)
     }
@@ -110,7 +130,8 @@ mod tests {
 
     async fn setup() -> (ServiceAccountKeyRepository, Database) {
         let db = setup_test_db("service_account_key").await.unwrap();
-        let repo = ServiceAccountKeyRepository::new(db.clone()).expect("Failed to create repository");
+        let repo =
+            ServiceAccountKeyRepository::new(db.clone()).expect("Failed to create repository");
         (repo, db)
     }
 

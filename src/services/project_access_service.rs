@@ -58,9 +58,9 @@ impl ProjectAccessService {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
+    use chrono::Utc;
 
     async fn setup() -> (ProjectAccessService, Database) {
         let db = setup_test_db("project_access_service").await.unwrap();
@@ -108,7 +108,10 @@ mod tests {
         };
 
         let created = service.create(project_access.clone()).await?;
-        let retrieved = service.get_project_access(created.id.unwrap()).await?.unwrap();
+        let retrieved = service
+            .get_project_access(created.id.unwrap())
+            .await?
+            .unwrap();
         assert_eq!(retrieved.id, created.id);
         assert_eq!(retrieved.name, created.name);
         assert_eq!(retrieved.enabled, created.enabled);
@@ -220,7 +223,7 @@ mod tests {
     #[tokio::test]
     async fn test_find_project_access_with_pagination() -> Result<(), Error> {
         let (service, db) = setup().await;
-        
+
         // Create 5 test project accesses
         for i in 1..=5 {
             let project_access = ProjectAccess {
@@ -238,24 +241,36 @@ mod tests {
 
         // Test first page
         let pagination = Pagination { page: 1, limit: 2 };
-        let found = service.find(ProjectAccessFilter {
-            environment_id: None,
-            service_account_id: None,
-            project_scopes: None,
-            is_enabled: None,
-        }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ProjectAccessFilter {
+                    environment_id: None,
+                    service_account_id: None,
+                    project_scopes: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].name, "Access 1");
         assert_eq!(found[1].name, "Access 2");
 
         // Test second page
         let pagination = Pagination { page: 2, limit: 2 };
-        let found = service.find(ProjectAccessFilter {
-            environment_id: None,
-            service_account_id: None,
-            project_scopes: None,
-            is_enabled: None,
-        }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ProjectAccessFilter {
+                    environment_id: None,
+                    service_account_id: None,
+                    project_scopes: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].name, "Access 3");
         assert_eq!(found[1].name, "Access 4");

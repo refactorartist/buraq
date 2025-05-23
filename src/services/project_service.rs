@@ -34,7 +34,12 @@ impl ProjectService {
         self.project_repository.delete(id).await
     }
 
-    pub async fn find(&self, filter: ProjectFilter, sort: Option<SortBuilder<ProjectSortableFields>>, pagination: Option<Pagination>) -> Result<Vec<Project>, Error> {
+    pub async fn find(
+        &self,
+        filter: ProjectFilter,
+        sort: Option<SortBuilder<ProjectSortableFields>>,
+        pagination: Option<Pagination>,
+    ) -> Result<Vec<Project>, Error> {
         self.project_repository.find(filter, sort, pagination).await
     }
 }
@@ -199,7 +204,7 @@ mod tests {
     #[tokio::test]
     async fn test_find_projects_with_pagination() -> Result<(), Error> {
         let (service, db) = setup().await;
-        
+
         // Create 5 test projects
         for i in 1..=5 {
             let project = Project {
@@ -215,21 +220,48 @@ mod tests {
 
         // Test first page
         let pagination = Pagination { page: 1, limit: 2 };
-        let found = service.find(ProjectFilter { name: None, is_enabled: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ProjectFilter {
+                    name: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].name, "Project 1");
         assert_eq!(found[1].name, "Project 2");
 
         // Test second page
         let pagination = Pagination { page: 2, limit: 2 };
-        let found = service.find(ProjectFilter { name: None, is_enabled: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ProjectFilter {
+                    name: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].name, "Project 3");
         assert_eq!(found[1].name, "Project 4");
 
         // Test last page
         let pagination = Pagination { page: 3, limit: 2 };
-        let found = service.find(ProjectFilter { name: None, is_enabled: None }, None, Some(pagination)).await?;
+        let found = service
+            .find(
+                ProjectFilter {
+                    name: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].name, "Project 5");
 
@@ -240,14 +272,14 @@ mod tests {
     #[tokio::test]
     async fn test_find_projects_with_filter_and_pagination() -> Result<(), Error> {
         let (service, db) = setup().await;
-        
+
         // Create 5 enabled and 5 disabled projects
         for i in 1..=10 {
             let project = Project {
                 id: None,
                 name: format!("Project {}", i),
                 description: format!("Description {}", i),
-                enabled: i <= 5,  // First 5 enabled, last 5 disabled
+                enabled: i <= 5, // First 5 enabled, last 5 disabled
                 created_at: Some(Utc::now()),
                 updated_at: Some(Utc::now()),
             };
@@ -260,7 +292,7 @@ mod tests {
             is_enabled: Some(true),
         };
         let pagination = Pagination { page: 1, limit: 3 };
-        
+
         let found = service.find(filter, None, Some(pagination)).await?;
         assert_eq!(found.len(), 3);
         assert!(found.iter().all(|p| p.enabled));
@@ -271,9 +303,9 @@ mod tests {
             is_enabled: Some(true),
         };
         let pagination = Pagination { page: 2, limit: 3 };
-        
+
         let found = service.find(filter, None, Some(pagination)).await?;
-        assert_eq!(found.len(), 2);  // Only 2 remaining enabled projects
+        assert_eq!(found.len(), 2); // Only 2 remaining enabled projects
         assert!(found.iter().all(|p| p.enabled));
 
         cleanup_test_db(db).await?;

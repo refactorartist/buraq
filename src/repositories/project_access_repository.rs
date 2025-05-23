@@ -1,6 +1,8 @@
-use crate::models::project_access::{ProjectAccess, ProjectAccessUpdatePayload, ProjectAccessFilter, ProjectAccessSortableFields};
-use crate::models::sort::SortBuilder;
 use crate::models::pagination::Pagination;
+use crate::models::project_access::{
+    ProjectAccess, ProjectAccessFilter, ProjectAccessSortableFields, ProjectAccessUpdatePayload,
+};
+use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
 use anyhow::Error;
 use anyhow::Result;
@@ -85,22 +87,31 @@ impl Repository<ProjectAccess> for ProjectAccessRepository {
         Ok(result.deleted_count > 0)
     }
 
-    async fn find(&self, filter: Self::Filter, sort: Option<SortBuilder<Self::Sort>>, pagination: Option<Pagination>) -> Result<Vec<ProjectAccess>, Error> {
+    async fn find(
+        &self,
+        filter: Self::Filter,
+        sort: Option<SortBuilder<Self::Sort>>,
+        pagination: Option<Pagination>,
+    ) -> Result<Vec<ProjectAccess>, Error> {
         let filter_doc = filter.into();
-        
+
         // Create FindOptions
         let mut options = mongodb::options::FindOptions::default();
-        
+
         if let Some(s) = sort {
             options.sort = Some(s.to_document());
         }
-        
+
         if let Some(p) = pagination {
             options.skip = Some(((p.page - 1) * p.limit) as u64);
             options.limit = Some(p.limit as i64);
         }
-        
-        let result = self.collection.find(filter_doc).with_options(options).await?;
+
+        let result = self
+            .collection
+            .find(filter_doc)
+            .with_options(options)
+            .await?;
         let items: Vec<ProjectAccess> = result.try_collect().await?;
         Ok(items)
     }

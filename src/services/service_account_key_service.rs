@@ -1,6 +1,7 @@
 use crate::models::pagination::Pagination;
 use crate::models::service_account_key::{
-    ServiceAccountKey, ServiceAccountKeyFilter, ServiceAccountKeySortableFields, ServiceAccountKeyUpdatePayload,
+    ServiceAccountKey, ServiceAccountKeyFilter, ServiceAccountKeySortableFields,
+    ServiceAccountKeyUpdatePayload,
 };
 use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
@@ -16,7 +17,8 @@ pub struct ServiceAccountKeyService {
 
 impl ServiceAccountKeyService {
     pub fn new(database: Arc<Database>) -> Result<Self, Error> {
-        let service_account_key_repository = ServiceAccountKeyRepository::new(database.as_ref().clone())?;
+        let service_account_key_repository =
+            ServiceAccountKeyRepository::new(database.as_ref().clone())?;
         Ok(Self {
             service_account_key_repository,
         })
@@ -174,9 +176,7 @@ mod tests {
         let deleted = service.delete(created.id.unwrap()).await?;
         assert!(deleted);
 
-        let read = service
-            .get_service_account_key(created.id.unwrap())
-            .await?;
+        let read = service.get_service_account_key(created.id.unwrap()).await?;
         assert!(read.is_none());
 
         cleanup_test_db(db).await?;

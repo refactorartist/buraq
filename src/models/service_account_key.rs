@@ -168,7 +168,10 @@ mod tests {
 
         let deserialized_key = deserialized.unwrap();
         assert_eq!(service_account_key.id, deserialized_key.id);
-        assert_eq!(service_account_key.service_account_id, deserialized_key.service_account_id);
+        assert_eq!(
+            service_account_key.service_account_id,
+            deserialized_key.service_account_id
+        );
         assert_eq!(service_account_key.algorithm, deserialized_key.algorithm);
         assert_eq!(service_account_key.key, deserialized_key.key);
         assert_eq!(service_account_key.expires_at, deserialized_key.expires_at);
@@ -201,7 +204,10 @@ mod tests {
         let converted: ServiceAccountKey = doc.into();
 
         assert_eq!(converted.id, service_account_key.id);
-        assert_eq!(converted.service_account_id, service_account_key.service_account_id);
+        assert_eq!(
+            converted.service_account_id,
+            service_account_key.service_account_id
+        );
         assert_eq!(converted.algorithm, service_account_key.algorithm);
         assert_eq!(converted.key, service_account_key.key);
         assert_eq!(converted.expires_at, service_account_key.expires_at);

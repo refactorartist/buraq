@@ -1,7 +1,9 @@
-use crate::models::access_token::{AccessToken, AccessTokenUpdatePayload, AccessTokenFilter, AccessTokenSortableFields};
+use crate::models::access_token::{
+    AccessToken, AccessTokenFilter, AccessTokenSortableFields, AccessTokenUpdatePayload,
+};
+use crate::models::pagination::Pagination;
 use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
-use crate::models::pagination::Pagination;
 use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -89,22 +91,31 @@ impl Repository<AccessToken> for AccessTokenRepository {
         Ok(result.deleted_count > 0)
     }
 
-    async fn find(&self, filter: Self::Filter, sort: Option<SortBuilder<Self::Sort>>, pagination: Option<Pagination>) -> Result<Vec<AccessToken>, Error> {
+    async fn find(
+        &self,
+        filter: Self::Filter,
+        sort: Option<SortBuilder<Self::Sort>>,
+        pagination: Option<Pagination>,
+    ) -> Result<Vec<AccessToken>, Error> {
         let filter_doc = filter.into();
-        
+
         // Create FindOptions
         let mut options = mongodb::options::FindOptions::default();
-        
+
         if let Some(s) = sort {
             options.sort = Some(s.to_document());
         }
-        
+
         if let Some(p) = pagination {
             options.skip = Some(((p.page - 1) * p.limit) as u64);
             options.limit = Some(p.limit as i64);
         }
-        
-        let result = self.collection.find(filter_doc).with_options(options).await?;
+
+        let result = self
+            .collection
+            .find(filter_doc)
+            .with_options(options)
+            .await?;
         let items: Vec<AccessToken> = result.try_collect().await?;
         Ok(items)
     }

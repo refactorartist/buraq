@@ -179,8 +179,17 @@ mod tests {
     fn test_access_token_sortable_fields() {
         assert_eq!(String::from(AccessTokenSortableFields::Id), "id");
         assert_eq!(String::from(AccessTokenSortableFields::Key), "key");
-        assert_eq!(String::from(AccessTokenSortableFields::Algorithm), "algorithm");
-        assert_eq!(String::from(AccessTokenSortableFields::ExpiresAt), "expires_at");
-        assert_eq!(String::from(AccessTokenSortableFields::CreatedAt), "created_at");
+        assert_eq!(
+            String::from(AccessTokenSortableFields::Algorithm),
+            "algorithm"
+        );
+        assert_eq!(
+            String::from(AccessTokenSortableFields::ExpiresAt),
+            "expires_at"
+        );
+        assert_eq!(
+            String::from(AccessTokenSortableFields::CreatedAt),
+            "created_at"
+        );
     }
 }
