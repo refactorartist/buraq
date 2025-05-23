@@ -49,6 +49,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .app_data(app_data.clone())
             .configure(buraq::routes::project::configure_routes)
             .configure(buraq::routes::access_token::configure_routes)
+            .configure(buraq::routes::service_account::configure_routes)
     })
     .bind((host, port))?
     .shutdown_timeout(30) // 30 seconds graceful shutdown timeout
