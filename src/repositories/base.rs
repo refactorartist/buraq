@@ -4,7 +4,7 @@ use mongodb::Collection;
 use mongodb::bson::uuid::Uuid;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use crate::models::{pagination::Pagination, sort::{Sort, SortBuilder}};
+use crate::models::{pagination::Pagination, sort::SortBuilder};
 
 #[async_trait]
 pub trait Repository<T: Send + Sync + Serialize + DeserializeOwned + 'static> {

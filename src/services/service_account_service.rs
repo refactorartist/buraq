@@ -60,7 +60,7 @@ impl ServiceAccountService {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
+    
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
 

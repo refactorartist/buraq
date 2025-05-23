@@ -35,7 +35,7 @@ impl ProjectService {
     }
 
     pub async fn find(&self, filter: ProjectFilter, sort: Option<SortBuilder<ProjectSortableFields>>, pagination: Option<Pagination>) -> Result<Vec<Project>, Error> {
-        self.project_repository.find(filter.into(), sort, pagination).await
+        self.project_repository.find(filter, sort, pagination).await
     }
 }
 

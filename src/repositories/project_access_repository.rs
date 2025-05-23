@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Bson, Document, doc, to_document};
+use mongodb::bson::{Bson, doc, to_document};
 use mongodb::{Collection, Database};
 
 /// Repository for managing ProjectAccess documents in MongoDB.

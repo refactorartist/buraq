@@ -7,7 +7,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{Document, doc, to_document};
+use mongodb::bson::{doc, to_document};
 use mongodb::{Collection, Database};
 
 /// Repository for managing AccessToken documents in MongoDB.
