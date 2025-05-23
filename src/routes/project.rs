@@ -70,6 +70,7 @@ pub async fn update_project(
     }
 }
 
+
 pub async fn delete_project(
     data: web::Data<AppData>,
     path: web::Path<String>,
