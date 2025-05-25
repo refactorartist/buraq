@@ -1,0 +1,19 @@
+meta {
+  name: List Projects
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://127.0.0.1:8080/projects/
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Something",
+    "description": "definitely something",
+    "enabled": true
+  }
+}
