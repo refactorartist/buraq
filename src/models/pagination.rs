@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Pagination {
     pub page: Option<u32>,
     pub limit: Option<u32>,
