@@ -217,4 +217,88 @@ mod tests {
 
         cleanup_test_db(db).await.unwrap();
     }
+
+    #[tokio::test]
+    async fn test_find_environments_with_pagination() {
+        let (service, db) = setup().await;
+        let project_id = Uuid::new();
+
+        // Create 5 test environments
+        for i in 1..=5 {
+            let environment = Environment {
+                id: None,
+                project_id,
+                name: format!("Environment {}", i),
+                description: format!("Description {}", i),
+                enabled: true,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+            service.create(environment).await.unwrap();
+        }
+
+        // Test first page
+        let pagination = Pagination {
+            page: Some(1),
+            limit: Some(2),
+        };
+        let found = service
+            .find(
+                EnvironmentFilter {
+                    project_id: Some(project_id),
+                    name: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await
+            .unwrap();
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].name, "Environment 1");
+        assert_eq!(found[1].name, "Environment 2");
+
+        // Test second page
+        let pagination = Pagination {
+            page: Some(2),
+            limit: Some(2),
+        };
+        let found = service
+            .find(
+                EnvironmentFilter {
+                    project_id: Some(project_id),
+                    name: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await
+            .unwrap();
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].name, "Environment 3");
+        assert_eq!(found[1].name, "Environment 4");
+
+        // Test last page
+        let pagination = Pagination {
+            page: Some(3),
+            limit: Some(2),
+        };
+        let found = service
+            .find(
+                EnvironmentFilter {
+                    project_id: Some(project_id),
+                    name: None,
+                    is_enabled: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await
+            .unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].name, "Environment 5");
+
+        cleanup_test_db(db).await.unwrap();
+    }
 }

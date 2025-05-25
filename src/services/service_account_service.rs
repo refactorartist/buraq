@@ -203,7 +203,10 @@ mod tests {
         }
 
         // Test first page
-        let pagination = Pagination { page: 1, limit: 2 };
+        let pagination = Pagination {
+            page: Some(1),
+            limit: Some(2),
+        };
         let found = service
             .find(
                 ServiceAccountFilter {
@@ -220,7 +223,10 @@ mod tests {
         assert_eq!(found[1].user, "testuser2");
 
         // Test second page
-        let pagination = Pagination { page: 2, limit: 2 };
+        let pagination = Pagination {
+            page: Some(2),
+            limit: Some(2),
+        };
         let found = service
             .find(
                 ServiceAccountFilter {
