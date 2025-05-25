@@ -4,7 +4,7 @@ use crate::models::project_scope::{ProjectScope, ProjectScopeUpdatePayload};
 use crate::services::project_scope_service::ProjectScopeService;
 use mongodb::bson::uuid::Uuid;
 
-pub async fn create_project_scope(
+pub async fn create(
     data: web::Data<AppData>,
     project_scope: web::Json<ProjectScope>,
 ) -> Result<HttpResponse, Error> {
@@ -24,7 +24,7 @@ pub async fn create_project_scope(
     }
 }
 
-pub async fn get_project_scope(
+pub async fn read(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -46,7 +46,7 @@ pub async fn get_project_scope(
     }
 }
 
-pub async fn update_project_scope(
+pub async fn update(
     data: web::Data<AppData>,
     path: web::Path<String>,
     update: web::Json<ProjectScopeUpdatePayload>,
@@ -69,7 +69,7 @@ pub async fn update_project_scope(
     }
 }
 
-pub async fn delete_project_scope(
+pub async fn delete(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -100,12 +100,12 @@ pub async fn delete_project_scope(
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/project-scopes")
-            .service(web::resource("").route(web::post().to(create_project_scope)))
+            .service(web::resource("").route(web::post().to(create)))
             .service(
                 web::resource("/{id}")
-                    .route(web::get().to(get_project_scope))
-                    .route(web::patch().to(update_project_scope))
-                    .route(web::delete().to(delete_project_scope)),
+                    .route(web::get().to(read))
+                    .route(web::patch().to(update))
+                    .route(web::delete().to(delete)),
             ),
     );
 }
@@ -128,12 +128,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create_project_scope)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_project_scope))
-                            .route(web::patch().to(update_project_scope))
-                            .route(web::delete().to(delete_project_scope)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -176,12 +176,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create_project_scope)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_project_scope))
-                            .route(web::patch().to(update_project_scope))
-                            .route(web::delete().to(delete_project_scope)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -230,12 +230,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create_project_scope)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_project_scope))
-                            .route(web::patch().to(update_project_scope))
-                            .route(web::delete().to(delete_project_scope)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -292,12 +292,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create_project_scope)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_project_scope))
-                            .route(web::patch().to(update_project_scope))
-                            .route(web::delete().to(delete_project_scope)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )

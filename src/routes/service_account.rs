@@ -6,7 +6,7 @@ use mongodb::bson::uuid::Uuid;
 use actix_web::{Error,HttpResponse,web};
 
 
-pub async fn create_service_account(
+pub async fn create(
     data: web::Data<AppData>,
     service_account: web::Json<ServiceAccount>,
 ) -> Result<HttpResponse, Error> {
@@ -28,7 +28,7 @@ pub async fn create_service_account(
 
 
 
-pub async fn get_service_account(
+pub async fn read(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -75,7 +75,7 @@ pub async fn update_service_account(
 }
 
 
-pub async fn delete_service_account(
+pub async fn delete(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -107,12 +107,12 @@ pub async fn delete_service_account(
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/projects")
-            .service(web::resource("").route(web::post().to(create_service_account)))
+            .service(web::resource("").route(web::post().to(create)))
             .service(
                 web::resource("/{id}")
-                    .route(web::get().to(get_service_account))
+                    .route(web::get().to(read))
                     .route(web::patch().to(update_service_account))
-                    .route(web::delete().to(delete_service_account)),
+                    .route(web::delete().to(delete)),
             ),
     );
 }

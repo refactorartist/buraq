@@ -5,7 +5,7 @@ use mongodb::bson::uuid::Uuid;
 
 use actix_web::{Error, HttpResponse, web};
 
-pub async fn create_access_token(
+pub async fn create(
     data: web::Data<AppData>,
     access_token: web::Json<AccessToken>,
 ) -> Result<HttpResponse, Error> {
@@ -25,7 +25,7 @@ pub async fn create_access_token(
     }
 }
 
-pub async fn get_access_token(
+pub async fn read(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -47,7 +47,7 @@ pub async fn get_access_token(
     }
 }
 
-pub async fn update_access_token(
+pub async fn update(
     data: web::Data<AppData>,
     path: web::Path<String>,
     payload: web::Json<AccessTokenUpdatePayload>,
@@ -70,7 +70,7 @@ pub async fn update_access_token(
     }
 }
 
-pub async fn delete_access_token(
+pub async fn delete(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -101,12 +101,12 @@ pub async fn delete_access_token(
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/projects")
-            .service(web::resource("").route(web::post().to(create_access_token)))
+            .service(web::resource("").route(web::post().to(create)))
             .service(
                 web::resource("/{id}")
-                    .route(web::get().to(get_access_token))
-                    .route(web::patch().to(update_access_token))
-                    .route(web::delete().to(delete_access_token)),
+                    .route(web::get().to(read))
+                    .route(web::patch().to(update))
+                    .route(web::delete().to(delete)),
             ),
     );
 }
@@ -129,12 +129,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create_access_token)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_access_token))
-                            .route(web::patch().to(update_access_token))
-                            .route(web::delete().to(delete_access_token)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -181,12 +181,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create_access_token)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_access_token))
-                            .route(web::patch().to(update_access_token))
-                            .route(web::delete().to(delete_access_token)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -240,12 +240,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create_access_token)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_access_token))
-                            .route(web::patch().to(update_access_token))
-                            .route(web::delete().to(delete_access_token)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -308,12 +308,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create_access_token)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_access_token))
-                            .route(web::patch().to(update_access_token))
-                            .route(web::delete().to(delete_access_token)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -371,12 +371,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create_access_token)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_access_token))
-                            .route(web::patch().to(update_access_token))
-                            .route(web::delete().to(delete_access_token)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )

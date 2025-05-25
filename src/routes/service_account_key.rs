@@ -4,7 +4,7 @@ use crate::models::service_account_key::{ServiceAccountKey, ServiceAccountKeyUpd
 use crate::services::service_account_key_service::ServiceAccountKeyService;
 use mongodb::bson::uuid::Uuid;
 
-pub async fn create_service_account_key(
+pub async fn create(
     data: web::Data<AppData>,
     service_account_key: web::Json<ServiceAccountKey>,
 ) -> Result<HttpResponse, Error> {
@@ -24,7 +24,7 @@ pub async fn create_service_account_key(
     }
 }
 
-pub async fn get_service_account_key(
+pub async fn read(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -46,7 +46,7 @@ pub async fn get_service_account_key(
     }
 }
 
-pub async fn update_service_account_key(
+pub async fn update(
     data: web::Data<AppData>,
     path: web::Path<String>,
     payload: web::Json<ServiceAccountKeyUpdatePayload>,
@@ -69,7 +69,7 @@ pub async fn update_service_account_key(
     }
 }
 
-pub async fn delete_service_account_key(
+pub async fn delete(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -100,12 +100,12 @@ pub async fn delete_service_account_key(
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/service_account_keys")
-            .service(web::resource("").route(web::post().to(create_service_account_key)))
+            .service(web::resource("").route(web::post().to(create)))
             .service(
                 web::resource("/{id}")
-                    .route(web::get().to(get_service_account_key))
-                    .route(web::patch().to(update_service_account_key))
-                    .route(web::delete().to(delete_service_account_key)),
+                    .route(web::get().to(read))
+                    .route(web::patch().to(update))
+                    .route(web::delete().to(delete)),
             ),
     );
 }
@@ -129,7 +129,7 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/service_account_keys")
-                    .service(web::resource("").route(web::post().to(create_service_account_key))),
+                    .service(web::resource("").route(web::post().to(create))),
             ),
         )
         .await;
@@ -171,7 +171,7 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/service_account_keys")
-                    .service(web::resource("/{id}").route(web::get().to(get_service_account_key))),
+                    .service(web::resource("/{id}").route(web::get().to(read))),
             ),
         )
         .await;
@@ -217,7 +217,7 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/service_account_keys")
-                    .service(web::resource("/{id}").route(web::patch().to(update_service_account_key))),
+                    .service(web::resource("/{id}").route(web::patch().to(update))),
             ),
         )
         .await;
@@ -271,7 +271,7 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/service_account_keys")
-                    .service(web::resource("/{id}").route(web::delete().to(delete_service_account_key))),
+                    .service(web::resource("/{id}").route(web::delete().to(delete))),
             ),
         )
         .await;
