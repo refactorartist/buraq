@@ -16,8 +16,6 @@ pub trait Repository<T: Send + Sync + Serialize + DeserializeOwned + 'static> {
 
     async fn read(&self, id: Uuid) -> Result<Option<T>, Error>;
 
-    async fn replace(&self, id: Uuid, mut item: T) -> Result<T, Error>;
-
     async fn update(&self, id: Uuid, update: Self::UpdatePayload) -> Result<T, Error>;
 
     async fn delete(&self, id: Uuid) -> Result<bool, Error>;
