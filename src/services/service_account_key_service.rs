@@ -267,4 +267,89 @@ mod tests {
         cleanup_test_db(db).await?;
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_find_service_account_keys_with_pagination() -> Result<(), Error> {
+        let (service, db) = setup().await;
+
+        // Create 5 test service account keys
+        for i in 1..=5 {
+            let key = ServiceAccountKey {
+                id: None,
+                service_account_id: Uuid::new(),
+                algorithm: Algorithm::RSA,
+                key: format!("test-key-{}", i),
+                expires_at: Utc::now() + Duration::hours(1),
+                enabled: true,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+            service.create(key).await?;
+        }
+
+        // Test first page
+        let pagination = Pagination {
+            page: Some(1),
+            limit: Some(2),
+        };
+        let found = service
+            .find(
+                ServiceAccountKeyFilter {
+                    service_account_id: None,
+                    algorithm: None,
+                    is_enabled: None,
+                    is_active: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].key, "test-key-1");
+        assert_eq!(found[1].key, "test-key-2");
+
+        // Test second page
+        let pagination = Pagination {
+            page: Some(2),
+            limit: Some(2),
+        };
+        let found = service
+            .find(
+                ServiceAccountKeyFilter {
+                    service_account_id: None,
+                    algorithm: None,
+                    is_enabled: None,
+                    is_active: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].key, "test-key-3");
+        assert_eq!(found[1].key, "test-key-4");
+
+        // Test last page
+        let pagination = Pagination {
+            page: Some(3),
+            limit: Some(2),
+        };
+        let found = service
+            .find(
+                ServiceAccountKeyFilter {
+                    service_account_id: None,
+                    algorithm: None,
+                    is_enabled: None,
+                    is_active: None,
+                },
+                None,
+                Some(pagination),
+            )
+            .await?;
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].key, "test-key-5");
+
+        cleanup_test_db(db).await?;
+        Ok(())
+    }
 }

@@ -237,7 +237,10 @@ mod tests {
         }
 
         // Test first page
-        let pagination = Pagination { page: 1, limit: 2 };
+        let pagination = Pagination {
+            page: Some(1),
+            limit: Some(2),
+        };
         let found = service
             .find(
                 ProjectScopeFilter {
@@ -252,7 +255,10 @@ mod tests {
         assert_eq!(found.len(), 2);
 
         // Test second page
-        let pagination = Pagination { page: 2, limit: 2 };
+        let pagination = Pagination {
+            page: Some(2),
+            limit: Some(2),
+        };
         let found = service
             .find(
                 ProjectScopeFilter {
@@ -267,7 +273,10 @@ mod tests {
         assert_eq!(found.len(), 2);
 
         // Test last page
-        let pagination = Pagination { page: 3, limit: 2 };
+        let pagination = Pagination {
+            page: Some(3),
+            limit: Some(2),
+        };
         let found = service
             .find(
                 ProjectScopeFilter {

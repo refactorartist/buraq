@@ -219,7 +219,10 @@ mod tests {
         }
 
         // Test first page
-        let pagination = Pagination { page: 1, limit: 2 };
+        let pagination = Pagination {
+            page: Some(1),
+            limit: Some(2),
+        };
         let found = service
             .find(
                 ProjectFilter {
@@ -235,7 +238,10 @@ mod tests {
         assert_eq!(found[1].name, "Project 2");
 
         // Test second page
-        let pagination = Pagination { page: 2, limit: 2 };
+        let pagination = Pagination {
+            page: Some(2),
+            limit: Some(2),
+        };
         let found = service
             .find(
                 ProjectFilter {
@@ -251,7 +257,10 @@ mod tests {
         assert_eq!(found[1].name, "Project 4");
 
         // Test last page
-        let pagination = Pagination { page: 3, limit: 2 };
+        let pagination = Pagination {
+            page: Some(3),
+            limit: Some(2),
+        };
         let found = service
             .find(
                 ProjectFilter {
@@ -291,7 +300,10 @@ mod tests {
             name: None,
             is_enabled: Some(true),
         };
-        let pagination = Pagination { page: 1, limit: 3 };
+        let pagination = Pagination {
+            page: Some(1),
+            limit: Some(3),
+        };
 
         let found = service.find(filter, None, Some(pagination)).await?;
         assert_eq!(found.len(), 3);
@@ -302,7 +314,10 @@ mod tests {
             name: None,
             is_enabled: Some(true),
         };
-        let pagination = Pagination { page: 2, limit: 3 };
+        let pagination = Pagination {
+            page: Some(2),
+            limit: Some(3),
+        };
 
         let found = service.find(filter, None, Some(pagination)).await?;
         assert_eq!(found.len(), 2); // Only 2 remaining enabled projects

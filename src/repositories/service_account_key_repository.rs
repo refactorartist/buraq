@@ -89,8 +89,8 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
         }
 
         if let Some(p) = pagination {
-            options.skip = Some(((p.page - 1) * p.limit) as u64);
-            options.limit = Some(p.limit as i64);
+            options.skip = Some(p.skip());
+            options.limit = Some(p.limit());
         }
 
         let result = self

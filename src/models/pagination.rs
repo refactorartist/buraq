@@ -1,6 +1,24 @@
 pub struct Pagination {
-    pub page: u32,
-    pub limit: u32,
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+}
+
+impl Pagination {
+    pub fn skip(&self) -> u64 {
+        if self.page.is_none() || self.limit.is_none() {
+            0
+        } else {
+            ((self.page.unwrap() - 1) * self.limit.unwrap()) as u64
+        }
+    }
+
+    pub fn limit(&self) -> i64 {
+        if self.limit.is_none() {
+            10
+        } else {
+            self.limit.unwrap() as i64
+        }
+    }
 }
 
 #[cfg(test)]
@@ -9,25 +27,25 @@ mod tests {
 
     #[test]
     fn test_pagination_creation() {
-        let pagination = Pagination { page: 1, limit: 10 };
-        assert_eq!(pagination.page, 1);
-        assert_eq!(pagination.limit, 10);
+        let pagination = Pagination { page: Some(1), limit: Some(10) };
+        assert_eq!(pagination.page, Some(1));
+        assert_eq!(pagination.limit, Some(10));
     }
 
     #[test]
     fn test_pagination_with_zero_values() {
-        let pagination = Pagination { page: 0, limit: 0 };
-        assert_eq!(pagination.page, 0);
-        assert_eq!(pagination.limit, 0);
+        let pagination = Pagination { page: Some(0), limit: Some(0) };
+        assert_eq!(pagination.page, Some(0));
+        assert_eq!(pagination.limit, Some(0));
     }
 
     #[test]
     fn test_pagination_with_large_values() {
         let pagination = Pagination {
-            page: 999999,
-            limit: 999999,
+            page: Some(999999),
+            limit: Some(999999),
         };
-        assert_eq!(pagination.page, 999999);
-        assert_eq!(pagination.limit, 999999);
+        assert_eq!(pagination.page, Some(999999));
+        assert_eq!(pagination.limit, Some(999999));
     }
 }
