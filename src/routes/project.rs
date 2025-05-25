@@ -1,5 +1,7 @@
 use crate::config::AppData;
-use crate::models::project::{Project, ProjectUpdatePayload};
+use crate::models::pagination::Pagination;
+use crate::models::project::{Project, ProjectFilter, ProjectSortableFields, ProjectUpdatePayload};
+use crate::models::sort::{SortBuilder, SortDirection};
 use crate::services::project_service::ProjectService;
 use mongodb::bson::uuid::Uuid;
 
@@ -98,10 +100,40 @@ pub async fn delete(
     }
 }
 
+pub async fn list(
+    data: web::Data<AppData>,
+    filter: Option<web::Query<ProjectFilter>>,
+    pagination: web::Query<Pagination>,
+) -> Result<HttpResponse, Error> {
+    let database = data
+        .database
+        .as_ref()
+        .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
+
+    let service = ProjectService::new(database.clone()).unwrap();
+    let sort = SortBuilder::new().add_sort(ProjectSortableFields::Id, SortDirection::Ascending);
+
+    let filter = filter.map_or_else(ProjectFilter::default, |q| q.into_inner());
+
+    let projects = service.find(filter, Some(sort), Some(pagination.into_inner())).await;
+
+    match projects {
+        Ok(projects) => Ok(HttpResponse::Ok().json(projects)),
+        Err(e) => {
+            println!("Error listing projects: {:?}", e);
+            Err(actix_web::error::ErrorInternalServerError(e))
+        }
+    }
+}
+
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/projects")
-            .service(web::resource("").route(web::post().to(create)))
+            .service(
+                web::resource("")
+                    .route(web::post().to(create))
+                    .route(web::get().to(list))
+            )
             .service(
                 web::resource("/{id}")
                     .route(web::get().to(read))
@@ -459,6 +491,238 @@ mod tests {
             .await;
 
         assert!(resp.status().is_client_error());
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_projects_no_filter() {
+        // Setup
+        let db = setup_test_db("project_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/projects")
+                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        // Create projects
+        for i in 0..5 {
+            let project = Project {
+                id: None,
+                name: format!("Test Project {}", i),
+                description: "Test Description".to_string(),
+                enabled: true,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+
+            let _ = test::TestRequest::post()
+                .uri("/projects")
+                .set_json(&project)
+                .send_request(&app)
+                .await;
+        }
+
+        // List projects without filter
+        let resp = test::TestRequest::get()
+            .uri("/projects")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let projects: Vec<Project> = test::read_body_json(resp).await;
+        assert_eq!(projects.len(), 5);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_projects_with_pagination() {
+        // Setup
+        let db = setup_test_db("project_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/projects")
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list))
+                    )
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        // Create projects
+        for i in 0..10 {
+            let project = Project {
+                id: None,
+                name: format!("Test Project {}", i),
+                description: "Test Description".to_string(),
+                enabled: true,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+
+            let _ = test::TestRequest::post()
+                .uri("/projects")
+                .set_json(&project)
+                .send_request(&app)
+                .await;
+        }
+
+        // List projects with pagination
+        let resp = test::TestRequest::get()
+            .uri("/projects?page=1&limit=5")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let projects: Vec<Project> = test::read_body_json(resp).await;
+        assert_eq!(projects.len(), 5);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_projects_with_filter() {
+        // Setup
+        let db = setup_test_db("project_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/projects")
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list))
+                    )
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        // Create projects
+        for i in 0..5 {
+            let project = Project {
+                id: None,
+                name: format!("Test Project {}", i),
+                description: "Test Description".to_string(),
+                enabled: i % 2 == 0,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+
+            let _ = test::TestRequest::post()
+                .uri("/projects")
+                .set_json(&project)
+                .send_request(&app)
+                .await;
+        }
+
+        // List projects with filter
+        let resp = test::TestRequest::get()
+            .uri("/projects?is_enabled=true")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let projects: Vec<Project> = test::read_body_json(resp).await;
+        assert_eq!(projects.len(), 3);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_projects_with_filter_and_pagination() {
+        // Setup
+        let db = setup_test_db("project_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/projects")
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list))
+                    )
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        // Create projects
+        for i in 0..10 {
+            let project = Project {
+                id: None,
+                name: format!("Test Project {}", i),
+                description: "Test Description".to_string(),
+                enabled: i % 2 == 0,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+
+            let _ = test::TestRequest::post()
+                .uri("/projects")
+                .set_json(&project)
+                .send_request(&app)
+                .await;
+        }
+
+        // List projects with filter and pagination
+        let resp = test::TestRequest::get()
+            .uri("/projects?enabled=true&page=1&limit=2")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let projects: Vec<Project> = test::read_body_json(resp).await;
+        assert_eq!(projects.len(), 2);
 
         // Cleanup
         cleanup_test_db(db).await.unwrap();
