@@ -1,5 +1,9 @@
 use crate::config::AppData;
-use crate::models::access_token::{AccessToken, AccessTokenUpdatePayload};
+use crate::models::access_token::{
+    self, AccessToken, AccessTokenFilter, AccessTokenSortableFields, AccessTokenUpdatePayload,
+};
+use crate::models::pagination::Pagination;
+use crate::models::sort::{SortBuilder, SortDirection};
 use crate::services::access_token_service::AccessTokenService;
 use mongodb::bson::uuid::Uuid;
 
@@ -98,6 +102,34 @@ pub async fn delete(
     }
 }
 
+pub async fn list(
+    data: web::Data<AppData>,
+    filter: Option<web::Query<AccessTokenFilter>>,
+    pagination: web::Query<Pagination>,
+) -> Result<HttpResponse, Error> {
+    let database = data
+        .database
+        .as_ref()
+        .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
+
+    let service = AccessTokenService::new(database.clone()).unwrap();
+    let sort = SortBuilder::new().add_sort(AccessTokenSortableFields::Id, SortDirection::Ascending);
+
+    let filter = filter.map_or_else(AccessTokenFilter::default, |q| q.into_inner());
+
+    let access_tokens = service
+        .find(filter, Some(sort), Some(pagination.into_inner()))
+        .await;
+
+    match access_tokens {
+        Ok(access_tokens) => Ok(HttpResponse::Ok().json(access_tokens)),
+        Err(e) => {
+            println!("Error listing projects: {:?}", e);
+            Err(actix_web::error::ErrorInternalServerError(e))
+        }
+    }
+}
+
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/projects")
@@ -171,6 +203,235 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_list_access_tokens_no_filter() {
+        // Setup
+        let db = setup_test_db("access_token_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/access-tokens")
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        // Create access tokens
+        for i in 0..5 {
+            let access_token = AccessToken {
+                id: None,
+                key: format!("test-key-{}", i),
+                algorithm: Algorithm::RSA,
+                expires_at: Utc::now() + Duration::hours(1),
+                created_at: Utc::now(),
+                enabled: true,
+            };
+            let _ = test::TestRequest::post()
+                .uri("/access-tokens")
+                .set_json(&access_token)
+                .send_request(&app)
+                .await;
+        }
+
+        // List access tokens without filter
+        let resp = test::TestRequest::get()
+            .uri("/access-tokens")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let access_tokens: Vec<AccessToken> = test::read_body_json(resp).await;
+        assert_eq!(access_tokens.len(), 5);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_access_tokens_with_pagination() {
+        // Setup
+        let db = setup_test_db("access_token_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/access-tokens")
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        // Create access tokens
+        for i in 0..10 {
+            let access_token = AccessToken {
+                id: None,
+                key: format!("test-key-{}", i),
+                algorithm: Algorithm::RSA,
+                expires_at: Utc::now() + Duration::hours(1),
+                created_at: Utc::now(),
+                enabled: true,
+            };
+            let _ = test::TestRequest::post()
+                .uri("/access-tokens")
+                .set_json(&access_token)
+                .send_request(&app)
+                .await;
+        }
+
+        // List access tokens with pagination
+        let resp = test::TestRequest::get()
+            .uri("/access-tokens?page=1&limit=5")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let access_tokens: Vec<AccessToken> = test::read_body_json(resp).await;
+        assert_eq!(access_tokens.len(), 5);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_access_tokens_with_filter() {
+        // Setup
+        let db = setup_test_db("access_token_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/access-tokens")
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        // Create access tokens
+        for i in 0..5 {
+            let access_token = AccessToken {
+                id: None,
+                key: format!("test-key-{}", i),
+                algorithm: if i % 2 == 0 {
+                    Algorithm::RSA
+                } else {
+                    Algorithm::HMAC
+                },
+                expires_at: Utc::now() + Duration::hours(1),
+                created_at: Utc::now(),
+                enabled: i % 2 == 0,
+            };
+            let _ = test::TestRequest::post()
+                .uri("/access-tokens")
+                .set_json(&access_token)
+                .send_request(&app)
+                .await;
+        }
+
+        // List access tokens with enabled filter
+        let resp = test::TestRequest::get()
+            .uri("/access-tokens?is_enabled=true")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let access_tokens: Vec<AccessToken> = test::read_body_json(resp).await;
+        assert_eq!(access_tokens.len(), 3);
+        assert!(access_tokens.iter().all(|token| token.enabled));
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_access_tokens_with_filter_and_pagination() {
+        // Setup
+        let db = setup_test_db("access_token_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/access-tokens")
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+        // Create access tokens
+        for i in 0..10 {
+            let access_token = AccessToken {
+                id: None,
+                key: format!("test-key-{}", i),
+                algorithm: Algorithm::RSA,
+                expires_at: Utc::now() + Duration::hours(1),
+                created_at: Utc::now(),
+                enabled: i % 2 == 0,
+            };
+            let _ = test::TestRequest::post()
+                .uri("/access-tokens")
+                .set_json(&access_token)
+                .send_request(&app)
+                .await;
+        }
+        // List access tokens with filter and pagination
+        let resp = test::TestRequest::get()
+            .uri("/access-tokens?is_enabled=true&page=1&limit=2")
+            .send_request(&app)
+            .await;
+        assert!(resp.status().is_success());
+        let access_tokens: Vec<AccessToken> = test::read_body_json(resp).await;
+        assert_eq!(access_tokens.len(), 2);
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
     async fn test_get_access_token_success() {
         // Setup
         let db = setup_test_db("access_token_routes").await.unwrap();
@@ -181,7 +442,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
