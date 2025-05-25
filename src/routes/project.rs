@@ -115,7 +115,9 @@ pub async fn list(
 
     let filter = filter.map_or_else(ProjectFilter::default, |q| q.into_inner());
 
-    let projects = service.find(filter, Some(sort), Some(pagination.into_inner())).await;
+    let projects = service
+        .find(filter, Some(sort), Some(pagination.into_inner()))
+        .await;
 
     match projects {
         Ok(projects) => Ok(HttpResponse::Ok().json(projects)),
@@ -132,7 +134,7 @@ pub fn configure_routes(config: &mut web::ServiceConfig) {
             .service(
                 web::resource("")
                     .route(web::post().to(create))
-                    .route(web::get().to(list))
+                    .route(web::get().to(list)),
             )
             .service(
                 web::resource("/{id}")
@@ -508,7 +510,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/projects")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -529,7 +535,7 @@ mod tests {
                 created_at: Some(Utc::now()),
                 updated_at: Some(Utc::now()),
             };
-
+            
             let _ = test::TestRequest::post()
                 .uri("/projects")
                 .set_json(&project)
@@ -566,7 +572,7 @@ mod tests {
                     .service(
                         web::resource("")
                             .route(web::post().to(create))
-                            .route(web::get().to(list))
+                            .route(web::get().to(list)),
                     )
                     .service(
                         web::resource("/{id}")
@@ -625,7 +631,7 @@ mod tests {
                     .service(
                         web::resource("")
                             .route(web::post().to(create))
-                            .route(web::get().to(list))
+                            .route(web::get().to(list)),
                     )
                     .service(
                         web::resource("/{id}")
@@ -684,7 +690,7 @@ mod tests {
                     .service(
                         web::resource("")
                             .route(web::post().to(create))
-                            .route(web::get().to(list))
+                            .route(web::get().to(list)),
                     )
                     .service(
                         web::resource("/{id}")

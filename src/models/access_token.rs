@@ -48,7 +48,7 @@ pub struct AccessTokenUpdatePayload {
     pub enabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone,Default)]
 pub struct AccessTokenFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
