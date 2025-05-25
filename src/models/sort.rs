@@ -29,6 +29,7 @@ impl<T> Sort<T> {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SortBuilder<T> {
     sorts: Vec<Sort<T>>,
 }
@@ -61,7 +62,7 @@ where
     }
 
     pub fn build(self) -> Vec<Sort<T>> {
-        self.sorts
+        self.sorts.clone()
     }
 
     pub fn to_document(self) -> Document {
