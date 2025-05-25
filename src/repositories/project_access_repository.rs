@@ -57,16 +57,6 @@ impl Repository<ProjectAccess> for ProjectAccessRepository {
         Ok(result)
     }
 
-    async fn replace(&self, id: Uuid, mut item: ProjectAccess) -> Result<ProjectAccess, Error> {
-        if item.id.is_none() || item.id.unwrap() != id {
-            item.id = Some(id);
-        }
-        self.collection
-            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
-            .await?;
-        let updated = self.collection.find_one(doc! { "_id": id }).await?.unwrap();
-        Ok(updated)
-    }
 
     async fn update(&self, id: Uuid, payload: Self::UpdatePayload) -> Result<ProjectAccess, Error> {
         let mut document = to_document(&payload)?;
