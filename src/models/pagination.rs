@@ -3,6 +3,16 @@ pub struct Pagination {
     pub limit: u32,
 }
 
+impl Pagination {
+    pub fn skip(&self) -> u64 {
+        ((self.page - 1) * self.limit) as u64
+    }
+
+    pub fn limit(&self) -> i64 {
+        self.limit as i64
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
