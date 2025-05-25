@@ -3,8 +3,6 @@
   "packages": [
     "rustup@latest",
     "mermaid-cli@latest",
-    "docker",
-    "docker-compose",
     "bruno@latest"
   ],
   "shell": {

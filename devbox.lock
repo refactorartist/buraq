@@ -49,34 +49,6 @@
         }
       }
     },
-    "docker": {
-      "resolved": "github:NixOS/nixpkgs/18dd725c29603f582cf1900e0d25f9f1063dbf11?narHash=sha256-awS2zRgF4uTwrOKwwiJcByDzDOdo3Q1rPZbiHQg%2FN38%3D#docker",
-      "source": "nixpkg",
-      "systems": {
-        "x86_64-linux": {
-          "outputs": [
-            {
-              "path": "/nix/store/c48bj9lrlra9zg9y7xkdq4fxqhd0fka8-docker-27.5.1",
-              "default": true
-            }
-          ]
-        }
-      }
-    },
-    "docker-compose": {
-      "resolved": "github:NixOS/nixpkgs/18dd725c29603f582cf1900e0d25f9f1063dbf11?narHash=sha256-awS2zRgF4uTwrOKwwiJcByDzDOdo3Q1rPZbiHQg%2FN38%3D#docker-compose",
-      "source": "nixpkg",
-      "systems": {
-        "x86_64-linux": {
-          "outputs": [
-            {
-              "path": "/nix/store/klldwv59yrb3f731s9nwkn6z70k0x0lz-docker-compose-2.35.0",
-              "default": true
-            }
-          ]
-        }
-      }
-    },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
       "last_modified": "2025-05-22T23:55:03Z",
       "resolved": "github:NixOS/nixpkgs/fe51d34885f7b5e3e7b59572796e1bcb427eccb1?lastModified=1747958103&narHash=sha256-qmmFCrfBwSHoWw7cVK4Aj%2Bfns%2Bc54EBP8cGqp%2FyK410%3D"
