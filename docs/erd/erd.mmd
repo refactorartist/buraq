@@ -4,9 +4,7 @@ erDiagram
     }
 
     access_token {
-        ObjectID accesstoken_id PK "Primary Key"
-        ObjectId project_id FK "Foreign Key to PROJECT" 
-        ObjectId project_access_id FK "Foreign Key to PROJECT_ACCESS"
+        UUID4 id PK "Primary Key"
         string key "API key value"
         ALGORITHM algorithm FK "Foreign Key to ALGORITHM"
         date expires_at "Expiration date"
@@ -15,15 +13,17 @@ erDiagram
     }
 
     environment {
-        ObjectID environment_id PK "Primary Key"
-        ObjectID project_id FK "Foreign Key to PROJECT"
+        UUID4 id PK "Primary Key"
+        UUID4 project_id FK "Foreign Key to PROJECT"
         string name "Environment name"
         string description "Environment description"
         bool enabled "Environment status"
+        date created_at "Creation date"
+        date updated_at "Last update date"
     }
 
     project {
-        ObjectID project_id PK "Primary Key"
+        UUID4 id PK "Primary Key"
         string name "Project name"
         string description "Project description"
         bool enabled "Project status"
@@ -32,33 +32,45 @@ erDiagram
     }
 
     project_access {
-        ObjectID project_access_id PK "Primary Key"
+        UUID4 id PK "Primary Key"
         string name "Access name"
-        ObjectID environment_id FK "Foreign Key to ENVIRONMENT"
-        ObjectID service_account_id FK "Foreign Key to SERVICE_ACCOUNT"
-        ObjectID[] project_scopes FK "Foreign Keys to PROJECT_SCOPES"
+        UUID4 environment_id FK "Foreign Key to ENVIRONMENT"
+        UUID4 service_account_id FK "Foreign Key to SERVICE_ACCOUNT"
+        UUID4[] project_scopes FK "Foreign Keys to PROJECT_SCOPES"
+        bool enabled "Access status"
+        date created_at "Creation date"
+        date updated_at "Last update date"
     }
 
     project_scopes {
-        ObjectID project_scope_id PK "Primary Key"
-        ObjectID project_id FK "Foreign Key to PROJECT"
+        UUID4 id PK "Primary Key"
+        UUID4 project_id FK "Foreign Key to PROJECT"
         string name "Scope name"
         string description "Scope description"
+        bool enabled "Scope status"
+        date created_at "Creation date"
+        date updated_at "Last update date"
     }
 
     service_account {
-        ObjectID service_account_id PK "Primary Key"
+        UUID4 id PK "Primary Key"
         string email "Account email"
         string user "Username"
         string secret "Account secret"
         bool enabled "Account status"
+        date created_at "Creation date"
+        date updated_at "Last update date"
     }
 
     service_account_keys {
-        ObjectID service_account_id PK "Primary Key"
+        UUID4 id PK "Primary Key"
+        UUID4 service_account_id FK "Foreign Key to SERVICE_ACCOUNT"
         ALGORITHM algorithm FK "Foreign Key to ALGORITHM"
         string key "Key value"
         date expires_at "Expiration date"
+        bool enabled "Key status"
+        date created_at "Creation date"
+        date updated_at "Last update date"
     }
 
     project ||--o{ environment: "has"
@@ -69,3 +81,4 @@ erDiagram
     project_access ||--o{ access_token: "generates"
     project_access }o--o{ project_scopes: "uses"
     service_account_keys }o--|| ALGORITHM: "uses"
+    access_token }o--o{ ALGORITHM: "uses"
