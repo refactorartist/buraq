@@ -5,7 +5,7 @@ use mongodb::bson::uuid::Uuid;
 use actix_web::{Error, HttpResponse, web};
 
 /// Handler to create a new environment.
-pub async fn create_environment(
+pub async fn create(
     data: web::Data<AppData>,
     environment: web::Json<Environment>,
 ) -> Result<HttpResponse, Error> {
@@ -26,7 +26,7 @@ pub async fn create_environment(
 }
 
 /// Handler to retrieve an environment by its ID.
-pub async fn get_environment(
+pub async fn read(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -50,7 +50,7 @@ pub async fn get_environment(
 }
 
 /// Handler to update an existing environment.
-pub async fn update_environment(
+pub async fn update(
     data: web::Data<AppData>,
     path: web::Path<String>,
     payload: web::Json<EnvironmentUpdatePayload>,
@@ -74,7 +74,7 @@ pub async fn update_environment(
 }
 
 /// Handler to delete an environment by its ID.
-pub async fn delete_environment(
+pub async fn delete(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -105,12 +105,12 @@ pub async fn delete_environment(
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/environments")
-            .service(web::resource("").route(web::post().to(create_environment)))
+            .service(web::resource("").route(web::post().to(create)))
             .service(
                 web::resource("/{id}")
-                    .route(web::get().to(get_environment))
-                    .route(web::patch().to(update_environment))
-                    .route(web::delete().to(delete_environment)),
+                    .route(web::get().to(read))
+                    .route(web::patch().to(update))
+                    .route(web::delete().to(delete)),
             ),
     );
 }
@@ -134,12 +134,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/environments")
-                    .service(web::resource("").route(web::post().to(create_environment)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_environment))
-                            .route(web::patch().to(update_environment))
-                            .route(web::delete().to(delete_environment)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -187,12 +187,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/environments")
-                    .service(web::resource("").route(web::post().to(create_environment)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_environment))
-                            .route(web::patch().to(update_environment))
-                            .route(web::delete().to(delete_environment)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -246,12 +246,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/environments")
-                    .service(web::resource("").route(web::post().to(create_environment)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_environment))
-                            .route(web::patch().to(update_environment))
-                            .route(web::delete().to(delete_environment)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -280,12 +280,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/environments")
-                    .service(web::resource("").route(web::post().to(create_environment)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_environment))
-                            .route(web::patch().to(update_environment))
-                            .route(web::delete().to(delete_environment)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -347,12 +347,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/environments")
-                    .service(web::resource("").route(web::post().to(create_environment)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_environment))
-                            .route(web::patch().to(update_environment))
-                            .route(web::delete().to(delete_environment)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
@@ -410,12 +410,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/environments")
-                    .service(web::resource("").route(web::post().to(create_environment)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_environment))
-                            .route(web::patch().to(update_environment))
-                            .route(web::delete().to(delete_environment)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )

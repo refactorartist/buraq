@@ -4,7 +4,7 @@ use crate::services::project_access_service::ProjectAccessService;
 use crate::config::AppData;
 use mongodb::bson::uuid::Uuid;
 
-pub async fn create_project_access(
+pub async fn create(
     data: web::Data<AppData>,
     project_access: web::Json<ProjectAccess>,
 ) -> Result<HttpResponse, Error> {
@@ -24,7 +24,7 @@ pub async fn create_project_access(
     }
 }
 
-pub async fn get_project_access(
+pub async fn read(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -46,7 +46,7 @@ pub async fn get_project_access(
     }
 }
 
-pub async fn update_project_access(
+pub async fn update(
     data: web::Data<AppData>,
     path: web::Path<String>,
     payload: web::Json<ProjectAccessUpdatePayload>,
@@ -69,7 +69,7 @@ pub async fn update_project_access(
     }
 }
 
-pub async fn delete_project_access(
+pub async fn delete(
     data: web::Data<AppData>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
@@ -100,12 +100,12 @@ pub async fn delete_project_access(
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/project-access")
-            .service(web::resource("").route(web::post().to(create_project_access)))
+            .service(web::resource("").route(web::post().to(create)))
             .service(
                 web::resource("/{id}")
-                    .route(web::get().to(get_project_access))
-                    .route(web::patch().to(update_project_access))
-                    .route(web::delete().to(delete_project_access)),
+                    .route(web::get().to(read))
+                    .route(web::patch().to(update))
+                    .route(web::delete().to(delete)),
             ),
     );
 }
@@ -129,12 +129,12 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-access")
-                    .service(web::resource("").route(web::post().to(create_project_access)))
+                    .service(web::resource("").route(web::post().to(create)))
                     .service(
                         web::resource("/{id}")
-                            .route(web::get().to(get_project_access))
-                            .route(web::patch().to(update_project_access))
-                            .route(web::delete().to(delete_project_access)),
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
                     ),
             ),
         )
