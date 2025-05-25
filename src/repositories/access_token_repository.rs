@@ -9,7 +9,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
-use mongodb::bson::{doc, to_document};
+use mongodb::bson::to_document;
 use mongodb::{Collection, Database};
 
 /// Repository for managing AccessToken documents in MongoDB.
@@ -49,22 +49,6 @@ impl Repository<AccessToken> for AccessTokenRepository {
             .find_one(mongodb::bson::doc! { "_id": id })
             .await?;
         Ok(result)
-    }
-
-    async fn replace(&self, id: Uuid, mut item: AccessToken) -> Result<AccessToken, Error> {
-        if item.id.is_none() || item.id.unwrap() != id {
-            item.id = Some(id);
-        }
-        self.collection
-            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
-            .await
-            .expect("Failed to update access token");
-        let updated = self
-            .collection
-            .find_one(mongodb::bson::doc! { "_id": id })
-            .await?
-            .unwrap();
-        Ok(updated)
     }
 
     async fn update(&self, id: Uuid, item: Self::UpdatePayload) -> Result<AccessToken, Error> {

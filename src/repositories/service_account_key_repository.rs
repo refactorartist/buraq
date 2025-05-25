@@ -49,20 +49,6 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
         Ok(result)
     }
 
-    async fn replace(
-        &self,
-        id: Uuid,
-        mut item: ServiceAccountKey,
-    ) -> Result<ServiceAccountKey, Error> {
-        if item.id.is_none() || item.id.unwrap() != id {
-            item.id = Some(id);
-        }
-        self.collection
-            .update_one(doc! { "_id": id }, doc! { "$set": to_document(&item)? })
-            .await?;
-        let updated = self.collection.find_one(doc! { "_id": id }).await?.unwrap();
-        Ok(updated)
-    }
 
     async fn update(
         &self,

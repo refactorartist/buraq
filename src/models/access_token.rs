@@ -28,13 +28,13 @@ pub struct AccessToken {
 
 impl From<AccessToken> for Document {
     fn from(value: AccessToken) -> Self {
-        to_document(&value).unwrap()
+        to_document(&value).expect("Failed to convert AccessToken to Document")
     }
 }
 
 impl From<Document> for AccessToken {
     fn from(value: Document) -> Self {
-        from_document(value.clone()).unwrap()
+        from_document(value.clone()).expect("Failed to convert Document to AccessToken")
     }
 }
 
@@ -106,6 +106,7 @@ impl From<AccessTokenSortableFields> for String {
 mod tests {
     use super::*;
     use chrono::Duration;
+    use mongodb::bson::doc;
 
     #[test]
     fn test_access_token_creation() {
@@ -144,6 +145,20 @@ mod tests {
         assert_eq!(token.key, converted.key);
         assert_eq!(token.algorithm, converted.algorithm);
         assert_eq!(token.enabled, converted.enabled);
+    }
+
+    #[test]
+    fn test_access_token_document_conversion_error() {
+        let doc = doc! {
+            "key": "test-key",
+            "expires_at": Utc::now().to_rfc3339(),
+            "created_at": Utc::now().to_rfc3339(),
+            "algorithm": "InvalidAlgorithm", // Invalid algorithm
+            "enabled": true,
+        };
+
+        let result: Result<AccessToken, _> = from_document(doc.clone());
+        assert!(result.is_err(), "Expected conversion to fail due to invalid algorithm");
     }
 
     #[test]
