@@ -47,7 +47,7 @@ pub struct ProjectScopeUpdatePayload {
     pub enabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ProjectScopeFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project_id: Option<Uuid>,
