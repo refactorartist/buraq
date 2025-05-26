@@ -1,6 +1,6 @@
 use crate::config::AppData;
 use crate::models::access_token::{
-    self, AccessToken, AccessTokenFilter, AccessTokenSortableFields, AccessTokenUpdatePayload,
+    AccessToken, AccessTokenFilter, AccessTokenSortableFields, AccessTokenUpdatePayload,
 };
 use crate::models::pagination::Pagination;
 use crate::models::sort::{SortBuilder, SortDirection};
