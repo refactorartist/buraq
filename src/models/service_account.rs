@@ -63,7 +63,7 @@ pub struct ServiceAccountUpdatePayload {
     pub enabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ServiceAccountFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
