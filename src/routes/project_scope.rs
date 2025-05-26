@@ -1,8 +1,10 @@
 use actix_web::{Error, HttpResponse, web};
 use crate::config::AppData;
-use crate::models::project_scope::{ProjectScope, ProjectScopeUpdatePayload};
+use crate::models::project_scope::{ProjectScope, ProjectScopeFilter, ProjectScopeSortableFields, ProjectScopeUpdatePayload};
+use crate::models::sort::{SortBuilder, SortDirection};
 use crate::services::project_scope_service::ProjectScopeService;
 use mongodb::bson::uuid::Uuid;
+use crate::models::pagination::Pagination;
 
 pub async fn create(
     data: web::Data<AppData>,
@@ -97,10 +99,32 @@ pub async fn delete(
     }
 }
 
+pub async fn list(
+    data: web::Data<AppData>,
+    query: web::Query<ProjectScopeFilter>,
+    pagination: web::Query<Pagination>,
+) -> Result<HttpResponse, Error> {
+    let database = data
+        .database
+        .as_ref()
+        .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
+    let service = ProjectScopeService::new(database.clone()).unwrap();
+    let sort = SortBuilder::new().add_sort(ProjectScopeSortableFields::Id, SortDirection::Ascending);
+    let project_scopes = service.find(query.into_inner(), Some(sort), Some(pagination.into_inner())).await;
+
+    match project_scopes {
+        Ok(scopes) => Ok(HttpResponse::Ok().json(scopes)),
+        Err(e) => {
+            println!("Error listing project scopes: {:?}", e);
+            Err(actix_web::error::ErrorBadRequest(e))
+        }
+    }
+}
+
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/project-scopes")
-            .service(web::resource("").route(web::post().to(create)))
+            .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
             .service(
                 web::resource("/{id}")
                     .route(web::get().to(read))
@@ -128,7 +152,7 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)))
+                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -176,7 +200,7 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)))
+                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -230,7 +254,7 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)))
+                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -292,7 +316,7 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)))
+                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -335,6 +359,206 @@ mod tests {
             .await;
 
         assert!(resp.status().is_client_error());
+
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_project_scopes_pagination() {
+        let db = setup_test_db("project_scope_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/project-scopes")
+                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        let project_scope1 = ProjectScope {
+            id: None,
+            project_id: Uuid::new(),
+            name: "read:users".to_string(),
+            description: "Test Description 1".to_string(),
+            enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+        };
+
+        let project_scope2 = ProjectScope {
+            id: None,
+            project_id: Uuid::new(),
+            name: "write:users".to_string(),
+            description: "Test Description 2".to_string(),
+            enabled: false,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+        };
+
+        test::TestRequest::post()
+            .uri("/project-scopes")
+            .set_json(&project_scope1)
+            .send_request(&app)
+            .await;
+
+        test::TestRequest::post()
+            .uri("/project-scopes")
+            .set_json(&project_scope2)
+            .send_request(&app)
+            .await;
+
+        let resp = test::TestRequest::get()
+            .uri("/project-scopes?page=1&limit=1")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let scopes: Vec<ProjectScope> = test::read_body_json(resp).await;
+        assert_eq!(scopes.len(), 1);
+
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_project_scopes_filter_by_name() {
+        let db = setup_test_db("project_scope_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/project-scopes")
+                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        let project_scope1 = ProjectScope {
+            id: None,
+            project_id: Uuid::new(),
+            name: "read:users".to_string(),
+            description: "Test Description 1".to_string(),
+            enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+        };
+
+        let project_scope2 = ProjectScope {
+            id: None,
+            project_id: Uuid::new(),
+            name: "write:users".to_string(),
+            description: "Test Description 2".to_string(),
+            enabled: false,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+        };
+
+        test::TestRequest::post()
+            .uri("/project-scopes")
+            .set_json(&project_scope1)
+            .send_request(&app)
+            .await;
+
+        test::TestRequest::post()
+            .uri("/project-scopes")
+            .set_json(&project_scope2)
+            .send_request(&app)
+            .await;
+
+        let resp = test::TestRequest::get()
+            .uri("/project-scopes?name=read:users&page=1&limit=10")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let scopes: Vec<ProjectScope> = test::read_body_json(resp).await;
+        assert_eq!(scopes.len(), 1);
+        assert_eq!(scopes[0].name, "read:users");
+
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_project_scopes_filter_by_enabled() {
+        let db = setup_test_db("project_scope_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/project-scopes")
+                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
+        .await;
+
+        let project_scope1 = ProjectScope {
+            id: None,
+            project_id: Uuid::new(),
+            name: "read:users".to_string(),
+            description: "Test Description 1".to_string(),
+            enabled: true,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+        };
+
+        let project_scope2 = ProjectScope {
+            id: None,
+            project_id: Uuid::new(),
+            name: "write:users".to_string(),
+            description: "Test Description 2".to_string(),
+            enabled: false,
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+        };
+
+        test::TestRequest::post()
+            .uri("/project-scopes")
+            .set_json(&project_scope1)
+            .send_request(&app)
+            .await;
+
+        test::TestRequest::post()
+            .uri("/project-scopes")
+            .set_json(&project_scope2)
+            .send_request(&app)
+            .await;
+
+        let resp = test::TestRequest::get()
+            .uri("/project-scopes?is_enabled=true&page=1&limit=10")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let scopes: Vec<ProjectScope> = test::read_body_json(resp).await;
+        assert_eq!(scopes.len(), 1);
+        assert!(scopes[0].enabled);
 
         cleanup_test_db(db).await.unwrap();
     }
