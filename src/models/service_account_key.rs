@@ -51,7 +51,7 @@ pub struct ServiceAccountKeyUpdatePayload {
     pub enabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ServiceAccountKeyFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service_account_id: Option<Uuid>,

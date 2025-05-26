@@ -1,7 +1,9 @@
 use actix_web::{web, HttpResponse, Error};
 use crate::config::AppData;
-use crate::models::service_account_key::{ServiceAccountKey, ServiceAccountKeyUpdatePayload};
+use crate::models::service_account_key::{ServiceAccountKey, ServiceAccountKeyFilter, ServiceAccountKeySortableFields, ServiceAccountKeyUpdatePayload};
+use crate::models::sort::{SortBuilder, SortDirection};
 use crate::services::service_account_key_service::ServiceAccountKeyService;
+use crate::models::pagination::Pagination;
 use mongodb::bson::uuid::Uuid;
 
 pub async fn create(
@@ -97,10 +99,33 @@ pub async fn delete(
     }
 }
 
+pub async fn list(
+    data: web::Data<AppData>,
+    filter: Option<web::Query<ServiceAccountKeyFilter>>,
+    pagination: web::Query<Pagination>,
+) -> Result<HttpResponse, Error> {
+    let database = data
+        .database
+        .as_ref()
+        .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
+    let service = ServiceAccountKeyService::new(database.clone()).unwrap();
+    let filter = filter.map_or_else(ServiceAccountKeyFilter::default, |q| q.into_inner());
+    let sort = SortBuilder::new().add_sort(ServiceAccountKeySortableFields::Id, SortDirection::Ascending);
+    let service_account_keys = service.find(filter, Some(sort), Some(pagination.into_inner())).await;
+
+    match service_account_keys {
+        Ok(keys) => Ok(HttpResponse::Ok().json(keys)),
+        Err(e) => {
+            println!("Error listing service account keys: {:?}", e);
+            Err(actix_web::error::ErrorBadRequest(e))
+        }
+    }
+}
+
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/service_account_keys")
-            .service(web::resource("").route(web::post().to(create)))
+            .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
             .service(
                 web::resource("/{id}")
                     .route(web::get().to(read))
@@ -310,5 +335,145 @@ mod tests {
 
         cleanup_test_db(db).await.unwrap();
     }
-}
 
+    #[actix_web::test]
+    async fn test_list_service_account_keys_success() {
+        let db = setup_test_db("service_account_key_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/service_account_keys")
+                    .service(web::resource("").route(web::get().to(list))),
+            ),
+        )
+        .await;
+
+        // Create multiple keys
+        for i in 1..=3 {
+            let key = ServiceAccountKey {
+                id: None,
+                service_account_id: Uuid::new(),
+                algorithm: Algorithm::RSA,
+                key: format!("test-key-{}", i),
+                expires_at: Utc::now() + Duration::hours(1),
+                enabled: true,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+            ServiceAccountKeyService::new(app_data.database.clone().unwrap())
+                .unwrap()
+                .create(key)
+                .await
+                .unwrap();
+        }
+
+        let resp = test::TestRequest::get()
+            .uri("/service_account_keys")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let keys: Vec<ServiceAccountKey> = test::read_body_json(resp).await;
+        assert_eq!(keys.len(), 3);
+
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_service_account_keys_with_pagination() {
+        let db = setup_test_db("service_account_key_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/service_account_keys")
+                    .service(web::resource("").route(web::get().to(list))),
+            ),
+        )
+        .await;
+
+        // Create multiple keys
+        for i in 1..=5 {
+            let key = ServiceAccountKey {
+                id: None,
+                service_account_id: Uuid::new(),
+                algorithm: Algorithm::RSA,
+                key: format!("test-key-{}", i),
+                expires_at: Utc::now() + Duration::hours(1),
+                enabled: true,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+            ServiceAccountKeyService::new(app_data.database.clone().unwrap())
+                .unwrap()
+                .create(key)
+                .await
+                .unwrap();
+        }
+
+        let resp = test::TestRequest::get()
+            .uri("/service_account_keys?limit=2&page=1")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let keys: Vec<ServiceAccountKey> = test::read_body_json(resp).await;
+        assert_eq!(keys.len(), 2);
+
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_list_service_account_keys_with_enabled_filter() {
+        let db = setup_test_db("service_account_key_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/service_account_keys")
+                    .service(web::resource("").route(web::get().to(list))),
+            ),
+        )
+        .await;
+
+        // Create multiple keys
+        for i in 1..=5 {
+            let key = ServiceAccountKey {
+                id: None,
+                service_account_id: Uuid::new(),
+                algorithm: Algorithm::RSA,
+                key: format!("test-key-{}", i),
+                expires_at: Utc::now() + Duration::hours(1),
+                enabled: i % 2 == 0,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+            ServiceAccountKeyService::new(app_data.database.clone().unwrap())
+                .unwrap()
+                .create(key)
+                .await
+                .unwrap();
+        }
+
+        let resp = test::TestRequest::get()
+            .uri("/service_account_keys?is_enabled=true")
+            .send_request(&app)
+            .await;
+
+        assert!(resp.status().is_success());
+        let keys: Vec<ServiceAccountKey> = test::read_body_json(resp).await;
+        assert_eq!(keys.len(), 2);
+
+        cleanup_test_db(db).await.unwrap();
+    }
+}
