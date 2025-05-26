@@ -49,7 +49,7 @@ pub struct ProjectAccessUpdatePayload {
     pub enabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ProjectAccessFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment_id: Option<Uuid>,
