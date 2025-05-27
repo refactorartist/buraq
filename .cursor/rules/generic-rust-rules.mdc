@@ -1,10 +1,15 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
 # Rust Async Web Development Guide
 
 ## Project Setup and Workflow
 
 ### Development Commands
 
-- Run tests: `devbox run tests`
+- Run tests: `devbox run test`
 - Start application: `devbox run start`
 
 ### Prerequisites
