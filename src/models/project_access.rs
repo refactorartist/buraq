@@ -20,7 +20,8 @@ pub struct ProjectAccess {
     pub id: Option<Uuid>,
     pub name: String,
     pub environment_id: Uuid,
-    pub service_account_id: Uuid,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_account_id: Option<Uuid>,
     pub project_scopes: Vec<Uuid>,
     pub enabled: bool,
     pub created_at: Option<DateTime<Utc>>,
@@ -107,7 +108,7 @@ mod tests {
     fn test_project_access_creation() {
         let name = "Test Access".to_string();
         let environment_id = Uuid::new();
-        let service_account_id = Uuid::new();
+        let service_account_id = Some(Uuid::new());
         let project_scopes = vec![Uuid::new(), Uuid::new()];
 
         let access = ProjectAccess {
@@ -138,7 +139,7 @@ mod tests {
             id: Some(Uuid::new()),
             name: "Test Access".to_string(),
             environment_id: Uuid::new(),
-            service_account_id: Uuid::new(),
+            service_account_id: Some(Uuid::new()),
             project_scopes: vec![Uuid::new()],
             enabled: true,
             created_at: Some(Utc::now()),
