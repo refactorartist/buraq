@@ -57,7 +57,6 @@ impl Repository<ProjectAccess> for ProjectAccessRepository {
         Ok(result)
     }
 
-
     async fn update(&self, id: Uuid, payload: Self::UpdatePayload) -> Result<ProjectAccess, Error> {
         let mut document = to_document(&payload)?;
         document.insert("updated_at", Bson::String(Utc::now().to_rfc3339()));
@@ -130,7 +129,7 @@ mod tests {
             id: None,
             name: "Test Access".to_string(),
             environment_id: Uuid::new(),
-            service_account_id: Uuid::new(),
+            service_account_id: Some(Uuid::new()),
             project_scopes: vec![Uuid::new()],
             enabled: true,
             created_at: Some(Utc::now()),
@@ -155,7 +154,7 @@ mod tests {
             id: None,
             name: "Test Access".to_string(),
             environment_id: Uuid::new(),
-            service_account_id: Uuid::new(),
+            service_account_id: Some(Uuid::new()),
             project_scopes: vec![Uuid::new()],
             enabled: true,
             created_at: Some(Utc::now()),
@@ -185,7 +184,7 @@ mod tests {
             id: None,
             name: "Test Access".to_string(),
             environment_id: Uuid::new(),
-            service_account_id: Uuid::new(),
+            service_account_id: Some(Uuid::new()),
             project_scopes: vec![Uuid::new()],
             enabled: true,
             created_at: Some(Utc::now()),
@@ -228,7 +227,7 @@ mod tests {
             id: None,
             name: "Test Access".to_string(),
             environment_id: Uuid::new(),
-            service_account_id: Uuid::new(),
+            service_account_id: Some(Uuid::new()),
             project_scopes: vec![Uuid::new()],
             enabled: true,
             created_at: Some(Utc::now()),
@@ -254,7 +253,7 @@ mod tests {
     async fn test_find_project_access() -> Result<()> {
         let (repo, db) = setup().await;
         let environment_id = Uuid::new();
-        let service_account_id = Uuid::new();
+        let service_account_id = Some(Uuid::new());
 
         let access1 = ProjectAccess {
             id: None,
