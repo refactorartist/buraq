@@ -182,6 +182,7 @@ mod tests {
             expires_at: expires,
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let resp = test::TestRequest::post()
@@ -237,6 +238,7 @@ mod tests {
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: true,
+                project_access_id: Uuid::new(),
             };
             let _ = test::TestRequest::post()
                 .uri("/access-tokens")
@@ -294,6 +296,7 @@ mod tests {
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: true,
+                project_access_id: Uuid::new(),
             };
             let _ = test::TestRequest::post()
                 .uri("/access-tokens")
@@ -355,6 +358,7 @@ mod tests {
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: i % 2 == 0,
+                project_access_id: Uuid::new()
             };
             let _ = test::TestRequest::post()
                 .uri("/access-tokens")
@@ -412,6 +416,7 @@ mod tests {
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: i % 2 == 0,
+                project_access_id: Uuid::new(),
             };
             let _ = test::TestRequest::post()
                 .uri("/access-tokens")
@@ -467,6 +472,7 @@ mod tests {
             expires_at: expires,
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let resp = test::TestRequest::post()
@@ -526,6 +532,7 @@ mod tests {
             expires_at: expires,
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let resp = test::TestRequest::post()
@@ -543,6 +550,7 @@ mod tests {
             key: Some("updated-key".to_string()),
             expires_at: Some(new_expires),
             enabled: Some(false),
+            project_access_id: Some(Uuid::new()),
         };
 
         let resp = test::TestRequest::patch()
@@ -594,6 +602,7 @@ mod tests {
             expires_at: expires,
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let resp = test::TestRequest::post()

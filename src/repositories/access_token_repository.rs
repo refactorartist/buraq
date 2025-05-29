@@ -133,6 +133,7 @@ mod tests {
             expires_at: now + Duration::hours(1),
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let created = repo.create(token.clone()).await.unwrap();
@@ -153,6 +154,7 @@ mod tests {
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let created = repo.create(token.clone()).await.unwrap();
@@ -173,6 +175,7 @@ mod tests {
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let created = repo.create(token).await.unwrap();
@@ -180,6 +183,7 @@ mod tests {
             key: Some("new-key".to_string()),
             expires_at: Some(Utc::now() + Duration::hours(2)),
             enabled: Some(false),
+            project_access_id: Some(Uuid::new()),
         };
 
         let updated = repo.update(created.id.unwrap(), update).await.unwrap();
@@ -199,6 +203,7 @@ mod tests {
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let created = repo.create(token).await.unwrap();
@@ -212,37 +217,118 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_access_tokens() {
+    async fn test_find_access_tokens_by_key() {
         let (repo, db) = setup().await;
-        let token1 = AccessToken {
+        let token = AccessToken {
             id: Some(Uuid::new()),
-            key: "test-key-1".to_string(),
+            key: "test-key".to_string(),
             algorithm: Algorithm::RSA,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
+            project_access_id: Uuid::new(),
         };
-        let token2 = AccessToken {
+
+        repo.create(token).await.unwrap();
+
+        let filter = AccessTokenFilter {
+            key: Some("test-key".to_string()),
+            algorithm: None,
+            is_enabled: None,
+            is_active: None,
+            project_access_id: None,
+        };
+
+        let found = repo.find(filter, None, None).await.unwrap();
+        assert_eq!(found.len(), 1);
+
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_find_access_tokens_by_algorithm() {
+        let (repo, db) = setup().await;
+        let token = AccessToken {
             id: Some(Uuid::new()),
-            key: "test-key-2".to_string(),
-            algorithm: Algorithm::HMAC,
+            key: "test-key".to_string(),
+            algorithm: Algorithm::RSA,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
-        repo.create(token1).await.unwrap();
-        repo.create(token2).await.unwrap();
+        repo.create(token).await.unwrap();
+
+        let filter = AccessTokenFilter {
+            key: None,
+            algorithm: Some(Algorithm::RSA),
+            is_enabled: None,
+            is_active: None,
+            project_access_id: None,
+        };
+
+        let found = repo.find(filter, None, None).await.unwrap();
+        assert_eq!(found.len(), 1);
+
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_find_access_tokens_by_is_enabled() {
+        let (repo, db) = setup().await;
+        let token = AccessToken {
+            id: Some(Uuid::new()),
+            key: "test-key".to_string(),
+            algorithm: Algorithm::RSA,
+            expires_at: Utc::now() + Duration::hours(1),
+            created_at: Utc::now(),
+            enabled: true,
+            project_access_id: Uuid::new(),
+        };
+
+        repo.create(token).await.unwrap();
 
         let filter = AccessTokenFilter {
             key: None,
             algorithm: None,
             is_enabled: Some(true),
             is_active: None,
+            project_access_id: None,
         };
 
         let found = repo.find(filter, None, None).await.unwrap();
-        assert_eq!(found.len(), 2);
+        assert_eq!(found.len(), 1);
+
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_find_access_tokens_by_project_access_id() {
+        let (repo, db) = setup().await;
+        let project_access_id = Uuid::new();
+        let token = AccessToken {
+            id: Some(Uuid::new()),
+            key: "test-key".to_string(),
+            algorithm: Algorithm::RSA,
+            expires_at: Utc::now() + Duration::hours(1),
+            created_at: Utc::now(),
+            enabled: true,
+            project_access_id,
+        };
+
+        repo.create(token).await.unwrap();
+
+        let filter = AccessTokenFilter {
+            key: None,
+            algorithm: None,
+            is_enabled: None,
+            is_active: None,
+            project_access_id: Some(project_access_id),
+        };
+
+        let found = repo.find(filter, None, None).await.unwrap();
+        assert_eq!(found.len(), 1);
 
         cleanup_test_db(db).await.unwrap();
     }
