@@ -1,6 +1,6 @@
 use crate::serializers::algorithm;
-use crate::types::Algorithm;
 use chrono::{DateTime, Utc};
+use jsonwebtoken::Algorithm;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Document, doc, from_document, to_document};
 use serde::{Deserialize, Serialize};
@@ -73,7 +73,7 @@ impl From<AccessTokenFilter> for Document {
             doc.insert("key", key);
         }
         if let Some(algorithm) = value.algorithm {
-            doc.insert("algorithm", algorithm.to_string());
+            doc.insert("algorithm", format!("{:?}", algorithm));
         }
         if let Some(is_enabled) = value.is_enabled {
             doc.insert("enabled", is_enabled);
@@ -127,7 +127,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: expires,
             created_at: now,
             enabled: true,
@@ -135,7 +135,7 @@ mod tests {
         };
 
         assert_eq!(token.key, "test-key");
-        assert_eq!(token.algorithm, Algorithm::RSA);
+        assert_eq!(token.algorithm, Algorithm::RS256);
         assert!(token.enabled);
     }
 
@@ -144,7 +144,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::HMAC,
+            algorithm: Algorithm::HS256,
             expires_at: Utc::now(),
             created_at: Utc::now(),
             enabled: true,
@@ -196,7 +196,7 @@ mod tests {
     fn test_access_token_filter() {
         let filter = AccessTokenFilter {
             key: Some("test-key".to_string()),
-            algorithm: Some(Algorithm::RSA),
+            algorithm: Some(Algorithm::RS256),
             is_enabled: Some(true),
             is_active: Some(true),
             project_access_id: Some(Uuid::new()),
@@ -205,7 +205,7 @@ mod tests {
         let doc: Document = filter.into();
 
         assert_eq!(doc.get_str("key").unwrap(), "test-key");
-        assert_eq!(doc.get_str("algorithm").unwrap(), "RSA");
+        assert_eq!(doc.get_str("algorithm").unwrap(), "RS256");
         assert!(doc.get_bool("enabled").unwrap());
         assert!(doc.get_document("expires_at").unwrap().contains_key("$gt"));
         assert!(doc.contains_key("project_access_id"));

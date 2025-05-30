@@ -70,7 +70,7 @@ impl ServiceAccountKeyService {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use crate::types::Algorithm;
+    use jsonwebtoken::Algorithm;
     use chrono::{Duration, Utc};
 
     async fn setup() -> (ServiceAccountKeyService, Database) {
@@ -86,7 +86,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: None,
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: now + Duration::hours(1),
             enabled: true,
@@ -109,7 +109,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -135,7 +135,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -164,7 +164,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -189,7 +189,7 @@ mod tests {
         let key1 = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key-1".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -199,7 +199,7 @@ mod tests {
         let key2 = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::HMAC,
+            algorithm: Algorithm::HS256,
             key: "test-key-2".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: false,
@@ -232,7 +232,7 @@ mod tests {
         let key1 = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key-1".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -242,7 +242,7 @@ mod tests {
         let key2 = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::HMAC,
+            algorithm: Algorithm::HS256,
             key: "test-key-2".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -255,14 +255,14 @@ mod tests {
 
         let filter = ServiceAccountKeyFilter {
             service_account_id: None,
-            algorithm: Some(Algorithm::RSA),
+            algorithm: Some(Algorithm::RS256),
             is_enabled: None,
             is_active: None,
         };
 
         let found = service.find(filter, None, None).await?;
         assert_eq!(found.len(), 1);
-        assert_eq!(found[0].algorithm, Algorithm::RSA);
+        assert_eq!(found[0].algorithm, Algorithm::RS256);
 
         cleanup_test_db(db).await?;
         Ok(())
@@ -277,7 +277,7 @@ mod tests {
             let key = ServiceAccountKey {
                 id: None,
                 service_account_id: Uuid::new(),
-                algorithm: Algorithm::RSA,
+                algorithm: Algorithm::RS256,
                 key: format!("test-key-{}", i),
                 expires_at: Utc::now() + Duration::hours(1),
                 enabled: true,
