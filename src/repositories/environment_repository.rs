@@ -36,26 +36,29 @@ impl EnvironmentRepository {
     }
 
     pub async fn ensure_indexes(&self) -> Result<(), Error> {
-        let _ = &self.collection.create_index(
-            IndexModel::builder()
-                .keys(doc! { "project_id": 1, "name": 1 })
-                .options(IndexOptions::builder().unique(true).build())
-                .build()
-            ).await.expect("Failed to create index on project_id, name");
-
-        let _ = &self.collection
+        let _ = &self
+            .collection
             .create_index(
                 IndexModel::builder()
-                    .keys(
-                        doc! { "project_id": 1, "enabled": 1 },
-                    )
+                    .keys(doc! { "project_id": 1, "name": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_id, name");
+
+        let _ = &self
+            .collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "project_id": 1, "enabled": 1 })
                     .build(),
             )
             .await
             .expect("Failed to create index on project_id, enabled");
 
         Ok(())
-    }    
+    }
 }
 
 #[async_trait]

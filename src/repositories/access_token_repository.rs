@@ -33,7 +33,8 @@ impl AccessTokenRepository {
                 .build()
         ).await.expect("Failed to create index on project_access_id, algorithm, expires_at");
 
-        let _ = &self.collection
+        let _ = &self
+            .collection
             .create_index(
                 IndexModel::builder()
                     .keys(
@@ -44,7 +45,8 @@ impl AccessTokenRepository {
             .await
             .expect("Failed to create index on project_access_id, algorithm, active");
 
-        let _ = &self.collection
+        let _ = &self
+            .collection
             .create_index(
                 IndexModel::builder()
                     .keys(mongodb::bson::doc! { "project_access_id": 1, "enabled": 1 })
