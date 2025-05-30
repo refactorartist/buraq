@@ -10,11 +10,11 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::Utc;
 use futures::TryStreamExt;
+use mongodb::IndexModel;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Bson, doc, to_document};
-use mongodb::{Collection, Database};
-use mongodb::IndexModel;
 use mongodb::options::IndexOptions;
+use mongodb::{Collection, Database};
 
 /// Repository for managing ServiceAccountKey documents in MongoDB.
 ///
@@ -138,7 +138,9 @@ mod tests {
         let db = setup_test_db("service_account_key").await.unwrap();
         let repo =
             ServiceAccountKeyRepository::new(db.clone()).expect("Failed to create repository");
-        repo.ensure_indexes().await.expect("Failed to create indexes");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to create indexes");
         (repo, db)
     }
 
