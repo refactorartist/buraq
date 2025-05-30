@@ -151,7 +151,7 @@ pub fn configure_routes(config: &mut web::ServiceConfig) {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use crate::types::Algorithm;
+    use jsonwebtoken::Algorithm;
     use actix_web::{App, test};
     use chrono::{Duration, Utc};
 
@@ -175,7 +175,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: None,
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: now + Duration::hours(1),
             enabled: true,
@@ -217,7 +217,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: None,
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: now + Duration::hours(1),
             enabled: true,
@@ -266,7 +266,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: None,
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: now + Duration::hours(1),
             enabled: true,
@@ -323,7 +323,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: None,
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: now + Duration::hours(1),
             enabled: true,
@@ -381,7 +381,7 @@ mod tests {
             let key = ServiceAccountKey {
                 id: None,
                 service_account_id: Uuid::new(),
-                algorithm: Algorithm::RSA,
+                algorithm: Algorithm::RS256,
                 key: format!("test-key-{}", i),
                 expires_at: Utc::now() + Duration::hours(1),
                 enabled: true,
@@ -428,7 +428,7 @@ mod tests {
             let key = ServiceAccountKey {
                 id: None,
                 service_account_id: Uuid::new(),
-                algorithm: Algorithm::RSA,
+                algorithm: Algorithm::RS256,
                 key: format!("test-key-{}", i),
                 expires_at: Utc::now() + Duration::hours(1),
                 enabled: true,
@@ -475,7 +475,7 @@ mod tests {
             let key = ServiceAccountKey {
                 id: None,
                 service_account_id: Uuid::new(),
-                algorithm: Algorithm::RSA,
+                algorithm: Algorithm::RS256,
                 key: format!("test-key-{}", i),
                 expires_at: Utc::now() + Duration::hours(1),
                 enabled: i % 2 == 0,
