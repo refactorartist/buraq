@@ -7,6 +7,7 @@ use crate::repositories::{
     project_access_repository::ProjectAccessRepository, project_repository::ProjectRepository,
     project_scope_repository::ProjectScopeRepository,
     service_account_key_repository::ServiceAccountKeyRepository,
+    service_account_repository::ServiceAccountRepository,
 };
 
 pub async fn create_database_client(database_uri: &str) -> Result<Arc<Client>, anyhow::Error> {
@@ -38,7 +39,11 @@ pub async fn setup_database(database: Database) -> Result<(), Error> {
         .unwrap()
         .ensure_indexes()
         .await?;
-    ServiceAccountKeyRepository::new(database)
+    ServiceAccountKeyRepository::new(database.clone())
+        .unwrap()
+        .ensure_indexes()
+        .await?;
+    ServiceAccountRepository::new(database.clone())
         .unwrap()
         .ensure_indexes()
         .await?;
