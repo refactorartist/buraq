@@ -11,7 +11,8 @@ use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Bson, doc, to_document};
-use mongodb::{Collection, Database};
+use mongodb::options::IndexOptions;
+use mongodb::{Collection, Database, IndexModel};
 
 /// Repository for managing ServiceAccount documents in MongoDB.
 ///
@@ -24,6 +25,30 @@ impl ServiceAccountRepository {
     pub fn new(database: Database) -> Result<Self, anyhow::Error> {
         let collection = database.collection::<ServiceAccount>("service_accounts");
         Ok(Self { collection })
+    }
+
+    pub async fn ensure_indexes(&self) -> Result<(), Error> {
+        self.collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "email": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await
+            .expect("Failed to create unique index on email");
+
+        self.collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "user": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await
+            .expect("Failed to create unique index on user");
+
+        Ok(())
     }
 }
 
@@ -113,6 +138,9 @@ mod tests {
     async fn setup() -> (ServiceAccountRepository, Database) {
         let db = setup_test_db("service_account").await.unwrap();
         let repo = ServiceAccountRepository::new(db.clone()).expect("Failed to create repository");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to ensure indexes");
         (repo, db)
     }
 
