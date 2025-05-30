@@ -143,9 +143,11 @@ mod tests {
     async fn setup() -> (EnvironmentRepository, Database) {
         let db = setup_test_db("environment").await.unwrap();
         let repo = EnvironmentRepository::new(db.clone()).expect("Failed to create repository");
-        repo.ensure_indexes().await.expect("Failed to create indexes");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to create indexes");
         (repo, db)
-    }    
+    }
 
     #[tokio::test]
     async fn test_create_environment() -> Result<()> {

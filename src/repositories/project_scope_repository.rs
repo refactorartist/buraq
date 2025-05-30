@@ -145,7 +145,9 @@ mod tests {
     async fn setup() -> (ProjectScopeRepository, Database) {
         let db = setup_test_db("project_scope").await.unwrap();
         let repo = ProjectScopeRepository::new(db.clone()).expect("Failed to create repository");
-        repo.ensure_indexes().await.expect("Failed to create indexes");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to create indexes");
         (repo, db)
     }
 
