@@ -30,14 +30,20 @@ mod tests {
 
     #[test]
     fn test_pagination_creation() {
-        let pagination = Pagination { page: Some(1), limit: Some(10) };
+        let pagination = Pagination {
+            page: Some(1),
+            limit: Some(10),
+        };
         assert_eq!(pagination.page, Some(1));
         assert_eq!(pagination.limit, Some(10));
     }
 
     #[test]
     fn test_pagination_with_zero_values() {
-        let pagination = Pagination { page: Some(0), limit: Some(0) };
+        let pagination = Pagination {
+            page: Some(0),
+            limit: Some(0),
+        };
         assert_eq!(pagination.page, Some(0));
         assert_eq!(pagination.limit, Some(0));
     }

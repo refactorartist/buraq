@@ -78,7 +78,7 @@ mod tests {
             expires_at: now + Duration::hours(1),
             created_at: now,
             enabled: true,
-            project_access_id: Uuid::new()
+            project_access_id: Uuid::new(),
         };
 
         let created = service.create(token.clone()).await?;
@@ -100,7 +100,7 @@ mod tests {
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
-            project_access_id: Uuid::new()
+            project_access_id: Uuid::new(),
         };
 
         let created = service.create(token.clone()).await?;
@@ -125,7 +125,7 @@ mod tests {
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
-            project_access_id: Uuid::new()
+            project_access_id: Uuid::new(),
         };
 
         let created = service.create(token).await?;
@@ -133,7 +133,7 @@ mod tests {
             key: Some("new-key".to_string()),
             expires_at: Some(Utc::now() + Duration::hours(2)),
             enabled: Some(false),
-            project_access_id: Some(Uuid::new())
+            project_access_id: Some(Uuid::new()),
         };
 
         let updated = service.update(created.id.unwrap(), update).await?;
@@ -154,7 +154,7 @@ mod tests {
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
-            project_access_id: Uuid::new()
+            project_access_id: Uuid::new(),
         };
 
         let created = service.create(token).await?;
@@ -178,7 +178,7 @@ mod tests {
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
-            project_access_id: Uuid::new()
+            project_access_id: Uuid::new(),
         };
         let token2 = AccessToken {
             id: Some(Uuid::new()),
@@ -187,7 +187,7 @@ mod tests {
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
-            project_access_id: Uuid::new()
+            project_access_id: Uuid::new(),
         };
 
         service.create(token1).await?;
@@ -198,7 +198,7 @@ mod tests {
             algorithm: None,
             is_enabled: Some(true),
             is_active: None,
-            project_access_id: None
+            project_access_id: None,
         };
 
         let found = service.find(filter, None, None).await?;
@@ -221,7 +221,7 @@ mod tests {
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: true,
-                project_access_id: Uuid::new()
+                project_access_id: Uuid::new(),
             };
             service.create(token).await?;
         }
@@ -238,7 +238,7 @@ mod tests {
                     algorithm: None,
                     is_enabled: None,
                     is_active: None,
-                    project_access_id: None
+                    project_access_id: None,
                 },
                 None,
                 Some(pagination),
@@ -260,7 +260,7 @@ mod tests {
                     algorithm: None,
                     is_enabled: None,
                     is_active: None,
-                    project_access_id: None
+                    project_access_id: None,
                 },
                 None,
                 Some(pagination),

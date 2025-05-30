@@ -25,7 +25,7 @@ pub struct AccessToken {
     pub algorithm: Algorithm,
     pub expires_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
-    pub enabled: bool,    
+    pub enabled: bool,
 }
 
 impl From<AccessToken> for Document {
@@ -173,7 +173,10 @@ mod tests {
         };
 
         let result: Result<AccessToken, _> = from_document(doc.clone());
-        assert!(result.is_err(), "Expected conversion to fail due to invalid algorithm");
+        assert!(
+            result.is_err(),
+            "Expected conversion to fail due to invalid algorithm"
+        );
     }
 
     #[test]

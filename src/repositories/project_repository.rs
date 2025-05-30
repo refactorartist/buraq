@@ -54,7 +54,6 @@ impl Repository<Project> for ProjectRepository {
         Ok(result)
     }
 
-
     async fn update(&self, id: Uuid, payload: Self::UpdatePayload) -> Result<Project, Error> {
         let mut document = to_document(&payload)?;
         document.insert("updated_at", Bson::String(Utc::now().to_rfc3339()));

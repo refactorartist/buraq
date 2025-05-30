@@ -535,7 +535,7 @@ mod tests {
                 created_at: Some(Utc::now()),
                 updated_at: Some(Utc::now()),
             };
-            
+
             let _ = test::TestRequest::post()
                 .uri("/projects")
                 .set_json(&project)

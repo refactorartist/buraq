@@ -8,11 +8,11 @@ use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::TryStreamExt;
-use mongodb::bson::uuid::Uuid;
-use mongodb::bson::to_document;
-use mongodb::{Collection, Database};
-use mongodb::options::IndexOptions;
 use mongodb::IndexModel;
+use mongodb::bson::to_document;
+use mongodb::bson::uuid::Uuid;
+use mongodb::options::IndexOptions;
+use mongodb::{Collection, Database};
 
 /// Repository for managing AccessToken documents in MongoDB.
 ///
@@ -44,25 +44,31 @@ impl Repository<AccessToken> for AccessTokenRepository {
             .await
             .expect("Failed to create access token");
 
-
         self.collection.create_index(
             IndexModel::builder()
                 .keys(mongodb::bson::doc! { "project_access_id": 1, "algorithm": 1, "expires_at": 1 })
                 .build()
         ).await.expect("Failed to create index on project_access_id, algorithm, expires_at");
 
-        self.collection.create_index(
-            IndexModel::builder()
-                .keys(mongodb::bson::doc! { "project_access_id": 1, "algorithm": 1, "active": 1 })
-                .build()
-        ).await.expect("Failed to create index on project_access_id, algorithm, active");
+        self.collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(
+                        mongodb::bson::doc! { "project_access_id": 1, "algorithm": 1, "active": 1 },
+                    )
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_access_id, algorithm, active");
 
-        self.collection.create_index(
-            IndexModel::builder()
-                .keys(mongodb::bson::doc! { "project_access_id": 1, "enabled": 1 })
-                .build()
-        ).await.expect("Failed to create index on project_access_id, enabled");
-
+        self.collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(mongodb::bson::doc! { "project_access_id": 1, "enabled": 1 })
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_access_id, enabled");
 
         Ok(item)
     }

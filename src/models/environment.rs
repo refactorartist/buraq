@@ -46,7 +46,7 @@ pub struct EnvironmentUpdatePayload {
     pub enabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone,Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct EnvironmentFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project_id: Option<Uuid>,

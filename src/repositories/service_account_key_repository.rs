@@ -49,7 +49,6 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
         Ok(result)
     }
 
-
     async fn update(
         &self,
         id: Uuid,

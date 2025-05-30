@@ -1,10 +1,12 @@
 use crate::config::AppData;
-use crate::models::service_account::{ServiceAccount, ServiceAccountUpdatePayload, ServiceAccountFilter, ServiceAccountSortableFields};
-use crate::services::service_account_service::ServiceAccountService;
 use crate::models::pagination::Pagination;
+use crate::models::service_account::{
+    ServiceAccount, ServiceAccountFilter, ServiceAccountSortableFields, ServiceAccountUpdatePayload,
+};
 use crate::models::sort::{SortBuilder, SortDirection};
-use mongodb::bson::uuid::Uuid;
+use crate::services::service_account_service::ServiceAccountService;
 use actix_web::{Error, HttpResponse, web};
+use mongodb::bson::uuid::Uuid;
 
 pub async fn create(
     data: web::Data<AppData>,
@@ -60,7 +62,9 @@ pub async fn update_service_account(
     let service = ServiceAccountService::new(database.clone()).unwrap();
     let service_account_id = Uuid::parse_str(path.into_inner()).unwrap();
 
-    let service_account = service.update(service_account_id, payload.into_inner()).await;
+    let service_account = service
+        .update(service_account_id, payload.into_inner())
+        .await;
 
     match service_account {
         Ok(service_account) => Ok(HttpResponse::Ok().json(service_account)),
@@ -109,9 +113,14 @@ pub async fn list(
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = ServiceAccountService::new(database.clone()).unwrap();
-    let sort = SortBuilder::new().add_sort(ServiceAccountSortableFields::Id, SortDirection::Ascending);
+    let sort =
+        SortBuilder::new().add_sort(ServiceAccountSortableFields::Id, SortDirection::Ascending);
     let service_accounts = service
-        .find(query.into_inner(), Some(sort), Some(pagination.into_inner()))
+        .find(
+            query.into_inner(),
+            Some(sort),
+            Some(pagination.into_inner()),
+        )
         .await;
 
     dbg!(&service_accounts);
@@ -147,9 +156,9 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
-    use actix_web::{test, App};
-    use crate::test_utils::{setup_test_db, cleanup_test_db};
     use crate::models::service_account::ServiceAccount;
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
+    use actix_web::{App, test};
 
     #[actix_web::test]
     async fn test_create_service_account_success() {
@@ -217,7 +226,10 @@ mod tests {
             .unwrap();
 
         let resp = test::TestRequest::get()
-            .uri(&format!("/service-accounts/{}", created_service_account.id.unwrap()))
+            .uri(&format!(
+                "/service-accounts/{}",
+                created_service_account.id.unwrap()
+            ))
             .send_request(&app)
             .await;
 
@@ -238,10 +250,11 @@ mod tests {
         });
 
         let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/service-accounts")
-                    .service(web::resource("/{id}").route(web::patch().to(update_service_account))),
-            ),
+            App::new()
+                .app_data(app_data.clone())
+                .service(web::scope("/service-accounts").service(
+                    web::resource("/{id}").route(web::patch().to(update_service_account)),
+                )),
         )
         .await;
 
@@ -265,7 +278,10 @@ mod tests {
         };
 
         let resp = test::TestRequest::patch()
-            .uri(&format!("/service-accounts/{}", created_service_account.id.unwrap()))
+            .uri(&format!(
+                "/service-accounts/{}",
+                created_service_account.id.unwrap()
+            ))
             .set_json(&update_payload)
             .send_request(&app)
             .await;
@@ -309,14 +325,20 @@ mod tests {
             .unwrap();
 
         let resp = test::TestRequest::delete()
-            .uri(&format!("/service-accounts/{}", created_service_account.id.unwrap()))
+            .uri(&format!(
+                "/service-accounts/{}",
+                created_service_account.id.unwrap()
+            ))
             .send_request(&app)
             .await;
 
         assert!(resp.status().is_success());
 
         let resp = test::TestRequest::get()
-            .uri(&format!("/service-accounts/{}", created_service_account.id.unwrap()))
+            .uri(&format!(
+                "/service-accounts/{}",
+                created_service_account.id.unwrap()
+            ))
             .send_request(&app)
             .await;
 
@@ -333,12 +355,9 @@ mod tests {
             ..Default::default()
         });
 
-        let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/service-accounts")
-                    .service(web::resource("").route(web::get().to(list))),
-            ),
-        )
+        let app = test::init_service(App::new().app_data(app_data.clone()).service(
+            web::scope("/service-accounts").service(web::resource("").route(web::get().to(list))),
+        ))
         .await;
 
         for i in 0..10 {
@@ -375,12 +394,9 @@ mod tests {
             ..Default::default()
         });
 
-        let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/service-accounts")
-                    .service(web::resource("").route(web::get().to(list))),
-            ),
-        )
+        let app = test::init_service(App::new().app_data(app_data.clone()).service(
+            web::scope("/service-accounts").service(web::resource("").route(web::get().to(list))),
+        ))
         .await;
 
         for i in 0..5 {
@@ -417,12 +433,9 @@ mod tests {
             ..Default::default()
         });
 
-        let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/service-accounts")
-                    .service(web::resource("").route(web::get().to(list))),
-            ),
-        )
+        let app = test::init_service(App::new().app_data(app_data.clone()).service(
+            web::scope("/service-accounts").service(web::resource("").route(web::get().to(list))),
+        ))
         .await;
 
         for i in 0..10 {

@@ -358,7 +358,7 @@ mod tests {
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: i % 2 == 0,
-                project_access_id: Uuid::new()
+                project_access_id: Uuid::new(),
             };
             let _ = test::TestRequest::post()
                 .uri("/access-tokens")
