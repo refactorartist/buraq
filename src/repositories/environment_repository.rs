@@ -10,7 +10,8 @@ use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::Uuid;
 use mongodb::bson::{Bson, doc, to_document};
-use mongodb::{Collection, Database};
+use mongodb::options::IndexOptions;
+use mongodb::{Collection, Database, IndexModel};
 
 /// Repository for managing Environment documents in MongoDB.
 ///
@@ -33,6 +34,28 @@ impl EnvironmentRepository {
         let collection = database.collection::<Environment>("environments");
         Ok(Self { collection })
     }
+
+    pub async fn ensure_indexes(&self) -> Result<(), Error> {
+        let _ = &self.collection.create_index(
+            IndexModel::builder()
+                .keys(doc! { "project_id": 1, "name": 1 })
+                .options(IndexOptions::builder().unique(true).build())
+                .build()
+            ).await.expect("Failed to create index on project_id, name");
+
+        let _ = &self.collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(
+                        doc! { "project_id": 1, "enabled": 1 },
+                    )
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_id, enabled");
+
+        Ok(())
+    }    
 }
 
 #[async_trait]
