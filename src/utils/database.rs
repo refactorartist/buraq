@@ -2,7 +2,10 @@ use mongodb::{Client, Database};
 use anyhow::Error;
 use std::sync::Arc;
 
-use crate::repositories::access_token_repository::AccessTokenRepository;
+use crate::repositories::{
+    access_token_repository::AccessTokenRepository,
+    environment_repository::EnvironmentRepository,
+};
 
 pub async fn create_database_client(database_uri: &str) -> Result<Arc<Client>, anyhow::Error> {
     let client = mongodb::Client::with_uri_str(&database_uri)
@@ -13,8 +16,8 @@ pub async fn create_database_client(database_uri: &str) -> Result<Arc<Client>, a
 }
 
 pub async fn setup_database(database: Database) -> Result<(), Error> {
-    AccessTokenRepository::new(database).unwrap().ensure_indexes().await?;
-
+    AccessTokenRepository::new(database.clone()).unwrap().ensure_indexes().await?;
+    EnvironmentRepository::new(database).unwrap().ensure_indexes().await?;
     Ok(())
 }
 
