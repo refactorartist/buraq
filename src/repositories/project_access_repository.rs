@@ -40,26 +40,34 @@ impl ProjectAccessRepository {
         // Unique index on (project_id, name)
 
         // Compound unique index on (service_account_id, environment_id)
-        let _ = &self.collection.create_index(
-            IndexModel::builder()
-                .keys(doc! { "service_account_id": 1, "environment_id": 1 })
-                .options(IndexOptions::builder().unique(true).build())
-                .build()
-        ).await.expect("Failed to create unique index on service_account_id, environment_id");
+        let _ = &self
+            .collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "service_account_id": 1, "environment_id": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await
+            .expect("Failed to create unique index on service_account_id, environment_id");
 
         // Index on project_scopes
-        let _ = &self.collection.create_index(
-            IndexModel::builder()
-                .keys(doc! { "project_scopes": 1 })
-                .build()
-        ).await.expect("Failed to create index on project_scopes");
+        let _ = &self
+            .collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "project_scopes": 1 })
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_scopes");
 
         // Index on enabled
-        let _ = &self.collection.create_index(
-            IndexModel::builder()
-                .keys(doc! { "enabled": 1 })
-                .build()
-        ).await.expect("Failed to create index on enabled");
+        let _ = &self
+            .collection
+            .create_index(IndexModel::builder().keys(doc! { "enabled": 1 }).build())
+            .await
+            .expect("Failed to create index on enabled");
 
         Ok(())
     }

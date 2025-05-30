@@ -34,19 +34,20 @@ impl ProjectRepository {
     }
 
     pub async fn ensure_indexes(&self) -> Result<(), Error> {
-        let _ = &self.collection.create_index(
-            IndexModel::builder()
-                .keys(doc! { "name": 1 })
-                .options(IndexOptions::builder().unique(true).build())
-                .build()
-            ).await.expect("Failed to create unique index on name");
-
-        let _ = &self.collection
+        let _ = &self
+            .collection
             .create_index(
                 IndexModel::builder()
-                    .keys(doc! { "enabled": 1 })
+                    .keys(doc! { "name": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
                     .build(),
             )
+            .await
+            .expect("Failed to create unique index on name");
+
+        let _ = &self
+            .collection
+            .create_index(IndexModel::builder().keys(doc! { "enabled": 1 }).build())
             .await
             .expect("Failed to create index on enabled");
 
