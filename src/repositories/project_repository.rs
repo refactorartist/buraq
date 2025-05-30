@@ -8,7 +8,8 @@ use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Bson, doc, to_document};
-use mongodb::{Collection, Database};
+use mongodb::options::IndexOptions;
+use mongodb::{Collection, Database, IndexModel};
 
 /// Repository for managing Project documents in MongoDB.
 ///
@@ -30,6 +31,26 @@ impl ProjectRepository {
     pub fn new(database: Database) -> Result<Self, Error> {
         let collection = database.collection::<Project>("projects");
         Ok(Self { collection })
+    }
+
+    pub async fn ensure_indexes(&self) -> Result<(), Error> {
+        let _ = &self.collection.create_index(
+            IndexModel::builder()
+                .keys(doc! { "name": 1 })
+                .options(IndexOptions::builder().unique(true).build())
+                .build()
+            ).await.expect("Failed to create unique index on name");
+
+        let _ = &self.collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "enabled": 1 })
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on enabled");
+
+        Ok(())
     }
 }
 
@@ -129,6 +150,7 @@ mod tests {
     async fn test_create_project() -> Result<()> {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
+        repo.ensure_indexes().await?;
 
         let created = create_test_project(&repo).await?;
 
@@ -147,6 +169,7 @@ mod tests {
     async fn test_read_project() -> Result<()> {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
+        repo.ensure_indexes().await?;
 
         let created = create_test_project(&repo).await?;
         let read = repo.read(created.id.unwrap()).await?;
@@ -172,6 +195,7 @@ mod tests {
     async fn test_update_project() -> Result<()> {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
+        repo.ensure_indexes().await?;
 
         let created = create_test_project(&repo).await?;
         let project_id = created.id.unwrap();
@@ -212,6 +236,7 @@ mod tests {
     async fn test_delete_project() -> Result<()> {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
+        repo.ensure_indexes().await?;
 
         let created = create_test_project(&repo).await?;
         let project_id = created.id.unwrap();
@@ -236,6 +261,7 @@ mod tests {
     async fn test_find_projects() -> Result<()> {
         let db = setup_test_db("project").await?;
         let repo = ProjectRepository::new(db.clone())?;
+        repo.ensure_indexes().await?;
 
         // Create multiple test projects
         let project1 = Project {
