@@ -135,6 +135,15 @@ mod tests {
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use chrono::Utc;
 
+    async fn setup() -> (ProjectRepository, Database) {
+        let db = setup_test_db("project").await.unwrap();
+        let repo = ProjectRepository::new(db.clone()).expect("Failed to create repository");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to create indexes");
+        (repo, db)
+    }
+
     async fn create_test_project(repo: &ProjectRepository) -> Result<Project> {
         let project = Project {
             id: None,
@@ -149,9 +158,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_project() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
-        repo.ensure_indexes().await?;
+        let (repo, db) = setup().await;
 
         let created = create_test_project(&repo).await?;
 
@@ -168,9 +175,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_project() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
-        repo.ensure_indexes().await?;
+        let (repo, db) = setup().await;
 
         let created = create_test_project(&repo).await?;
         let read = repo.read(created.id.unwrap()).await?;
@@ -194,9 +199,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_project() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
-        repo.ensure_indexes().await?;
+        let (repo, db) = setup().await;
 
         let created = create_test_project(&repo).await?;
         let project_id = created.id.unwrap();
@@ -235,9 +238,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_project() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
-        repo.ensure_indexes().await?;
+        let (repo, db) = setup().await;
 
         let created = create_test_project(&repo).await?;
         let project_id = created.id.unwrap();
@@ -260,9 +261,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_find_projects() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
-        repo.ensure_indexes().await?;
+        let (repo, db) = setup().await;
 
         // Create multiple test projects
         let project1 = Project {
