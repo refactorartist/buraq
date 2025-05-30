@@ -148,7 +148,7 @@ impl Repository<AccessToken> for AccessTokenRepository {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use crate::types::Algorithm;
+    use jsonwebtoken::Algorithm;
     use chrono::{Duration, Utc};
 
     async fn setup() -> (AccessTokenRepository, Database) {
@@ -167,7 +167,7 @@ mod tests {
         let token = AccessToken {
             id: None,
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: now + Duration::hours(1),
             created_at: now,
             enabled: true,
@@ -188,7 +188,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -209,7 +209,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -237,7 +237,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -260,7 +260,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -289,7 +289,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -300,7 +300,7 @@ mod tests {
 
         let filter = AccessTokenFilter {
             key: None,
-            algorithm: Some(Algorithm::RSA),
+            algorithm: Some(Algorithm::RS256),
             is_enabled: None,
             is_active: None,
             project_access_id: None,
@@ -318,7 +318,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -348,7 +348,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
