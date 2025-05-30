@@ -5,5 +5,4 @@ pub mod routes;
 pub mod serializers;
 pub mod services;
 pub mod test_utils;
-pub mod types;
 pub mod utils;
