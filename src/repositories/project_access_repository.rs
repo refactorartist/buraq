@@ -156,6 +156,7 @@ mod tests {
     async fn setup() -> (ProjectAccessRepository, Database) {
         let db = setup_test_db("project_access").await.unwrap();
         let repo = ProjectAccessRepository::new(db.clone()).expect("Failed to create repository");
+        repo.ensure_indexes().await.expect("Failed to create indexes");
         (repo, db)
     }
 
@@ -290,13 +291,14 @@ mod tests {
     async fn test_find_project_access() -> Result<()> {
         let (repo, db) = setup().await;
         let environment_id = Uuid::new();
-        let service_account_id = Some(Uuid::new());
+        let service_account_id1 = Some(Uuid::new());
+        let service_account_id2 = Some(Uuid::new());
 
         let access1 = ProjectAccess {
             id: None,
             name: "Access 1".to_string(),
             environment_id,
-            service_account_id,
+            service_account_id: service_account_id1,
             project_scopes: vec![Uuid::new()],
             enabled: true,
             created_at: Some(Utc::now()),
@@ -306,7 +308,7 @@ mod tests {
             id: None,
             name: "Access 2".to_string(),
             environment_id,
-            service_account_id,
+            service_account_id: service_account_id2,
             project_scopes: vec![Uuid::new()],
             enabled: false,
             created_at: Some(Utc::now()),
