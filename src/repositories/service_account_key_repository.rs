@@ -10,8 +10,10 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::Utc;
 use futures::TryStreamExt;
+use mongodb::IndexModel;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Bson, doc, to_document};
+use mongodb::options::IndexOptions;
 use mongodb::{Collection, Database};
 
 /// Repository for managing ServiceAccountKey documents in MongoDB.
@@ -25,6 +27,25 @@ impl ServiceAccountKeyRepository {
     pub fn new(database: Database) -> Result<Self, anyhow::Error> {
         let collection = database.collection::<ServiceAccountKey>("service_account_keys");
         Ok(Self { collection })
+    }
+
+    pub async fn ensure_indexes(&self) -> Result<()> {
+        let unique_options = IndexOptions::builder().unique(true).build();
+        let non_unique_options = IndexOptions::builder().unique(false).build();
+
+        let unique_index = IndexModel::builder()
+            .keys(doc! { "service_account_id": 1, "algorithm": 1 })
+            .options(unique_options)
+            .build();
+
+        let non_unique_index = IndexModel::builder()
+            .keys(doc! { "service_account_id": 1, "expires_at": 1, "enabled": 1 })
+            .options(non_unique_options)
+            .build();
+
+        self.collection.create_index(unique_index).await?;
+        self.collection.create_index(non_unique_index).await?;
+        Ok(())
     }
 }
 
@@ -117,6 +138,9 @@ mod tests {
         let db = setup_test_db("service_account_key").await.unwrap();
         let repo =
             ServiceAccountKeyRepository::new(db.clone()).expect("Failed to create repository");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to create indexes");
         (repo, db)
     }
 
