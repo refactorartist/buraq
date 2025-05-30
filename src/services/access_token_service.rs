@@ -58,7 +58,7 @@ impl AccessTokenService {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use crate::types::Algorithm;
+    use jsonwebtoken::Algorithm;
     use chrono::{Duration, Utc};
 
     async fn setup() -> (AccessTokenService, Database) {
@@ -74,7 +74,7 @@ mod tests {
         let token = AccessToken {
             id: None,
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: now + Duration::hours(1),
             created_at: now,
             enabled: true,
@@ -96,7 +96,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -121,7 +121,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -150,7 +150,7 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -174,7 +174,7 @@ mod tests {
         let token1 = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key-1".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -183,7 +183,7 @@ mod tests {
         let token2 = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key-2".to_string(),
-            algorithm: Algorithm::HMAC,
+            algorithm: Algorithm::HS256,
             expires_at: Utc::now() + Duration::hours(1),
             created_at: Utc::now(),
             enabled: true,
@@ -217,7 +217,7 @@ mod tests {
             let token = AccessToken {
                 id: None,
                 key: format!("test-key-{}", i),
-                algorithm: Algorithm::RSA,
+                algorithm: Algorithm::RS256,
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: true,
