@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::repositories::{
     access_token_repository::AccessTokenRepository, environment_repository::EnvironmentRepository,
     project_access_repository::ProjectAccessRepository, project_repository::ProjectRepository,
-    project_scope_repository::ProjectScopeRepository,
+    project_scope_repository::ProjectScopeRepository, service_account_key_repository::ServiceAccountKeyRepository,
 };
 
 pub async fn create_database_client(database_uri: &str) -> Result<Arc<Client>, anyhow::Error> {
@@ -33,7 +33,11 @@ pub async fn setup_database(database: Database) -> Result<(), Error> {
         .unwrap()
         .ensure_indexes()
         .await?;
-    ProjectScopeRepository::new(database)
+    ProjectScopeRepository::new(database.clone())
+        .unwrap()
+        .ensure_indexes()
+        .await?;
+    ServiceAccountKeyRepository::new(database)
         .unwrap()
         .ensure_indexes()
         .await?;
