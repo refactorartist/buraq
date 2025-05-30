@@ -7,6 +7,7 @@ use crate::repositories::{
     environment_repository::EnvironmentRepository,
     project_access_repository::ProjectAccessRepository,
     project_repository::ProjectRepository,
+    project_scope_repository::ProjectScopeRepository,
 };
 
 pub async fn create_database_client(database_uri: &str) -> Result<Arc<Client>, anyhow::Error> {
@@ -21,7 +22,8 @@ pub async fn setup_database(database: Database) -> Result<(), Error> {
     AccessTokenRepository::new(database.clone()).unwrap().ensure_indexes().await?;
     EnvironmentRepository::new(database.clone()).unwrap().ensure_indexes().await?;
     ProjectAccessRepository::new(database.clone()).unwrap().ensure_indexes().await?;
-    ProjectRepository::new(database).unwrap().ensure_indexes().await?;
+    ProjectRepository::new(database.clone()).unwrap().ensure_indexes().await?;
+    ProjectScopeRepository::new(database).unwrap().ensure_indexes().await?;
     Ok(())
 }
 
