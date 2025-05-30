@@ -11,7 +11,6 @@ use futures::TryStreamExt;
 use mongodb::IndexModel;
 use mongodb::bson::to_document;
 use mongodb::bson::uuid::Uuid;
-use mongodb::options::IndexOptions;
 use mongodb::{Collection, Database};
 
 /// Repository for managing AccessToken documents in MongoDB.
@@ -24,8 +23,37 @@ pub struct AccessTokenRepository {
 impl AccessTokenRepository {
     pub fn new(database: Database) -> Result<Self, anyhow::Error> {
         let collection = database.collection::<AccessToken>("access_tokens");
-
         Ok(Self { collection })
+    }
+
+    pub async fn ensure_indexes(&self) -> Result<(), Error> {
+        let _ = &self.collection.create_index(
+            IndexModel::builder()
+                .keys(mongodb::bson::doc! { "project_access_id": 1, "algorithm": 1, "expires_at": 1 })
+                .build()
+        ).await.expect("Failed to create index on project_access_id, algorithm, expires_at");
+
+        let _ = &self.collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(
+                        mongodb::bson::doc! { "project_access_id": 1, "algorithm": 1, "active": 1 },
+                    )
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_access_id, algorithm, active");
+
+        let _ = &self.collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(mongodb::bson::doc! { "project_access_id": 1, "enabled": 1 })
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_access_id, enabled");
+
+        Ok(())
     }
 }
 
@@ -39,36 +67,11 @@ impl Repository<AccessToken> for AccessTokenRepository {
         if item.id.is_none() {
             item.id = Some(Uuid::new());
         }
+
         self.collection
             .insert_one(&item)
             .await
             .expect("Failed to create access token");
-
-        self.collection.create_index(
-            IndexModel::builder()
-                .keys(mongodb::bson::doc! { "project_access_id": 1, "algorithm": 1, "expires_at": 1 })
-                .build()
-        ).await.expect("Failed to create index on project_access_id, algorithm, expires_at");
-
-        self.collection
-            .create_index(
-                IndexModel::builder()
-                    .keys(
-                        mongodb::bson::doc! { "project_access_id": 1, "algorithm": 1, "active": 1 },
-                    )
-                    .build(),
-            )
-            .await
-            .expect("Failed to create index on project_access_id, algorithm, active");
-
-        self.collection
-            .create_index(
-                IndexModel::builder()
-                    .keys(mongodb::bson::doc! { "project_access_id": 1, "enabled": 1 })
-                    .build(),
-            )
-            .await
-            .expect("Failed to create index on project_access_id, enabled");
 
         Ok(item)
     }
