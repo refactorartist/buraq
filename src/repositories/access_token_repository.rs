@@ -154,6 +154,7 @@ mod tests {
     async fn setup() -> (AccessTokenRepository, Database) {
         let db = setup_test_db("access_token").await.unwrap();
         let repo = AccessTokenRepository::new(db.clone()).expect("Failed to create repository");
+        repo.ensure_indexes().await.expect("Failed to create indexes");
         (repo, db)
     }
 
