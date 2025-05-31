@@ -1,0 +1,61 @@
+meta {
+  name: Get Project
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://127.0.0.1:8080/projects/{{id}}
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Something",
+    "description": "definitely something",
+    "enabled": true
+  }
+}
+
+vars:pre-request {
+  id: {{id}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:pre-request {
+  const axios = require('axios');
+  
+  
+  const reponse = await axios.get("http://127.0.0.1:8080/projects")
+  const projects = await reponse.data
+  if (projects.length !== 0) {
+    bru.setVar("id",projects[0]._id)  
+  } 
+  
+}
+
+tests {
+  const axios = require('axios');
+  
+  test("Get if succ",function() {
+    const reponse = axios.get("http://127.0.0.1:8080/projects")
+    const projects =  reponse.data
+    // bru.setVar("id",projects[0]._id)
+    try {
+      if (projects.length !== 0) {
+        bru.setVar("id",projects[0]._id)  
+      } 
+    }catch(erorr) {
+      console.log("error:",erorr)
+    }
+    expect(res.getStatus() == 200)
+    expect(res.getBody() !== null)
+    
+  })
+  
+  
+}

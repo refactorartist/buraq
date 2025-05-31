@@ -1,0 +1,101 @@
+meta {
+  name: Update Project
+  type: http
+  seq: 3
+}
+
+patch {
+  url: http://127.0.0.1:8080/projects/{{id}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "enabled": false
+  }
+}
+
+script:pre-request {
+  const axios = require('axios');
+  const { faker } = require('@faker-js/faker');
+  const { v4: uuid } = require('uuid');
+  
+  let response = await axios.get("http://127.0.0.1:8080/projects");
+  let projects = response.data;
+  
+  if (projects && projects.length !== 0) {
+    for (let i = 0; i < projects.length; i++) {
+      // Safely check if name ends with "_test"
+      if (
+        projects[i].name && 
+        typeof projects[i].name === 'string' && 
+        projects[i].name.slice(-5) === "_test"
+      ) {
+        // Set the ID variable
+        bru.setVar("id", projects[i]._id);
+        
+        // Prepare the request body with new data
+        req.setBody({
+          name: faker.internet.username()+"_test",
+          description: faker.lorem.paragraph(),
+          enabled: faker.datatype.boolean(),
+  
+        });
+      }    
+    }
+  }
+}
+
+tests {
+  const axios = require('axios');
+  const { faker } = require('@faker-js/faker');
+  const { v4: uuid } = require('uuid');
+  
+  
+  test("Patch test", function() {
+    let response = axios.get("http://127.0.0.1:8080/projects");
+    let projects = response.data;
+    let name = "some name_test"
+    let decscription = "some decscription"
+    let enable = true
+    
+    
+    
+    if (projects && projects.length !== 0) {
+      for (let i = 0; i < projects.length; i++) {
+      // Safely check if name ends with "_test"
+        if (
+          projects[i].name && 
+          typeof projects[i].name === 'string' && 
+          projects[i].name.slice(-5) === "_test"
+        ) {
+        // Set the ID variable
+          bru.setVar("id", projects[i]._id);
+        
+        // Prepare the request body with new data
+          req.setBody({
+            name: name,
+            description: decscription,
+            enabled: enable,
+          });
+        }    
+      }
+    }
+    
+    expect(res.getBody() ==  {
+            name: name,
+            description: decscription,
+            enabled: enable,
+          })
+    let id = res.getBody()._id
+    axios.delete("http://127.0.0.1:8080/projects/"+id)
+  })
+  
+  
+  test("check if not null",function() {
+    expect(res.getBody() !== null)
+    let id = res.getBody()._id
+    axios.delete("http://127.0.0.1:8080/projects/"+id)
+  })
+}

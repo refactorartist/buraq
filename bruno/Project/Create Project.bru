@@ -1,0 +1,92 @@
+meta {
+  name: Create Project
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://127.0.0.1:8080/projects
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Something", 
+    "description" : "definitely something", 
+    "enabled": true
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:pre-request {
+  const {faker} =require('@faker-js/faker');
+  const { v4: uuid } = require('uuid');
+  
+  
+  
+  req.setBody({
+    name:faker.internet.username()+"_test",
+    description:faker.lorem.paragraph(),
+    enabled:faker.datatype.boolean(),
+  
+  })  
+  
+  
+  
+}
+
+tests {
+  const {faker} = require('@faker-js/faker');
+  const { v4: uuid } = require('uuid');
+  const axios = require('axios');
+  
+  
+  test("Create Project", function() {
+      // Generate the values ONCE and store them
+      let projectName = "some_project_test";
+      let projectDescription = "some descriptions";
+      let projectEnabled = false;
+  
+      // Use the stored values in the request
+      req.setBody({
+          name: projectName,
+          description: projectDescription,
+          enabled: projectEnabled
+      });
+      
+      expect(res.getStatus()).to.eql(200);
+      expect(res.getBody() !== null)
+      expect(res.getBody() == {
+          name: projectName,
+          description: projectDescription,
+          enabled: projectEnabled
+      })
+      let id = res.getBody()._id
+      axios.delete("http://127.0.0.1:8080/projects/"+id)
+  });
+  
+  test("Missing one Vars",function() {
+        // Generate the values ONCE and store them
+      let projectDescription = "some description";
+      let projectEnabled = true;
+  
+      // Use the stored values in the request
+      req.setBody({
+          description: projectDescription,
+          enabled: projectEnabled
+      });
+      
+      expect(res.getStatus()).to.eql(200);
+      expect(res.getBody() !== null)
+      expect(res.getBody() == {
+          description: projectDescription,
+          enabled: projectEnabled
+      })
+      let id = res.getBody()._id
+      axios.delete("http://127.0.0.1:8080/projects/"+id)
+  }) 
+}
