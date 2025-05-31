@@ -150,7 +150,7 @@ pub fn configure_routes(config: &mut web::ServiceConfig) {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use crate::types::Algorithm;
+    use jsonwebtoken::Algorithm;
     use actix_web::{App, test};
     use chrono::{Duration, Utc};
 
@@ -182,10 +182,11 @@ mod tests {
         let access_token = AccessToken {
             id: None,
             key: "test-key-create".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: expires,
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let resp = test::TestRequest::post()
@@ -237,10 +238,11 @@ mod tests {
             let access_token = AccessToken {
                 id: None,
                 key: format!("test-key-{}", i),
-                algorithm: Algorithm::RSA,
+                algorithm: Algorithm::RS256,
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: true,
+                project_access_id: Uuid::new(),
             };
             let _ = test::TestRequest::post()
                 .uri("/access-tokens")
@@ -294,10 +296,11 @@ mod tests {
             let access_token = AccessToken {
                 id: None,
                 key: format!("test-key-{}", i),
-                algorithm: Algorithm::RSA,
+                algorithm: Algorithm::RS256,
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: true,
+                project_access_id: Uuid::new(),
             };
             let _ = test::TestRequest::post()
                 .uri("/access-tokens")
@@ -352,13 +355,14 @@ mod tests {
                 id: None,
                 key: format!("test-key-{}", i),
                 algorithm: if i % 2 == 0 {
-                    Algorithm::RSA
+                    Algorithm::RS256
                 } else {
-                    Algorithm::HMAC
+                    Algorithm::HS256
                 },
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: i % 2 == 0,
+                project_access_id: Uuid::new(),
             };
             let _ = test::TestRequest::post()
                 .uri("/access-tokens")
@@ -412,10 +416,11 @@ mod tests {
             let access_token = AccessToken {
                 id: None,
                 key: format!("test-key-{}", i),
-                algorithm: Algorithm::RSA,
+                algorithm: Algorithm::RS256,
                 expires_at: Utc::now() + Duration::hours(1),
                 created_at: Utc::now(),
                 enabled: i % 2 == 0,
+                project_access_id: Uuid::new(),
             };
             let _ = test::TestRequest::post()
                 .uri("/access-tokens")
@@ -467,10 +472,11 @@ mod tests {
         let access_token = AccessToken {
             id: None,
             key: "test-key-get".to_string(),
-            algorithm: Algorithm::HMAC,
+            algorithm: Algorithm::RS256,
             expires_at: expires,
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let resp = test::TestRequest::post()
@@ -526,10 +532,11 @@ mod tests {
         let access_token = AccessToken {
             id: None,
             key: "test-key-update".to_string(),
-            algorithm: Algorithm::RSA,
+                algorithm: Algorithm::RS256,
             expires_at: expires,
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let resp = test::TestRequest::post()
@@ -547,6 +554,7 @@ mod tests {
             key: Some("updated-key".to_string()),
             expires_at: Some(new_expires),
             enabled: Some(false),
+            project_access_id: Some(Uuid::new()),
         };
 
         let resp = test::TestRequest::patch()
@@ -594,10 +602,11 @@ mod tests {
         let access_token = AccessToken {
             id: None,
             key: "test-key-delete".to_string(),
-            algorithm: Algorithm::HMAC,
+            algorithm: Algorithm::HS256,
             expires_at: expires,
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let resp = test::TestRequest::post()

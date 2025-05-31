@@ -1,10 +1,12 @@
-use actix_web::{Error, HttpResponse, web};
 use crate::config::AppData;
-use crate::models::project_scope::{ProjectScope, ProjectScopeFilter, ProjectScopeSortableFields, ProjectScopeUpdatePayload};
+use crate::models::pagination::Pagination;
+use crate::models::project_scope::{
+    ProjectScope, ProjectScopeFilter, ProjectScopeSortableFields, ProjectScopeUpdatePayload,
+};
 use crate::models::sort::{SortBuilder, SortDirection};
 use crate::services::project_scope_service::ProjectScopeService;
+use actix_web::{Error, HttpResponse, web};
 use mongodb::bson::uuid::Uuid;
-use crate::models::pagination::Pagination;
 
 pub async fn create(
     data: web::Data<AppData>,
@@ -109,8 +111,15 @@ pub async fn list(
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = ProjectScopeService::new(database.clone()).unwrap();
-    let sort = SortBuilder::new().add_sort(ProjectScopeSortableFields::Id, SortDirection::Ascending);
-    let project_scopes = service.find(query.into_inner(), Some(sort), Some(pagination.into_inner())).await;
+    let sort =
+        SortBuilder::new().add_sort(ProjectScopeSortableFields::Id, SortDirection::Ascending);
+    let project_scopes = service
+        .find(
+            query.into_inner(),
+            Some(sort),
+            Some(pagination.into_inner()),
+        )
+        .await;
 
     match project_scopes {
         Ok(scopes) => Ok(HttpResponse::Ok().json(scopes)),
@@ -124,7 +133,11 @@ pub async fn list(
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/project-scopes")
-            .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+            .service(
+                web::resource("")
+                    .route(web::post().to(create))
+                    .route(web::get().to(list)),
+            )
             .service(
                 web::resource("/{id}")
                     .route(web::get().to(read))
@@ -152,7 +165,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -200,7 +217,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -254,7 +275,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -316,7 +341,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -374,7 +403,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -440,7 +473,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -507,7 +544,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-scopes")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))

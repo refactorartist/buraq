@@ -1,8 +1,10 @@
 use crate::config::AppData;
-use crate::models::environment::{Environment, EnvironmentUpdatePayload,EnvironmentFilter,EnvironmentSortableFields};
-use crate::services::environment_service::EnvironmentService;
+use crate::models::environment::{
+    Environment, EnvironmentFilter, EnvironmentSortableFields, EnvironmentUpdatePayload,
+};
 use crate::models::pagination::Pagination;
-use crate::models::sort::{SortBuilder,SortDirection};
+use crate::models::sort::{SortBuilder, SortDirection};
+use crate::services::environment_service::EnvironmentService;
 use actix_web::{Error, HttpResponse, web};
 use mongodb::bson::uuid::Uuid;
 
@@ -131,8 +133,6 @@ pub async fn list(
     }
 }
 
-
-
 /// Configures the routes for environments.
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
@@ -153,11 +153,10 @@ mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use actix_web::{App, test};
-    
+
     use chrono::Utc;
 
-
-  #[actix_web::test]
+    #[actix_web::test]
     async fn test_list_environments_no_filter() {
         // Setup
         let db = setup_test_db("environemt_routes").await.unwrap();
@@ -186,16 +185,16 @@ mod tests {
 
         // Create projects
         for i in 0..5 {
-        let environment = Environment {
-            id: None,
-            project_id:Uuid::new(),
-            name: format!("Test Environment {}", i),
-            description: "Test Description".to_string(),
-            enabled: true,
-            created_at: Some(Utc::now()),
-            updated_at: Some(Utc::now()),
-        };
-            
+            let environment = Environment {
+                id: None,
+                project_id: Uuid::new(),
+                name: format!("Test Environment {}", i),
+                description: "Test Description".to_string(),
+                enabled: true,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+
             let _ = test::TestRequest::post()
                 .uri("/environments")
                 .set_json(&environment)
@@ -217,135 +216,123 @@ mod tests {
         cleanup_test_db(db).await.unwrap();
     }
 
-
-#[actix_web::test]
-async fn test_list_environments_with_filter() {
-    // Setup
-    let db = setup_test_db("environment_routes").await.unwrap();
-    let app_data = web::Data::new(AppData {
-        database: Some(std::sync::Arc::new(db.clone())),
-        ..Default::default()
-    });
-    let app = test::init_service(
-        App::new().app_data(app_data.clone()).service(
-            web::scope("/environments")
-                .service(
-                    web::resource("")
-                        .route(web::post().to(create))
-                        .route(web::get().to(list)),
-                )
-                .service(
-                    web::resource("/{id}")
-                        .route(web::get().to(read))
-                        .route(web::patch().to(update))
-                        .route(web::delete().to(delete)),
-                ),
-        ),
-    )
-    .await;
-
-
-
-    // Create environments
-    for i in 0..5 {
-        let environment = Environment {
-            id: None,
-            project_id:Uuid::new(),
-            name: format!("Test Environment {}", i),
-            description: "Test Description".to_string(),
-            enabled: i % 2 == 0,
-            created_at: Some(Utc::now()),
-            updated_at: Some(Utc::now()),
-        };
-        let _ = test::TestRequest::post()
-            .uri("/environments")
-            .set_json(&environment)
-            .send_request(&app)
-            .await;
-    }
-
-    // List environments with enabled filter
-    let resp = test::TestRequest::get()
-        .uri(&format!("/environments?is_enabled=true"))
-        .send_request(&app)
+    #[actix_web::test]
+    async fn test_list_environments_with_filter() {
+        // Setup
+        let db = setup_test_db("environment_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/environments")
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
         .await;
 
-    assert!(resp.status().is_success());
-    let environments: Vec<Environment> = test::read_body_json(resp).await;
-    assert_eq!(environments.len(), 3);
+        // Create environments
+        for i in 0..5 {
+            let environment = Environment {
+                id: None,
+                project_id: Uuid::new(),
+                name: format!("Test Environment {}", i),
+                description: "Test Description".to_string(),
+                enabled: i % 2 == 0,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+            let _ = test::TestRequest::post()
+                .uri("/environments")
+                .set_json(&environment)
+                .send_request(&app)
+                .await;
+        }
 
-
-    // Cleanup
-    cleanup_test_db(db).await.unwrap();
-}
-   
-
-#[actix_web::test]
-async fn test_list_environments_with_filter_and_pagination() {
-    // Setup
-    let db = setup_test_db("environment_routes").await.unwrap();
-    let app_data = web::Data::new(AppData {
-        database: Some(std::sync::Arc::new(db.clone())),
-        ..Default::default()
-    });
-    let app = test::init_service(
-        App::new().app_data(app_data.clone()).service(
-            web::scope("/environments")
-                .service(
-                    web::resource("")
-                        .route(web::post().to(create))
-                        .route(web::get().to(list)),
-                )
-                .service(
-                    web::resource("/{id}")
-                        .route(web::get().to(read))
-                        .route(web::patch().to(update))
-                        .route(web::delete().to(delete)),
-                ),
-        ),
-    )
-    .await;
-
-    // Create a project ID to associate with environments
-    
-
-    // Create environments
-    for i in 0..10 {
-        let environment = Environment {
-            id: None,
-            project_id:Uuid::new(),
-            name: format!("Test Environment {}", i),
-            description: "Test Description".to_string(),
-            enabled: i % 2 == 0,
-            created_at: Some(Utc::now()),
-            updated_at: Some(Utc::now()),
-        };
-        let _ = test::TestRequest::post()
-            .uri("/environments")
-            .set_json(&environment)
+        // List environments with enabled filter
+        let resp = test::TestRequest::get()
+            .uri(&format!("/environments?is_enabled=true"))
             .send_request(&app)
             .await;
+
+        assert!(resp.status().is_success());
+        let environments: Vec<Environment> = test::read_body_json(resp).await;
+        assert_eq!(environments.len(), 3);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
     }
 
-    // List environments with filter and pagination
-    let resp = test::TestRequest::get()
-        .uri(&format!("/environments?is_enabled=true&page=1&limit=2"))
-        .send_request(&app)
+    #[actix_web::test]
+    async fn test_list_environments_with_filter_and_pagination() {
+        // Setup
+        let db = setup_test_db("environment_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+        let app = test::init_service(
+            App::new().app_data(app_data.clone()).service(
+                web::scope("/environments")
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
+                    .service(
+                        web::resource("/{id}")
+                            .route(web::get().to(read))
+                            .route(web::patch().to(update))
+                            .route(web::delete().to(delete)),
+                    ),
+            ),
+        )
         .await;
 
-    assert!(resp.status().is_success());
-    let environments: Vec<Environment> = test::read_body_json(resp).await;
-    assert_eq!(environments.len(), 2);
+        // Create a project ID to associate with environments
 
+        // Create environments
+        for i in 0..10 {
+            let environment = Environment {
+                id: None,
+                project_id: Uuid::new(),
+                name: format!("Test Environment {}", i),
+                description: "Test Description".to_string(),
+                enabled: i % 2 == 0,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+            };
+            let _ = test::TestRequest::post()
+                .uri("/environments")
+                .set_json(&environment)
+                .send_request(&app)
+                .await;
+        }
 
-    // Cleanup
-    cleanup_test_db(db).await.unwrap();
-}
+        // List environments with filter and pagination
+        let resp = test::TestRequest::get()
+            .uri(&format!("/environments?is_enabled=true&page=1&limit=2"))
+            .send_request(&app)
+            .await;
 
+        assert!(resp.status().is_success());
+        let environments: Vec<Environment> = test::read_body_json(resp).await;
+        assert_eq!(environments.len(), 2);
 
-
-
-    
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
 
     #[actix_web::test]
     async fn test_create_environment_success() {

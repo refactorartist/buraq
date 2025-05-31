@@ -8,7 +8,8 @@ use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Bson, doc, to_document};
-use mongodb::{Collection, Database};
+use mongodb::options::IndexOptions;
+use mongodb::{Collection, Database, IndexModel};
 
 /// Repository for managing Project documents in MongoDB.
 ///
@@ -30,6 +31,27 @@ impl ProjectRepository {
     pub fn new(database: Database) -> Result<Self, Error> {
         let collection = database.collection::<Project>("projects");
         Ok(Self { collection })
+    }
+
+    pub async fn ensure_indexes(&self) -> Result<(), Error> {
+        let _ = &self
+            .collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "name": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await
+            .expect("Failed to create unique index on name");
+
+        let _ = &self
+            .collection
+            .create_index(IndexModel::builder().keys(doc! { "enabled": 1 }).build())
+            .await
+            .expect("Failed to create index on enabled");
+
+        Ok(())
     }
 }
 
@@ -53,7 +75,6 @@ impl Repository<Project> for ProjectRepository {
         let result = self.collection.find_one(doc! { "_id": id }).await?;
         Ok(result)
     }
-
 
     async fn update(&self, id: Uuid, payload: Self::UpdatePayload) -> Result<Project, Error> {
         let mut document = to_document(&payload)?;
@@ -114,6 +135,15 @@ mod tests {
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use chrono::Utc;
 
+    async fn setup() -> (ProjectRepository, Database) {
+        let db = setup_test_db("project").await.unwrap();
+        let repo = ProjectRepository::new(db.clone()).expect("Failed to create repository");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to create indexes");
+        (repo, db)
+    }
+
     async fn create_test_project(repo: &ProjectRepository) -> Result<Project> {
         let project = Project {
             id: None,
@@ -128,8 +158,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_project() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let created = create_test_project(&repo).await?;
 
@@ -146,8 +175,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_project() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let created = create_test_project(&repo).await?;
         let read = repo.read(created.id.unwrap()).await?;
@@ -171,8 +199,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_project() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let created = create_test_project(&repo).await?;
         let project_id = created.id.unwrap();
@@ -211,8 +238,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_project() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let created = create_test_project(&repo).await?;
         let project_id = created.id.unwrap();
@@ -235,8 +261,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_find_projects() -> Result<()> {
-        let db = setup_test_db("project").await?;
-        let repo = ProjectRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         // Create multiple test projects
         let project1 = Project {

@@ -1,9 +1,11 @@
-use actix_web::{Error, HttpResponse, web};
-use crate::models::project_access::{ProjectAccess, ProjectAccessUpdatePayload, ProjectAccessFilter, ProjectAccessSortableFields};
+use crate::config::AppData;
 use crate::models::pagination::Pagination;
+use crate::models::project_access::{
+    ProjectAccess, ProjectAccessFilter, ProjectAccessSortableFields, ProjectAccessUpdatePayload,
+};
 use crate::models::sort::{SortBuilder, SortDirection};
 use crate::services::project_access_service::ProjectAccessService;
-use crate::config::AppData;
+use actix_web::{Error, HttpResponse, web};
 use mongodb::bson::uuid::Uuid;
 
 pub async fn create(
@@ -60,7 +62,9 @@ pub async fn update(
     let service = ProjectAccessService::new(database.clone()).unwrap();
     let project_access_id = Uuid::parse_str(path.into_inner()).unwrap();
 
-    let project_access = service.update(project_access_id, payload.into_inner()).await;
+    let project_access = service
+        .update(project_access_id, payload.into_inner())
+        .await;
 
     match project_access {
         Ok(project_access) => Ok(HttpResponse::Ok().json(project_access)),
@@ -102,15 +106,22 @@ pub async fn delete(
 pub async fn list(
     data: web::Data<AppData>,
     query: web::Query<ProjectAccessFilter>,
-    pagination: web::Query<Pagination>
+    pagination: web::Query<Pagination>,
 ) -> Result<HttpResponse, Error> {
     let database = data
         .database
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = ProjectAccessService::new(database.clone()).unwrap();
-    let sort = SortBuilder::new().add_sort(ProjectAccessSortableFields::Id, SortDirection::Ascending);
-    let project_accesses = service.find(query.into_inner(), Some(sort), Some(pagination.into_inner())).await;
+    let sort =
+        SortBuilder::new().add_sort(ProjectAccessSortableFields::Id, SortDirection::Ascending);
+    let project_accesses = service
+        .find(
+            query.into_inner(),
+            Some(sort),
+            Some(pagination.into_inner()),
+        )
+        .await;
 
     match project_accesses {
         Ok(project_accesses) => Ok(HttpResponse::Ok().json(project_accesses)),
@@ -124,7 +135,11 @@ pub async fn list(
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/project-access")
-            .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+            .service(
+                web::resource("")
+                    .route(web::post().to(create))
+                    .route(web::get().to(list)),
+            )
             .service(
                 web::resource("/{id}")
                     .route(web::get().to(read))
@@ -153,7 +168,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-access")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -169,7 +188,7 @@ mod tests {
             id: None,
             name: "Test Access".to_string(),
             environment_id: Uuid::new(),
-            service_account_id: Uuid::new(),
+            service_account_id: Some(Uuid::new()),
             project_scopes: vec![Uuid::new()],
             enabled: true,
             created_at: Some(Utc::now()),
@@ -205,7 +224,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-access")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -222,7 +245,7 @@ mod tests {
                 id: None,
                 name: format!("Test Access {}", i),
                 environment_id: Uuid::new(),
-                service_account_id: Uuid::new(),
+                service_account_id: Some(Uuid::new()),
                 project_scopes: vec![Uuid::new()],
                 enabled: true,
                 created_at: Some(Utc::now()),
@@ -264,7 +287,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-access")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -281,7 +308,7 @@ mod tests {
                 id: None,
                 name: format!("Test Access {}", i),
                 environment_id: Uuid::new(),
-                service_account_id: Uuid::new(),
+                service_account_id: Some(Uuid::new()),
                 project_scopes: vec![Uuid::new()],
                 enabled: true,
                 created_at: Some(Utc::now()),
@@ -323,7 +350,11 @@ mod tests {
         let app = test::init_service(
             App::new().app_data(app_data.clone()).service(
                 web::scope("/project-access")
-                    .service(web::resource("").route(web::post().to(create)).route(web::get().to(list)))
+                    .service(
+                        web::resource("")
+                            .route(web::post().to(create))
+                            .route(web::get().to(list)),
+                    )
                     .service(
                         web::resource("/{id}")
                             .route(web::get().to(read))
@@ -341,7 +372,7 @@ mod tests {
                 id: None,
                 name: format!("Test Access {}", i),
                 environment_id: if i == 1 { env_id } else { Uuid::new() },
-                service_account_id: Uuid::new(),
+                service_account_id: Some(Uuid::new()),
                 project_scopes: vec![Uuid::new()],
                 enabled: true,
                 created_at: Some(Utc::now()),

@@ -10,7 +10,8 @@ use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::Uuid;
 use mongodb::bson::{Bson, doc, to_document};
-use mongodb::{Collection, Database};
+use mongodb::options::IndexOptions;
+use mongodb::{Collection, Database, IndexModel};
 
 /// Repository for managing Environment documents in MongoDB.
 ///
@@ -32,6 +33,31 @@ impl EnvironmentRepository {
     pub fn new(database: Database) -> Result<Self, Error> {
         let collection = database.collection::<Environment>("environments");
         Ok(Self { collection })
+    }
+
+    pub async fn ensure_indexes(&self) -> Result<(), Error> {
+        let _ = &self
+            .collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "project_id": 1, "name": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_id, name");
+
+        let _ = &self
+            .collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "project_id": 1, "enabled": 1 })
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_id, enabled");
+
+        Ok(())
     }
 }
 
@@ -55,7 +81,6 @@ impl Repository<Environment> for EnvironmentRepository {
         let result = self.collection.find_one(doc! { "_id": id }).await?;
         Ok(result)
     }
-
 
     async fn update(&self, id: Uuid, payload: Self::UpdatePayload) -> Result<Environment, Error> {
         let mut document = to_document(&payload)?;
@@ -114,25 +139,19 @@ impl Repository<Environment> for EnvironmentRepository {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use mongodb::IndexModel;
-    use mongodb::options::IndexOptions;
 
-    async fn ensure_unique_index(db: &Database) -> Result<()> {
-        let collection = db.collection::<Environment>("environments");
-        let options = IndexOptions::builder().unique(true).build();
-        let index = IndexModel::builder()
-            .keys(doc! { "project_id": 1, "name": 1 })
-            .options(options)
-            .build();
-        collection.create_index(index).await?;
-        Ok(())
+    async fn setup() -> (EnvironmentRepository, Database) {
+        let db = setup_test_db("environment").await.unwrap();
+        let repo = EnvironmentRepository::new(db.clone()).expect("Failed to create repository");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to create indexes");
+        (repo, db)
     }
 
     #[tokio::test]
     async fn test_create_environment() -> Result<()> {
-        let db = setup_test_db("environment").await?;
-        ensure_unique_index(&db).await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let project_id = Uuid::new();
         let environment = Environment {
@@ -155,9 +174,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_duplicate_environment() -> Result<()> {
-        let db = setup_test_db("environment").await?;
-        ensure_unique_index(&db).await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let project_id = Uuid::new();
         let name = "Test Environment".to_string();
@@ -192,9 +209,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_environment() -> Result<()> {
-        let db = setup_test_db("environment").await?;
-        ensure_unique_index(&db).await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let project_id = Uuid::new();
         let environment = Environment {
@@ -221,9 +236,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_environment() -> Result<()> {
-        let db = setup_test_db("environment").await?;
-        ensure_unique_index(&db).await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let project_id = Uuid::new();
         let environment = Environment {
@@ -254,9 +267,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_environment() -> Result<()> {
-        let db = setup_test_db("environment").await?;
-        ensure_unique_index(&db).await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let project_id = Uuid::new();
         let environment = Environment {
@@ -282,9 +293,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_find_environments() -> Result<()> {
-        let db = setup_test_db("environment").await?;
-        ensure_unique_index(&db).await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let project_id = Uuid::new();
         let environment1 = Environment {
@@ -362,9 +371,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_environment_filter_by_project_id() -> Result<()> {
-        let db = setup_test_db("environment").await?;
-        ensure_unique_index(&db).await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let project_id = Uuid::new();
         let environment = Environment {
@@ -393,9 +400,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_environment_filter_by_name() -> Result<()> {
-        let db = setup_test_db("environment").await?;
-        ensure_unique_index(&db).await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let environment = Environment {
             id: None,
@@ -423,9 +428,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_environment_filter_by_enabled() -> Result<()> {
-        let db = setup_test_db("environment").await?;
-        ensure_unique_index(&db).await?;
-        let repo = EnvironmentRepository::new(db.clone())?;
+        let (repo, db) = setup().await;
 
         let environment = Environment {
             id: None,

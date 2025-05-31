@@ -1,5 +1,5 @@
 use crate::serializers::algorithm;
-use crate::types::Algorithm;
+use jsonwebtoken::Algorithm;
 use chrono::{DateTime, Utc};
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Document, doc, from_document, to_document};
@@ -70,7 +70,7 @@ impl From<ServiceAccountKeyFilter> for Document {
             doc.insert("service_account_id", service_account_id);
         }
         if let Some(algorithm) = value.algorithm {
-            doc.insert("algorithm", algorithm.to_string());
+            doc.insert("algorithm", format!("{:?}", algorithm));
         }
         if let Some(is_enabled) = value.is_enabled {
             doc.insert("enabled", is_enabled);
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_new_service_account_key() {
         let service_account_id = Uuid::new();
-        let algorithm = Algorithm::RSA;
+        let algorithm = Algorithm::RS256;
         let key = "test-key-value".to_string();
         let expires_at = Utc::now() + chrono::Duration::days(7);
 
@@ -131,7 +131,7 @@ mod tests {
 
         assert!(service_account_key.id.is_none());
         assert_eq!(service_account_key.service_account_id, service_account_id);
-        assert!(matches!(service_account_key.algorithm, Algorithm::RSA));
+        assert!(matches!(service_account_key.algorithm, Algorithm::RS256));
         assert_eq!(service_account_key.key, key);
         assert_eq!(service_account_key.expires_at, expires_at);
         assert!(service_account_key.enabled);
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn test_serialization() {
         let service_account_id = Uuid::new();
-        let algorithm = Algorithm::RSA;
+        let algorithm = Algorithm::RS256;
         let key = "test-key-value".to_string();
         let expires_at = Utc::now() + chrono::Duration::days(7);
 
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn test_mongodb_serialization() {
         let service_account_id = Uuid::new();
-        let algorithm = Algorithm::RSA;
+        let algorithm = Algorithm::RS256;
         let key = "test-key-value".to_string();
         let expires_at = Utc::now() + chrono::Duration::days(7);
 

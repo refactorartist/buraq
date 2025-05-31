@@ -10,8 +10,10 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::Utc;
 use futures::TryStreamExt;
+use mongodb::IndexModel;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Bson, doc, to_document};
+use mongodb::options::IndexOptions;
 use mongodb::{Collection, Database};
 
 /// Repository for managing ServiceAccountKey documents in MongoDB.
@@ -25,6 +27,25 @@ impl ServiceAccountKeyRepository {
     pub fn new(database: Database) -> Result<Self, anyhow::Error> {
         let collection = database.collection::<ServiceAccountKey>("service_account_keys");
         Ok(Self { collection })
+    }
+
+    pub async fn ensure_indexes(&self) -> Result<()> {
+        let unique_options = IndexOptions::builder().unique(true).build();
+        let non_unique_options = IndexOptions::builder().unique(false).build();
+
+        let unique_index = IndexModel::builder()
+            .keys(doc! { "service_account_id": 1, "algorithm": 1 })
+            .options(unique_options)
+            .build();
+
+        let non_unique_index = IndexModel::builder()
+            .keys(doc! { "service_account_id": 1, "expires_at": 1, "enabled": 1 })
+            .options(non_unique_options)
+            .build();
+
+        self.collection.create_index(unique_index).await?;
+        self.collection.create_index(non_unique_index).await?;
+        Ok(())
     }
 }
 
@@ -48,7 +69,6 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
         let result = self.collection.find_one(doc! { "_id": id }).await?;
         Ok(result)
     }
-
 
     async fn update(
         &self,
@@ -111,13 +131,16 @@ impl Repository<ServiceAccountKey> for ServiceAccountKeyRepository {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use crate::types::Algorithm;
+    use jsonwebtoken::Algorithm;
     use chrono::{Duration, Utc};
 
     async fn setup() -> (ServiceAccountKeyRepository, Database) {
         let db = setup_test_db("service_account_key").await.unwrap();
         let repo =
             ServiceAccountKeyRepository::new(db.clone()).expect("Failed to create repository");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to create indexes");
         (repo, db)
     }
 
@@ -129,7 +152,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: None,
             service_account_id,
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: now + Duration::hours(1),
             enabled: true,
@@ -150,7 +173,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -172,7 +195,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -200,7 +223,7 @@ mod tests {
         let key = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -224,7 +247,7 @@ mod tests {
         let key1 = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             key: "test-key-1".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,
@@ -234,7 +257,7 @@ mod tests {
         let key2 = ServiceAccountKey {
             id: Some(Uuid::new()),
             service_account_id: Uuid::new(),
-            algorithm: Algorithm::HMAC,
+            algorithm: Algorithm::HS256,
             key: "test-key-2".to_string(),
             expires_at: Utc::now() + Duration::hours(1),
             enabled: true,

@@ -1,6 +1,6 @@
 use crate::serializers::algorithm;
-use crate::types::Algorithm;
 use chrono::{DateTime, Utc};
+use jsonwebtoken::Algorithm;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Document, doc, from_document, to_document};
 use serde::{Deserialize, Serialize};
@@ -14,10 +14,12 @@ use serde::{Deserialize, Serialize};
 /// - `expires_at`: Token expiration timestamp
 /// - `created_at`: Token creation timestamp
 /// - `enabled`: Whether the token is currently active
+/// - `project_access_id`: Identifier for the project access
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AccessToken {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<Uuid>,
+    pub project_access_id: Uuid,
     pub key: String,
     #[serde(with = "algorithm")]
     pub algorithm: Algorithm,
@@ -46,9 +48,11 @@ pub struct AccessTokenUpdatePayload {
     pub expires_at: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_access_id: Option<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone,Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct AccessTokenFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
@@ -58,6 +62,8 @@ pub struct AccessTokenFilter {
     pub is_enabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_active: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_access_id: Option<Uuid>,
 }
 
 impl From<AccessTokenFilter> for Document {
@@ -67,7 +73,7 @@ impl From<AccessTokenFilter> for Document {
             doc.insert("key", key);
         }
         if let Some(algorithm) = value.algorithm {
-            doc.insert("algorithm", algorithm.to_string());
+            doc.insert("algorithm", format!("{:?}", algorithm));
         }
         if let Some(is_enabled) = value.is_enabled {
             doc.insert("enabled", is_enabled);
@@ -76,6 +82,9 @@ impl From<AccessTokenFilter> for Document {
             if is_active {
                 doc.insert("expires_at", doc! { "$gt": mongodb::bson::DateTime::now() });
             }
+        }
+        if let Some(project_access_id) = value.project_access_id {
+            doc.insert("project_access_id", project_access_id);
         }
         doc
     }
@@ -88,6 +97,7 @@ pub enum AccessTokenSortableFields {
     Algorithm,
     ExpiresAt,
     CreatedAt,
+    ProjectAccessId,
 }
 
 impl From<AccessTokenSortableFields> for String {
@@ -98,6 +108,7 @@ impl From<AccessTokenSortableFields> for String {
             AccessTokenSortableFields::Algorithm => "algorithm".to_string(),
             AccessTokenSortableFields::ExpiresAt => "expires_at".to_string(),
             AccessTokenSortableFields::CreatedAt => "created_at".to_string(),
+            AccessTokenSortableFields::ProjectAccessId => "project_access_id".to_string(),
         }
     }
 }
@@ -116,14 +127,15 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::RSA,
+            algorithm: Algorithm::RS256,
             expires_at: expires,
             created_at: now,
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         assert_eq!(token.key, "test-key");
-        assert_eq!(token.algorithm, Algorithm::RSA);
+        assert_eq!(token.algorithm, Algorithm::RS256);
         assert!(token.enabled);
     }
 
@@ -132,10 +144,11 @@ mod tests {
         let token = AccessToken {
             id: Some(Uuid::new()),
             key: "test-key".to_string(),
-            algorithm: Algorithm::HMAC,
+            algorithm: Algorithm::HS256,
             expires_at: Utc::now(),
             created_at: Utc::now(),
             enabled: true,
+            project_access_id: Uuid::new(),
         };
 
         let doc: Document = token.clone().into();
@@ -145,6 +158,7 @@ mod tests {
         assert_eq!(token.key, converted.key);
         assert_eq!(token.algorithm, converted.algorithm);
         assert_eq!(token.enabled, converted.enabled);
+        assert_eq!(token.project_access_id, converted.project_access_id);
     }
 
     #[test]
@@ -155,10 +169,14 @@ mod tests {
             "created_at": Utc::now().to_rfc3339(),
             "algorithm": "InvalidAlgorithm", // Invalid algorithm
             "enabled": true,
+            "project_access_id": Uuid::new(),
         };
 
         let result: Result<AccessToken, _> = from_document(doc.clone());
-        assert!(result.is_err(), "Expected conversion to fail due to invalid algorithm");
+        assert!(
+            result.is_err(),
+            "Expected conversion to fail due to invalid algorithm"
+        );
     }
 
     #[test]
@@ -167,6 +185,7 @@ mod tests {
             key: Some("new-key".to_string()),
             expires_at: Some(Utc::now()),
             enabled: Some(false),
+            project_access_id: Some(Uuid::new()),
         };
 
         assert_eq!(update.key.unwrap(), "new-key");
@@ -177,17 +196,19 @@ mod tests {
     fn test_access_token_filter() {
         let filter = AccessTokenFilter {
             key: Some("test-key".to_string()),
-            algorithm: Some(Algorithm::RSA),
+            algorithm: Some(Algorithm::RS256),
             is_enabled: Some(true),
             is_active: Some(true),
+            project_access_id: Some(Uuid::new()),
         };
 
         let doc: Document = filter.into();
 
         assert_eq!(doc.get_str("key").unwrap(), "test-key");
-        assert_eq!(doc.get_str("algorithm").unwrap(), "RSA");
+        assert_eq!(doc.get_str("algorithm").unwrap(), "RS256");
         assert!(doc.get_bool("enabled").unwrap());
         assert!(doc.get_document("expires_at").unwrap().contains_key("$gt"));
+        assert!(doc.contains_key("project_access_id"));
     }
 
     #[test]
@@ -205,6 +226,10 @@ mod tests {
         assert_eq!(
             String::from(AccessTokenSortableFields::CreatedAt),
             "created_at"
+        );
+        assert_eq!(
+            String::from(AccessTokenSortableFields::ProjectAccessId),
+            "project_access_id"
         );
     }
 }

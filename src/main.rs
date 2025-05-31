@@ -34,11 +34,13 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Create application data including the MongoDB client
     let mongo_client = create_database_client(&app_config.application.database_uri).await?;
-    let database = Arc::new(mongo_client.database(&app_config.application.database_name));
+    let database = mongo_client.database(&app_config.application.database_name);
+    buraq::utils::database::setup_database(database.clone()).await?;
+
     let app_data = web::Data::new(AppData {
         config: Some(app_config.clone()),
         mongo_client: Some(mongo_client),
-        database: Some(database),
+        database: Some(Arc::new(database)),
     });
 
     println!("Starting the server on {}:{}", &host, &port);

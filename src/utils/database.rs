@@ -1,37 +1,15 @@
-use mongodb::Client;
+use anyhow::Error;
+use mongodb::{Client, Database};
 use std::sync::Arc;
 
-/// Creates a MongoDB client wrapped in an `Arc`.
-///
-/// # Arguments
-///
-/// * `database_uri` - A string slice that holds the URI of the MongoDB database.
-///
-/// # Returns
-///
-/// * `Result<Arc<Client>, anyhow::Error>` - On success, returns an `Arc` containing the MongoDB `Client`.
-///   On failure, returns an `anyhow::Error` indicating the reason for failure.
-///
-/// # Errors
-///
-/// This function will return an error if the MongoDB client cannot be created with the provided URI.
-///
-/// # Examples
-///
-/// ```no_run
-/// use buraq::utils::database::create_database_client;
-/// use std::sync::Arc;
-///
-/// #[tokio::main]
-/// async fn main() {
-///     let database_uri = "mongodb://localhost:27017";
-///     let client_result = create_database_client(database_uri).await;
-///     match client_result {
-///         Ok(client) => println!("Successfully created client with strong count: {}", Arc::strong_count(&client)),
-///         Err(e) => eprintln!("Error creating client: {}", e),
-///     }
-/// }
-/// ```
+use crate::repositories::{
+    access_token_repository::AccessTokenRepository, environment_repository::EnvironmentRepository,
+    project_access_repository::ProjectAccessRepository, project_repository::ProjectRepository,
+    project_scope_repository::ProjectScopeRepository,
+    service_account_key_repository::ServiceAccountKeyRepository,
+    service_account_repository::ServiceAccountRepository,
+};
+
 pub async fn create_database_client(database_uri: &str) -> Result<Arc<Client>, anyhow::Error> {
     let client = mongodb::Client::with_uri_str(&database_uri)
         .await
@@ -40,9 +18,42 @@ pub async fn create_database_client(database_uri: &str) -> Result<Arc<Client>, a
     Ok(Arc::new(client))
 }
 
+pub async fn setup_database(database: Database) -> Result<(), Error> {
+    AccessTokenRepository::new(database.clone())
+        .unwrap()
+        .ensure_indexes()
+        .await?;
+    EnvironmentRepository::new(database.clone())
+        .unwrap()
+        .ensure_indexes()
+        .await?;
+    ProjectAccessRepository::new(database.clone())
+        .unwrap()
+        .ensure_indexes()
+        .await?;
+    ProjectRepository::new(database.clone())
+        .unwrap()
+        .ensure_indexes()
+        .await?;
+    ProjectScopeRepository::new(database.clone())
+        .unwrap()
+        .ensure_indexes()
+        .await?;
+    ServiceAccountKeyRepository::new(database.clone())
+        .unwrap()
+        .ensure_indexes()
+        .await?;
+    ServiceAccountRepository::new(database.clone())
+        .unwrap()
+        .ensure_indexes()
+        .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
     use std::sync::Arc;
     use tokio;
 
@@ -61,5 +72,37 @@ mod tests {
         let invalid_database_uri = "invalid_uri";
         let client_result = create_database_client(invalid_database_uri).await;
         assert!(client_result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_setup_database_success() {
+        // Setup test database
+        let db = setup_test_db("setup_database_test").await.unwrap();
+
+        // Test setup_database
+        let result = setup_database(db.clone()).await;
+        assert!(result.is_ok());
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_setup_database_duplicate_indexes() {
+        // Setup test database
+        let db = setup_test_db("setup_database_duplicate_test")
+            .await
+            .unwrap();
+
+        // First setup should succeed
+        let result1 = setup_database(db.clone()).await;
+        assert!(result1.is_ok());
+
+        // Second setup should also succeed (idempotent)
+        let result2 = setup_database(db.clone()).await;
+        assert!(result2.is_ok());
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
     }
 }

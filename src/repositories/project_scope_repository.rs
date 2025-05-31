@@ -11,7 +11,8 @@ use chrono::Utc;
 use futures::TryStreamExt;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Bson, doc, to_document};
-use mongodb::{Collection, Database};
+use mongodb::options::IndexOptions;
+use mongodb::{Collection, Database, IndexModel};
 
 /// Repository for managing ProjectScope documents in MongoDB.
 ///
@@ -33,6 +34,31 @@ impl ProjectScopeRepository {
     pub fn new(database: Database) -> Result<Self, Error> {
         let collection = database.collection::<ProjectScope>("project_scopes");
         Ok(Self { collection })
+    }
+
+    pub async fn ensure_indexes(&self) -> Result<(), Error> {
+        let _ = &self
+            .collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "project_id": 1, "name": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_id, name");
+
+        let _ = &self
+            .collection
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "project_id": 1, "enabled": 1 })
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on project_id, enabled");
+
+        Ok(())
     }
 }
 
@@ -56,7 +82,6 @@ impl Repository<ProjectScope> for ProjectScopeRepository {
         let result = self.collection.find_one(doc! { "_id": id }).await?;
         Ok(result)
     }
-
 
     async fn update(&self, id: Uuid, payload: Self::UpdatePayload) -> Result<ProjectScope, Error> {
         let mut document = to_document(&payload)?;
@@ -120,6 +145,9 @@ mod tests {
     async fn setup() -> (ProjectScopeRepository, Database) {
         let db = setup_test_db("project_scope").await.unwrap();
         let repo = ProjectScopeRepository::new(db.clone()).expect("Failed to create repository");
+        repo.ensure_indexes()
+            .await
+            .expect("Failed to create indexes");
         (repo, db)
     }
 
