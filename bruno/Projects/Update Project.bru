@@ -1,0 +1,55 @@
+meta {
+  name: Update Project
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{base_url}}/projects/{{id}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name":"some name",
+    "description":"some description",
+    "enabled": false
+  }
+}
+
+tests {
+  const {axios} = require("axios")
+  const { faker } = require('@faker-js/faker');
+  
+  async function delete_project(id) {
+    let response = await axios.get("http://127.0.0.1:8080/projects/"+id)
+  }
+  
+  async function create_project() {
+    let data = {
+    "name":faker.company.name(), 
+    "description" : faker.lorem.paragraph(), 
+    "enabled": faker.Datatype.boolean()
+    }
+    let response = await axios.post("http://127.0.0.1:8080/projects",data);
+    let response_data = await response.data;
+    return response_data
+    
+  }
+  
+  
+  test("patch project", function() {
+    let create_data =  create_project()
+    let data = {
+    "name":faker.company.name(), 
+    "description" : faker.lorem.paragraph(), 
+    "enabled": faker.Datatype.boolean()
+    }
+    req.setBody(data)
+    bru.setVar("id",create_data.id)
+    
+    expect(req.getBody() !== data)
+    
+  })
+}

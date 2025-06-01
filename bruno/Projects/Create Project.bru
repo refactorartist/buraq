@@ -1,0 +1,62 @@
+meta {
+  name: Create Project
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/projects
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Something", 
+    "description" : "definitely something", 
+    "enabled": true
+  }
+}
+
+assert {
+  req.getBody(): neq null
+}
+
+tests {
+  const { faker } = require('@faker-js/faker');
+  const {axios} = require("axios");
+  
+  let project = {};
+  
+  test("generate body project",function generate_body() {
+    req.setBody({
+    "name":faker.company.name(), 
+    "description" : faker.lorem.paragraph(), 
+    "enabled": faker.Datatype.boolean()
+    });
+    project = req.getBody();
+    expect(req.getBody() !== null);
+    
+  });
+  
+  
+  test("check in list",function check_in_list() {
+    let response = axios.get("http://127.0.0.1:8080/projects");
+    let data = response.data 
+    
+    
+    expect(project in data)
+  })
+  
+  
+  test("clean up", function clean_up() {
+    let id = project.id
+    let delete_response = axios.delete(`http://127.0.0.1:8080/projects/${id}`)
+    let get_response = axios.get("http://127.0.0.1:8080/projects");
+    let data = get_response.data 
+    
+    
+    expect(!(project in data))
+    
+  })
+}

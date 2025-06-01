@@ -1,0 +1,57 @@
+meta {
+  name: Get Project
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/projects/{{id}}
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Something",
+    "description": "definitely something",
+    "enabled": true
+  }
+}
+
+tests {
+  const {axios} = require("axios")
+  const { faker } = require('@faker-js/faker');
+  
+  async function get_list() {
+    let response = await axios.get("http://127.0.0.1:8080/projects")
+    let response_data = await response.data
+    return response_data
+  }
+  async function delete_item(id) {
+    let response = await axios.get("http://127.0.0.1:8080/projects/"+id)
+  } 
+  
+  
+  test("Get body project",function get_body() {
+    let data = {
+    "name":faker.company.name(), 
+    "description" : faker.lorem.paragraph(), 
+    "enabled": faker.Datatype.boolean()
+    }
+    let response = axios.post("http://127.0.0.1:8080/projects",data);
+    let response_data = response.data;
+    bru.setVar("id",response_data.id)
+    
+    expect(res.getBody() == response_data.id )
+    expect(res.getBody() in get_list())
+  
+    delete_item(response_data.id)
+  });
+  
+  
+  
+  
+  
+  
+  
+}
