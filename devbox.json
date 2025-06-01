@@ -11,12 +11,12 @@
       "rustup default stable"
     ],
     "scripts": {
-      "test": [
+      "tests": [
         "docker compose up -d",
         "cargo test",
         "devbox run shutdown"
       ],
-      "start": [
+      "app": [
         "docker compose up -d",
         "cargo run",
         "devbox run shutdown"
