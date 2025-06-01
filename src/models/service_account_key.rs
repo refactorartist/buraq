@@ -1,6 +1,6 @@
 use crate::serializers::algorithm;
-use jsonwebtoken::Algorithm;
 use chrono::{DateTime, Utc};
+use jsonwebtoken::Algorithm;
 use mongodb::bson::uuid::Uuid;
 use mongodb::bson::{Document, doc, from_document, to_document};
 use serde::{Deserialize, Serialize};

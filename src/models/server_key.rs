@@ -161,7 +161,13 @@ mod tests {
     #[test]
     fn test_server_key_sortable_fields() {
         assert_eq!(String::from(ServerKeySortableFields::Id), "id");
-        assert_eq!(String::from(ServerKeySortableFields::Algorithm), "algorithm");
-        assert_eq!(String::from(ServerKeySortableFields::EnvironmentId), "environment_id");
+        assert_eq!(
+            String::from(ServerKeySortableFields::Algorithm),
+            "algorithm"
+        );
+        assert_eq!(
+            String::from(ServerKeySortableFields::EnvironmentId),
+            "environment_id"
+        );
     }
 }
