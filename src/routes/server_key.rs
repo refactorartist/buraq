@@ -1,12 +1,12 @@
 use crate::config::AppData;
 use crate::models::server_key::{
-    ServerKey, ServerKeyFilter, ServerKeySortableFields, ServerKeyUpdatePayload,
+    ServerKey, ServerKeyFilter, ServerKeyUpdatePayload,
 };
 use crate::models::pagination::Pagination;
-use crate::models::sort::{SortBuilder, SortDirection};
 use crate::services::server_key_service::ServerKeyService;
 use actix_web::{Error, HttpResponse, web};
 use mongodb::bson::uuid::Uuid;
+
 
 /// Handler to create a new server key.
 pub async fn create(
@@ -123,10 +123,10 @@ pub async fn list(
     let service = ServerKeyService::new(database.clone())
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
-    let filter = filter.map(|f| f.into_inner());
+    let filter = filter.expect("filter is required");
     let pagination = pagination.into_inner();
 
-    let result = service.list(filter, pagination).await;
+    let result = service.find(filter.into_inner(), None, Some(pagination)).await;
 
     match result {
         Ok(server_keys) => Ok(HttpResponse::Ok().json(server_keys)),
@@ -139,64 +139,347 @@ pub async fn list(
 
 /// Configures the routes for server keys.
 pub fn configure_routes(config: &mut web::ServiceConfig) {
-    config
-        .route("/", web::post().to(create))
-        .route("/{id}", web::get().to(read))
-        .route("/{id}", web::put().to(update))
-        .route("/{id}", web::delete().to(delete))
-        .route("/list", web::get().to(list));
+    config.service(
+        web::scope("/server-keys")
+            .service(
+                web::resource("")
+                    .route(web::post().to(create))
+                    .route(web::get().to(list)),
+            )
+            .service(
+                web::resource("/{id}")
+                    .route(web::get().to(read))
+                    .route(web::patch().to(update))
+                    .route(web::delete().to(delete)),
+            ),
+    );    
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::test;
-    use actix_web::{App, HttpResponse};
-    use mongodb::bson::uuid::Uuid;
-    use std::sync::Arc;
+    use crate::test_utils::{cleanup_test_db, setup_test_db};
+    use actix_web::{App, test};
+    use chrono::Utc;
+    use jsonwebtoken::Algorithm;
 
     #[actix_web::test]
     async fn test_list_server_keys_no_filter() {
-        // TODO: Implement test
+        // Setup
+        let db = setup_test_db("server_key_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
+        )
+        .await;
+
+        // Create server keys
+        for i in 0..5 {
+            let server_key = ServerKey {
+                id: None,
+                key: format!("test-key-{}", i),
+                environment_id: Uuid::new(),
+                algorithm: Algorithm::HS256,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+
+            let _ = test::TestRequest::post()
+                .uri("/server-keys")
+                .set_json(&server_key)
+                .send_request(&app)
+                .await;
+        }
+
+        // Test listing
+        let resp = test::TestRequest::get()
+            .uri("/server-keys")
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let server_keys: Vec<ServerKey> = test::read_body_json(resp).await;
+        assert_eq!(server_keys.len(), 5);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
     }
 
     #[actix_web::test]
     async fn test_list_server_keys_with_filter() {
-        // TODO: Implement test
-    }
+        // Setup
+        let db = setup_test_db("server_key_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
 
-    #[actix_web::test]
-    async fn test_list_server_keys_with_filter_and_pagination() {
-        // TODO: Implement test
+        let app = test::init_service(
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
+        )
+        .await;
+
+        // Create server keys
+        let environment_id = Uuid::new();
+        for i in 0..5 {
+            let server_key = ServerKey {
+                id: None,
+                key: format!("test-key-{}", i),
+                environment_id,
+                algorithm: Algorithm::HS256,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+
+            let _ = test::TestRequest::post()
+                .uri("/server-keys")
+                .set_json(&server_key)
+                .send_request(&app)
+                .await;
+        }
+
+        // Test listing with filter
+        let filter = ServerKeyFilter {
+            environment_id: Some(environment_id),
+            ..Default::default()
+        };
+
+        let resp = test::TestRequest::get()
+            .uri("/server-keys")
+            .set_json(&filter)
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let server_keys: Vec<ServerKey> = test::read_body_json(resp).await;
+        assert_eq!(server_keys.len(), 5);
+        assert!(server_keys.iter().all(|k| k.environment_id == environment_id));
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
     }
 
     #[actix_web::test]
     async fn test_create_server_key_success() {
-        // TODO: Implement test
+        // Setup
+        let db = setup_test_db("server_key_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
+        )
+        .await;
+
+        let environment_id = Uuid::new();
+
+
+        // Create server key
+        let server_key = ServerKey {
+            id: None,
+            key: "test-key".to_string(),
+            environment_id,
+            algorithm: Algorithm::HS256,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let resp = test::TestRequest::post()
+            .uri("/server-keys")
+            .set_json(&server_key)
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let created_key: ServerKey = test::read_body_json(resp).await;
+        assert!(created_key.id.is_some());
+        assert_eq!(created_key.key, "test-key");
+        assert_eq!(created_key.environment_id, environment_id);
+        assert_eq!(created_key.algorithm, Algorithm::HS256);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
     }
 
     #[actix_web::test]
     async fn test_get_server_key_success() {
-        // TODO: Implement test
-    }
+        // Setup
+        let db = setup_test_db("server_key_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
 
-    #[actix_web::test]
-    async fn test_get_nonexistent_server_key() {
-        // TODO: Implement test
+        let app = test::init_service(
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
+        )
+        .await;
+
+        let environment_id = Uuid::new();
+
+        // Create server key
+        let server_key = ServerKey {
+            id: None,
+            key: "test-key".to_string(),
+            environment_id,
+            algorithm: Algorithm::HS256,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let resp = test::TestRequest::post()
+            .uri("/server-keys")
+            .set_json(&server_key)
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let created_key: ServerKey = test::read_body_json(resp).await;
+
+        // Get server key
+        let resp = test::TestRequest::get()
+            .uri(&format!("/server-keys/{}", created_key.id.unwrap()))
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let retrieved_key: ServerKey = test::read_body_json(resp).await;
+        assert_eq!(retrieved_key.id, created_key.id);
+        assert_eq!(retrieved_key.key, "test-key");
+        assert_eq!(retrieved_key.environment_id, environment_id);
+        assert_eq!(retrieved_key.algorithm, Algorithm::HS256);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
     }
 
     #[actix_web::test]
     async fn test_update_server_key_success() {
-        // TODO: Implement test
+        // Setup
+        let db = setup_test_db("server_key_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
+
+        let app = test::init_service(
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
+        )
+        .await;
+
+        let environment_id = Uuid::new();
+
+        // Create server key
+        let server_key = ServerKey {
+            id: None,
+            key: "test-key".to_string(),
+            environment_id,
+            algorithm: Algorithm::HS256,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        
+
+        let resp = test::TestRequest::post()
+            .uri("/server-keys")
+            .set_json(&server_key)
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let created_key: ServerKey = test::read_body_json(resp).await;
+
+        // Update server key
+        let update_payload = ServerKeyUpdatePayload {
+            key: Some("updated-key".to_string()),
+            environment_id: Some(environment_id),
+            algorithm: Some(Algorithm::HS256),
+        };
+
+        let resp = test::TestRequest::patch()
+            .uri(&format!("/server-keys/{}", created_key.id.unwrap()))
+            .set_json(&update_payload)
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let updated_key: ServerKey = test::read_body_json(resp).await;
+        assert_eq!(updated_key.key, "updated-key");
+        assert_eq!(updated_key.environment_id, environment_id);
+        assert_eq!(updated_key.algorithm, Algorithm::HS256);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
     }
 
     #[actix_web::test]
     async fn test_delete_server_key_success() {
-        // TODO: Implement test
-    }
+        // Setup
+        let db = setup_test_db("server_key_routes").await.unwrap();
+        let app_data = web::Data::new(AppData {
+            database: Some(std::sync::Arc::new(db.clone())),
+            ..Default::default()
+        });
 
-    #[actix_web::test]
-    async fn test_delete_nonexistent_server_key() {
-        // TODO: Implement test
+        let app = test::init_service(
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
+        )
+        .await;
+
+        // Create server key
+        let server_key = ServerKey {
+            id: None,
+            key: "test-key".to_string(),
+            environment_id: Uuid::new(),
+            algorithm: Algorithm::HS256,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let resp = test::TestRequest::post()
+            .uri("/server-keys")
+            .set_json(&server_key)
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let created_key: ServerKey = test::read_body_json(resp).await;
+
+        // Delete server key
+        let resp = test::TestRequest::delete()
+            .uri(&format!("/server-keys/{}", created_key.id.unwrap()))
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 204);
+
+        // Verify deletion
+        let resp = test::TestRequest::get()
+            .uri(&format!("/server-keys/{}", created_key.id.unwrap()))
+            .send_request(&app)
+            .await;
+
+        assert_eq!(resp.status(), 404);
+
+        // Cleanup
+        cleanup_test_db(db).await.unwrap();
     }
 }
