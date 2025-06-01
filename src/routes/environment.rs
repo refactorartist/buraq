@@ -18,7 +18,7 @@ pub async fn create(
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = EnvironmentService::new(database.clone())
-        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+        .map_err(actix_web::error::ErrorInternalServerError)?;
     let environment = service.create(environment.into_inner()).await;
     match environment {
         Ok(environment) => Ok(HttpResponse::Ok().json(environment)),
@@ -39,8 +39,8 @@ pub async fn read(
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = EnvironmentService::new(database.clone())
-        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
-    let environment_id = Uuid::parse_str(&path.into_inner())
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+    let environment_id = Uuid::parse_str(path.into_inner())
         .map_err(|_| actix_web::error::ErrorBadRequest("Invalid UUID format"))?;
     let environment = service.get_environment(environment_id).await;
     match environment {
@@ -262,7 +262,7 @@ mod tests {
 
         // List environments with enabled filter
         let resp = test::TestRequest::get()
-            .uri(&format!("/environments?is_enabled=true"))
+            .uri(&"/environments?is_enabled=true".to_string())
             .send_request(&app)
             .await;
 
@@ -322,7 +322,7 @@ mod tests {
 
         // List environments with filter and pagination
         let resp = test::TestRequest::get()
-            .uri(&format!("/environments?is_enabled=true&page=1&limit=2"))
+            .uri(&"/environments?is_enabled=true&page=1&limit=2".to_string())
             .send_request(&app)
             .await;
 

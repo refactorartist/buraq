@@ -150,9 +150,9 @@ pub fn configure_routes(config: &mut web::ServiceConfig) {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use jsonwebtoken::Algorithm;
     use actix_web::{App, test};
     use chrono::{Duration, Utc};
+    use jsonwebtoken::Algorithm;
 
     #[actix_web::test]
     async fn test_create_access_token_success() {
@@ -532,7 +532,7 @@ mod tests {
         let access_token = AccessToken {
             id: None,
             key: "test-key-update".to_string(),
-                algorithm: Algorithm::RS256,
+            algorithm: Algorithm::RS256,
             expires_at: expires,
             created_at: now,
             enabled: true,

@@ -58,8 +58,8 @@ impl AccessTokenService {
 mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
-    use jsonwebtoken::Algorithm;
     use chrono::{Duration, Utc};
+    use jsonwebtoken::Algorithm;
 
     async fn setup() -> (AccessTokenService, Database) {
         let db = setup_test_db("access_token_service").await.unwrap();
