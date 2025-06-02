@@ -3,8 +3,16 @@
   "packages": [
     "rustup@latest",
     "mermaid-cli@latest",
-    "bruno@latest"
+    "bruno@latest",
+    "cmake@latest",
+    "libsodium@latest",
+    "gcc@latest"
   ],
+  "env": {
+    "OPENSSL_DIR":     "${DEVBOX_PACKAGES}/openssl",
+    "OPENSSL_LIB_DIR": "${DEVBOX_PACKAGES}/openssl/lib",
+    "PKG_CONFIG_PATH": "${DEVBOX_PACKAGES}/openssl/lib/pkgconfig"
+  },
   "shell": {
     "init_hook": [
       "echo 'Welcome to devbox!' > /dev/null",
