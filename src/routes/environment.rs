@@ -262,7 +262,7 @@ mod tests {
 
         // List environments with enabled filter
         let resp = test::TestRequest::get()
-            .uri(&"/environments?is_enabled=true".to_string())
+            .uri("/environments?is_enabled=true")
             .send_request(&app)
             .await;
 
@@ -322,7 +322,7 @@ mod tests {
 
         // List environments with filter and pagination
         let resp = test::TestRequest::get()
-            .uri(&"/environments?is_enabled=true&page=1&limit=2".to_string())
+            .uri("/environments?is_enabled=true&page=1&limit=2")
             .send_request(&app)
             .await;
 
