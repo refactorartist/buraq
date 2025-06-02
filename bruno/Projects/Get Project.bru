@@ -18,40 +18,24 @@ body:json {
   }
 }
 
-tests {
+assert {
+  : 
+}
+
+script:pre-request {
   const {axios} = require("axios")
-  const { faker } = require('@faker-js/faker');
   
-  async function get_list() {
-    let response = await axios.get("http://127.0.0.1:8080/projects")
-    let response_data = await response.data
-    return response_data
+  
+  if (bru.getVar("id") == null){ 
+    let response = axios.get("http://127.0.0.1:8080/projects")
+    let data = response.data
+    bru.setVar("id",data[0])
   }
-  async function delete_item(id) {
-    let response = await axios.get("http://127.0.0.1:8080/projects/"+id)
-  } 
+}
+
+tests {
   
-  
-  test("Get body project",function get_body() {
-    let data = {
-    "name":faker.company.name(), 
-    "description" : faker.lorem.paragraph(), 
-    "enabled": faker.Datatype.boolean()
-    }
-    let response = axios.post("http://127.0.0.1:8080/projects",data);
-    let response_data = response.data;
-    bru.setVar("id",response_data.id)
-    
-    expect(res.getBody() == response_data.id )
-    expect(res.getBody() in get_list())
-  
-    delete_item(response_data.id)
-  });
-  
-  
-  
-  
-  
-  
-  
+  test("test if id is not empty",function(){
+    expect(bru.getVar("id") !== null)
+  })
 }

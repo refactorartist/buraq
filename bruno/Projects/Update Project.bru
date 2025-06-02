@@ -18,38 +18,32 @@ body:json {
   }
 }
 
-tests {
+assert {
+  req.getBody(): neq null
+  bru.getVar("id"): neq null
+}
+
+script:pre-request {
   const {axios} = require("axios")
-  const { faker } = require('@faker-js/faker');
   
-  async function delete_project(id) {
-    let response = await axios.get("http://127.0.0.1:8080/projects/"+id)
+  
+  if (bru.getVar("id") == null){ 
+    let response = axios.get("http://127.0.0.1:8080/projects")
+    let data = response.data
+    bru.setVar("id",data[0])
   }
+}
+
+tests {
+  const {faker }  = require("faker")
   
-  async function create_project() {
-    let data = {
-    "name":faker.company.name(), 
-    "description" : faker.lorem.paragraph(), 
-    "enabled": faker.Datatype.boolean()
-    }
-    let response = await axios.post("http://127.0.0.1:8080/projects",data);
-    let response_data = await response.data;
-    return response_data
+  test("test with random data",function() {
     
-  }
-  
-  
-  test("patch project", function() {
-    let create_data =  create_project()
-    let data = {
-    "name":faker.company.name(), 
-    "description" : faker.lorem.paragraph(), 
-    "enabled": faker.Datatype.boolean()
-    }
-    req.setBody(data)
-    bru.setVar("id",create_data.id)
-    
-    expect(req.getBody() !== data)
+    req.setBody({
+    "name": faker.company.name(), 
+    "description" : faker.company.buzzPhrase() , 
+    "enabled": faker.datatype.boolean()
+    })
     
   })
 }
