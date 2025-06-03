@@ -8,6 +8,7 @@ pub enum RsaKeyLength {
     B2048,
     B3072,
     B4096,
+    B8192,
 }
 
 impl RsaKeyLength {
@@ -16,6 +17,7 @@ impl RsaKeyLength {
             RsaKeyLength::B2048 => 2048,
             RsaKeyLength::B3072 => 3072,
             RsaKeyLength::B4096 => 4096,
+            RsaKeyLength::B8192 => 8192,
         }
     }
 
@@ -24,6 +26,7 @@ impl RsaKeyLength {
             2048 => Some(RsaKeyLength::B2048),
             3072 => Some(RsaKeyLength::B3072),
             4096 => Some(RsaKeyLength::B4096),
+            8192 => Some(RsaKeyLength::B8192),
             _ => None,
         }
     }
@@ -33,6 +36,7 @@ impl RsaKeyLength {
             RsaKeyLength::B2048,
             RsaKeyLength::B3072,
             RsaKeyLength::B4096,
+            RsaKeyLength::B8192,
         ]
     }
 }
@@ -60,6 +64,7 @@ pub fn generate_rsa_key_pair(rsa_key_length: RsaKeyLength) -> Result<(RsaPrivate
 }
 
 
+
 #[cfg(test)]
 mod tests {
     use openssl::rsa::Padding;
@@ -71,6 +76,7 @@ mod tests {
         assert_eq!(RsaKeyLength::B2048.as_bits(), 2048);
         assert_eq!(RsaKeyLength::B3072.as_bits(), 3072);
         assert_eq!(RsaKeyLength::B4096.as_bits(), 4096);
+        assert_eq!(RsaKeyLength::B8192.as_bits(), 8192);
     }
 
     #[test]
@@ -78,16 +84,18 @@ mod tests {
         assert_eq!(RsaKeyLength::from_bits(2048), Some(RsaKeyLength::B2048));
         assert_eq!(RsaKeyLength::from_bits(3072), Some(RsaKeyLength::B3072));
         assert_eq!(RsaKeyLength::from_bits(4096), Some(RsaKeyLength::B4096));
-        assert_eq!(RsaKeyLength::from_bits(1024), None);
+        assert_eq!(RsaKeyLength::from_bits(8192), Some(RsaKeyLength::B8192));
+
     }
 
     #[test]
     fn test_rsa_key_length_all() {
         let all = RsaKeyLength::all();
-        assert_eq!(all.len(), 3);
+        assert_eq!(all.len(), 4);
         assert!(all.contains(&RsaKeyLength::B2048));
         assert!(all.contains(&RsaKeyLength::B3072));
         assert!(all.contains(&RsaKeyLength::B4096));
+        assert!(all.contains(&RsaKeyLength::B8192));
     }
 
     #[test]
