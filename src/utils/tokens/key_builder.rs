@@ -173,18 +173,18 @@ impl KeyBuilder {
                 };
                 
                 let key_len = key_length
-                    .and_then(|len| {
+                    .map(|len| {
                         // Map the key length to the closest HmacKeyLength
                         if len <= 16 {
-                            Some(HmacKeyLength::B128)
+                            HmacKeyLength::B128
                         } else if len <= 24 {
-                            Some(HmacKeyLength::B192)
+                            HmacKeyLength::B192
                         } else if len <= 32 {
-                            Some(HmacKeyLength::B256)
+                            HmacKeyLength::B256
                         } else if len <= 48 {
-                            Some(HmacKeyLength::B384)
+                            HmacKeyLength::B384
                         } else {
-                            Some(HmacKeyLength::B512)
+                            HmacKeyLength::B512
                         }
                     })
                     .unwrap_or_else(|| hash_function.recommended_by_length());

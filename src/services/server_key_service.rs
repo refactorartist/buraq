@@ -90,7 +90,7 @@ mod tests {
 
         let created = service.create(payload).await.unwrap();
         assert!(created.id.is_some());
-        assert!(created.key.len() > 0);
+        assert!(!created.key.is_empty());
         assert_eq!(created.environment_id, environment_id);
         assert_eq!(created.algorithm, Algorithm::HS256);
 

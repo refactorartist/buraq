@@ -151,7 +151,7 @@ mod tests {
     fn test_deserialize_option_none() {
         let json = r#"{"algorithm":null}"#;
         let deserialized: TestStructOption = serde_json::from_str(json).unwrap();
-        assert!(matches!(deserialized.algorithm, None));
+        assert!(deserialized.algorithm.is_none());
     }
 
     #[test]
