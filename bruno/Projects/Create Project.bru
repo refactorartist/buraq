@@ -10,28 +10,31 @@ post {
   auth: inherit
 }
 
-body:json {
-  {
-    "name": "Something", 
-    "description" : "definitely something", 
-    "enabled": true
+assert {
+  req.getBody(): neq null
+}
+
+script:pre-request {
+  const { faker } = require('@faker-js/faker');
+  
+  if (Object.keys(req.getBody()).length === 0) {
+    req.setBody({
+      name: faker.company.name() + "_test",
+      description: faker.company.buzzPhrase(),
+      enabled: faker.datatype.boolean()
+    });
   }
 }
 
-assert {
-  req.getBody(): neq null
-  : 
-}
-
 tests {
-  const {faker }  = require("faker")
+  const { faker } = require('@faker-js/faker');
   
   test("test with random data",function() {
     
     req.setBody({
-    "name": faker.company.name(), 
-    "description" : faker.company.buzzPhrase() , 
-    "enabled": faker.datatype.boolean()
+    name: faker.company.name() + "_TEST", 
+    description : faker.company.buzzPhrase() , 
+    enabled: faker.datatype.boolean()
     })
       expect(req.getBody() !== null)
   

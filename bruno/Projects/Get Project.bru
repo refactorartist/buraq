@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: http://127.0.0.1:8080/projects/{{id}}
+  url: http://127.0.0.1:8080/projects/{{userId}}
   body: none
   auth: inherit
 }
@@ -19,23 +19,41 @@ body:json {
 }
 
 assert {
-  : 
+  bru.getVar("id"): neq null
 }
 
 script:pre-request {
-  const {axios} = require("axios")
+  const axios = require('axios');
+  let id = bru.getVar("userId");
   
-  
-  if (bru.getVar("id") == null){ 
-    let response = axios.get("http://127.0.0.1:8080/projects")
-    let data = response.data
-    bru.setVar("id",data[0])
+  if (id == null) {
+    // Make the request to get the userId first
+    return axios.get('http://127.0.0.1:8080/projects')
+      .then(response => {
+        const userId = String(response.data[0]._id);
+        console.log("Setting userId:", userId);
+        bru.setVar("userId", userId);
+        
+        // Now dynamically update the URL with the new userId
+        const newUrl = `http://127.0.0.1:8080/projects/${userId}`;
+        req.setUrl(newUrl);
+        
+        console.log("Updated URL:", req.getUrl());
+        
+        // Return true to continue with the request
+        return true;
+      })
+      .catch(error => {
+        console.error('Error fetching data:', error.message);
+        console.error('Error details:', error.response ? error.response.data : error);
+        // Return false to abort the request
+        return false;
+      });
+  } else {
+    // If userId already exists, just continue with the request
+    console.log("Using existing userId:", id);
+    const updatedUrl = `http://127.0.0.1:8080/projects/${id}`;
+    req.setUrl(updatedUrl);
+    return true;
   }
-}
-
-tests {
-  
-  test("test if id is not empty",function(){
-    expect(bru.getVar("id") !== null)
-  })
 }
