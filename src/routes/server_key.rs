@@ -1,6 +1,6 @@
 use crate::config::AppData;
 use crate::models::server_key::{
-    ServerKey, ServerKeyFilter, ServerKeyUpdatePayload,
+    ServerKeyCreatePayload, ServerKeyFilter, ServerKeyUpdatePayload
 };
 use crate::models::pagination::Pagination;
 use crate::services::server_key_service::ServerKeyService;
@@ -11,7 +11,7 @@ use mongodb::bson::uuid::Uuid;
 /// Handler to create a new server key.
 pub async fn create(
     data: web::Data<AppData>,
-    server_key: web::Json<ServerKey>,
+    payload: web::Json<ServerKeyCreatePayload>,
 ) -> Result<HttpResponse, Error> {
     let database = data
         .database
@@ -19,7 +19,7 @@ pub async fn create(
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = ServerKeyService::new(database.clone())
         .map_err(actix_web::error::ErrorInternalServerError)?;
-    let server_key = service.create(server_key.into_inner()).await;
+    let server_key = service.create(payload.into_inner()).await;
     match server_key {
         Ok(server_key) => Ok(HttpResponse::Ok().json(server_key)),
         Err(e) => {
@@ -123,10 +123,10 @@ pub async fn list(
     let service = ServerKeyService::new(database.clone())
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
-    let filter = filter.expect("filter is required");
     let pagination = pagination.into_inner();
+    let filter = filter.map(|f| f.into_inner()).unwrap_or_default();
 
-    let result = service.find(filter.into_inner(), None, Some(pagination)).await;
+    let result = service.find(filter, None, Some(pagination)).await;
 
     match result {
         Ok(server_keys) => Ok(HttpResponse::Ok().json(server_keys)),
@@ -160,8 +160,8 @@ mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use actix_web::{App, test};
-    use chrono::Utc;
     use jsonwebtoken::Algorithm;
+    use crate::models::server_key::ServerKey;
 
     #[actix_web::test]
     async fn test_list_server_keys_no_filter() {
@@ -180,19 +180,14 @@ mod tests {
         .await;
 
         // Create server keys
-        for i in 0..5 {
-            let server_key = ServerKey {
-                id: None,
-                key: format!("test-key-{}", i),
+        for _ in 0..5 {
+            let payload = ServerKeyCreatePayload {
                 environment_id: Uuid::new(),
                 algorithm: Algorithm::HS256,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
             };
-
             let _ = test::TestRequest::post()
                 .uri("/server-keys")
-                .set_json(&server_key)
+                .set_json(&payload)
                 .send_request(&app)
                 .await;
         }
@@ -229,19 +224,14 @@ mod tests {
 
         // Create server keys
         let environment_id = Uuid::new();
-        for i in 0..5 {
-            let server_key = ServerKey {
-                id: None,
-                key: format!("test-key-{}", i),
+        for _ in 0..5 {
+            let payload = ServerKeyCreatePayload {
                 environment_id,
                 algorithm: Algorithm::HS256,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
             };
-
             let _ = test::TestRequest::post()
                 .uri("/server-keys")
-                .set_json(&server_key)
+                .set_json(&payload)
                 .send_request(&app)
                 .await;
         }
@@ -285,27 +275,21 @@ mod tests {
 
         let environment_id = Uuid::new();
 
-
         // Create server key
-        let server_key = ServerKey {
-            id: None,
-            key: "test-key".to_string(),
+        let payload = ServerKeyCreatePayload {
             environment_id,
             algorithm: Algorithm::HS256,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
         };
 
         let resp = test::TestRequest::post()
             .uri("/server-keys")
-            .set_json(&server_key)
+            .set_json(&payload)
             .send_request(&app)
             .await;
 
         assert_eq!(resp.status(), 200);
         let created_key: ServerKey = test::read_body_json(resp).await;
         assert!(created_key.id.is_some());
-        assert_eq!(created_key.key, "test-key");
         assert_eq!(created_key.environment_id, environment_id);
         assert_eq!(created_key.algorithm, Algorithm::HS256);
 
@@ -332,18 +316,14 @@ mod tests {
         let environment_id = Uuid::new();
 
         // Create server key
-        let server_key = ServerKey {
-            id: None,
-            key: "test-key".to_string(),
+        let payload = ServerKeyCreatePayload {
             environment_id,
             algorithm: Algorithm::HS256,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
         };
 
         let resp = test::TestRequest::post()
             .uri("/server-keys")
-            .set_json(&server_key)
+            .set_json(&payload)
             .send_request(&app)
             .await;
 
@@ -359,7 +339,6 @@ mod tests {
         assert_eq!(resp.status(), 200);
         let retrieved_key: ServerKey = test::read_body_json(resp).await;
         assert_eq!(retrieved_key.id, created_key.id);
-        assert_eq!(retrieved_key.key, "test-key");
         assert_eq!(retrieved_key.environment_id, environment_id);
         assert_eq!(retrieved_key.algorithm, Algorithm::HS256);
 
@@ -386,19 +365,15 @@ mod tests {
         let environment_id = Uuid::new();
 
         // Create server key
-        let server_key = ServerKey {
-            id: None,
-            key: "test-key".to_string(),
+        let payload = ServerKeyCreatePayload {
             environment_id,
             algorithm: Algorithm::HS256,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
         };
         
 
         let resp = test::TestRequest::post()
             .uri("/server-keys")
-            .set_json(&server_key)
+            .set_json(&payload)
             .send_request(&app)
             .await;
 
@@ -420,7 +395,6 @@ mod tests {
 
         assert_eq!(resp.status(), 200);
         let updated_key: ServerKey = test::read_body_json(resp).await;
-        assert_eq!(updated_key.key, "updated-key");
         assert_eq!(updated_key.environment_id, environment_id);
         assert_eq!(updated_key.algorithm, Algorithm::HS256);
 
@@ -445,18 +419,15 @@ mod tests {
         .await;
 
         // Create server key
-        let server_key = ServerKey {
-            id: None,
-            key: "test-key".to_string(),
-            environment_id: Uuid::new(),
+        let environment_id = Uuid::new();
+        let payload = ServerKeyCreatePayload {
+            environment_id,
             algorithm: Algorithm::HS256,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
         };
 
         let resp = test::TestRequest::post()
             .uri("/server-keys")
-            .set_json(&server_key)
+            .set_json(&payload)
             .send_request(&app)
             .await;
 

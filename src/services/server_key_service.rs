@@ -1,14 +1,18 @@
 use crate::models::pagination::Pagination;
 use crate::models::sort::SortBuilder;
 use crate::models::server_key::{
-    ServerKey, ServerKeyFilter, ServerKeySortableFields, ServerKeyUpdatePayload,
+    ServerKey, ServerKeyCreatePayload, ServerKeyFilter, ServerKeySortableFields, ServerKeyUpdatePayload
 };
 use crate::repositories::base::Repository;
 use crate::repositories::server_key_repository::ServerKeyRepository;
 use anyhow::Error;
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
+use chrono::Utc;
 use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
 use std::sync::Arc;
+use crate::utils::tokens::key_builder::KeyBuilder;
 
 pub struct ServerKeyService {
     server_key_repository: ServerKeyRepository,
@@ -22,7 +26,18 @@ impl ServerKeyService {
         })
     }
 
-    pub async fn create(&self, server_key: ServerKey) -> Result<ServerKey, Error> {
+    pub async fn create(&self, payload: ServerKeyCreatePayload) -> Result<ServerKey, Error> {
+        let key_builder = KeyBuilder::new();
+        let key_pair = key_builder.generate_key(payload.algorithm).unwrap();
+        let private_key = STANDARD.encode(key_pair.private_key);
+        let server_key = ServerKey {
+            id: None,
+            key: private_key,
+            environment_id: payload.environment_id,
+            algorithm: payload.algorithm,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
         self.server_key_repository.create(server_key).await
     }
 
@@ -57,7 +72,6 @@ mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use jsonwebtoken::Algorithm;
-    use chrono::Utc;
 
     async fn setup() -> (ServerKeyService, Database) {
         let db = setup_test_db("server_key_service").await.unwrap();
@@ -69,18 +83,15 @@ mod tests {
     async fn test_create_server_key() {
         let (service, db) = setup().await;
         let environment_id = Uuid::new();
-        let server_key = ServerKey {
-            id: None,
-            key: "test_key".to_string(),
+        let payload = ServerKeyCreatePayload {
             environment_id,
             algorithm: Algorithm::HS256,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
         };
 
-        let created = service.create(server_key).await.unwrap();
+        let created = service.create(payload).await.unwrap();
         assert!(created.id.is_some());
-        assert_eq!(created.key, "test_key");
+        assert!(created.key.len() > 0);
+        assert_eq!(created.environment_id, environment_id);
         assert_eq!(created.algorithm, Algorithm::HS256);
 
         cleanup_test_db(db).await.unwrap();
@@ -90,19 +101,17 @@ mod tests {
     async fn test_get_server_key() {
         let (service, db) = setup().await;
         let environment_id = Uuid::new();
-        let server_key = ServerKey {
-            id: None,
-            key: "test_key".to_string(),
+        let payload = ServerKeyCreatePayload {
             environment_id,
             algorithm: Algorithm::HS256,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
         };
 
-        let created = service.create(server_key).await.unwrap();
+        let created = service.create(payload).await.unwrap();
         let retrieved = service.get_server_key(created.id.unwrap()).await.unwrap();
         assert!(retrieved.is_some());
-        assert_eq!(retrieved.unwrap().key, "test_key");
+        let retrieved = retrieved.unwrap();
+        assert_eq!(retrieved.environment_id, environment_id);
+        assert_eq!(retrieved.algorithm, Algorithm::HS256);
 
         cleanup_test_db(db).await.unwrap();
     }
@@ -111,24 +120,21 @@ mod tests {
     async fn test_update_server_key() {
         let (service, db) = setup().await;
         let environment_id = Uuid::new();
-        let server_key = ServerKey {
-            id: None,
-            key: "test_key".to_string(),
+        let create_payload = ServerKeyCreatePayload {
             environment_id,
             algorithm: Algorithm::HS256,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
         };
 
-        let created = service.create(server_key).await.unwrap();
+        let created = service.create(create_payload).await.unwrap();
+        let new_environment_id = Uuid::new();
         let update_payload = ServerKeyUpdatePayload {
-            key: Some("updated_key".to_string()),
-            environment_id: Some(environment_id),
+            key: None,
+            environment_id: Some(new_environment_id),
             algorithm: Some(Algorithm::HS512),
         };
 
         let updated = service.update(created.id.unwrap(), update_payload).await.unwrap();
-        assert_eq!(updated.key, "updated_key");
+        assert_eq!(updated.environment_id, new_environment_id);
         assert_eq!(updated.algorithm, Algorithm::HS512);
 
         cleanup_test_db(db).await.unwrap();
@@ -138,16 +144,12 @@ mod tests {
     async fn test_delete_server_key() {
         let (service, db) = setup().await;
         let environment_id = Uuid::new();
-        let server_key = ServerKey {
-            id: None,
-            key: "test_key".to_string(),
+        let payload = ServerKeyCreatePayload {
             environment_id,
             algorithm: Algorithm::HS256,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
         };
 
-        let created = service.create(server_key).await.unwrap();
+        let created = service.create(payload).await.unwrap();
         let deleted = service.delete(created.id.unwrap()).await.unwrap();
         assert!(deleted);
 
@@ -163,16 +165,12 @@ mod tests {
         let environment_id = Uuid::new();
         
         // Create multiple server keys
-        for i in 0..3 {
-            let server_key = ServerKey {
-                id: None,
-                key: format!("test_key_{}", i),
+        for _ in 0..3 {
+            let payload = ServerKeyCreatePayload {
                 environment_id,
                 algorithm: Algorithm::HS256,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
             };
-            service.create(server_key).await.unwrap();
+            service.create(payload).await.unwrap();
         }
 
         // Find without filter
