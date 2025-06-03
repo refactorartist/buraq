@@ -43,15 +43,22 @@ pub struct ServerKeyUpdatePayload {
     pub key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", with = "crate::serializers::option_algorithm")]
     pub algorithm: Option<Algorithm>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ServerKeyCreatePayload {
+    pub environment_id: Uuid,
+    #[serde(with = "crate::serializers::algorithm")]
+    pub algorithm: Algorithm,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ServerKeyFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", with = "crate::serializers::option_algorithm")]
     pub algorithm: Option<Algorithm>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment_id: Option<Uuid>,
