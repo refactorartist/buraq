@@ -123,10 +123,10 @@ pub async fn list(
     let service = ServerKeyService::new(database.clone())
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
-    let filter = filter.expect("filter is required");
     let pagination = pagination.into_inner();
+    let filter = filter.map(|f| f.into_inner()).unwrap_or_default();
 
-    let result = service.find(filter.into_inner(), None, Some(pagination)).await;
+    let result = service.find(filter, None, Some(pagination)).await;
 
     match result {
         Ok(server_keys) => Ok(HttpResponse::Ok().json(server_keys)),
