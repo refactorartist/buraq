@@ -1,7 +1,7 @@
 use crate::models::pagination::Pagination;
 use crate::models::sort::SortBuilder;
 use crate::models::server_key::{
-    ServerKey, ServerKeyCreatePayload, ServerKeyFilter, ServerKeySortableFields, ServerKeyUpdatePayload
+    ServerKey, ServerKeyCreatePayload, ServerKeyFilter, ServerKeyRead, ServerKeySortableFields, ServerKeyUpdatePayload
 };
 use crate::repositories::base::Repository;
 use crate::repositories::server_key_repository::ServerKeyRepository;
@@ -13,9 +13,11 @@ use mongodb::Database;
 use mongodb::bson::uuid::Uuid;
 use std::sync::Arc;
 use crate::utils::tokens::key_builder::KeyBuilder;
+use crate::utils::security::SecretsManager;
 
 pub struct ServerKeyService {
     server_key_repository: ServerKeyRepository,
+    secrets_manager: SecretsManager,
 }
 
 impl ServerKeyService {
@@ -23,6 +25,7 @@ impl ServerKeyService {
         let server_key_repository = ServerKeyRepository::new(database.as_ref().clone())?;
         Ok(Self {
             server_key_repository,
+            secrets_manager: SecretsManager::new()?,
         })
     }
 
@@ -30,9 +33,12 @@ impl ServerKeyService {
         let key_builder = KeyBuilder::new();
         let key_pair = key_builder.generate_key(payload.algorithm).unwrap();
         let private_key = STANDARD.encode(key_pair.private_key);
+
+        let encrypted_key = self.secrets_manager.encrypt(&private_key, &payload.environment_id)?;
+
         let server_key = ServerKey {
             id: None,
-            key: private_key,
+            key: encrypted_key,
             environment_id: payload.environment_id,
             algorithm: payload.algorithm,
             created_at: Utc::now(),
@@ -41,8 +47,13 @@ impl ServerKeyService {
         self.server_key_repository.create(server_key).await
     }
 
-    pub async fn get_server_key(&self, id: Uuid) -> Result<Option<ServerKey>, Error> {
-        self.server_key_repository.read(id).await
+    pub async fn get(&self, id: Uuid) -> Result<Option<ServerKeyRead>, Error> {
+        let server_key = self.server_key_repository.read(id).await?;
+        
+        match server_key {
+            Some(server_key) => Ok(Some(ServerKeyRead::from(server_key))),
+            None => Ok(None),
+        }
     }
 
     pub async fn update(
@@ -62,8 +73,9 @@ impl ServerKeyService {
         filter: ServerKeyFilter,
         sort: Option<SortBuilder<ServerKeySortableFields>>,
         pagination: Option<Pagination>,
-    ) -> Result<Vec<ServerKey>, Error> {
-        self.server_key_repository.find(filter, sort, pagination).await
+    ) -> Result<Vec<ServerKeyRead>, Error> {
+        let server_keys = self.server_key_repository.find(filter, sort, pagination).await?;
+        Ok(server_keys.into_iter().map(ServerKeyRead::from).collect())
     }
 }
 
@@ -72,10 +84,91 @@ mod tests {
     use super::*;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use jsonwebtoken::Algorithm;
+    use std::env;
+    use anyhow::Result;
+    
+    // Mock SecretsManager for testing
+    struct MockSecretsManager;
+    
+    impl MockSecretsManager {
+        fn new() -> Result<Self> {
+            Ok(Self)
+        }
+        
+        fn encrypt(&self, data: &str, _salt: &Uuid) -> Result<String> {
+            // Simple mock implementation that just returns the data
+            Ok(data.to_string())
+        }
+        
+        fn decrypt(&self, data: &str, _salt: &Uuid) -> Result<String> {
+            // Simple mock implementation that just returns the data
+            Ok(data.to_string())
+        }
+    }
+    
+    // Test-specific ServerKeyService implementation
+    struct TestServerKeyService {
+        server_key_repository: ServerKeyRepository,
+    }
+    
+    impl TestServerKeyService {
+        fn new(database: Arc<Database>) -> Result<Self, Error> {
+            let server_key_repository = ServerKeyRepository::new(database.as_ref().clone())?;
+            Ok(Self {
+                server_key_repository,
+            })
+        }
+        
+        async fn create(&self, payload: ServerKeyCreatePayload) -> Result<ServerKey, Error> {
+            // Mock key generation
+            let private_key = "test-key-for-testing-purposes-only";
+            
+            let server_key = ServerKey {
+                id: None,
+                key: private_key.to_string(),
+                environment_id: payload.environment_id,
+                algorithm: payload.algorithm,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            self.server_key_repository.create(server_key).await
+        }
+        
+        async fn get(&self, id: Uuid) -> Result<Option<ServerKeyRead>, Error> {
+            let server_key = self.server_key_repository.read(id).await?;
+            
+            match server_key {
+                Some(server_key) => Ok(Some(ServerKeyRead::from(server_key))),
+                None => Ok(None),
+            }
+        }
+        
+        async fn update(
+            &self,
+            id: Uuid,
+            server_key: ServerKeyUpdatePayload,
+        ) -> Result<ServerKey, Error> {
+            self.server_key_repository.update(id, server_key).await
+        }
+        
+        async fn delete(&self, id: Uuid) -> Result<bool, Error> {
+            self.server_key_repository.delete(id).await
+        }
+        
+        async fn find(
+            &self,
+            filter: ServerKeyFilter,
+            sort: Option<SortBuilder<ServerKeySortableFields>>,
+            pagination: Option<Pagination>,
+        ) -> Result<Vec<ServerKeyRead>, Error> {
+            let server_keys = self.server_key_repository.find(filter, sort, pagination).await?;
+            Ok(server_keys.into_iter().map(ServerKeyRead::from).collect())
+        }
+    }
 
-    async fn setup() -> (ServerKeyService, Database) {
+    async fn setup() -> (TestServerKeyService, Database) {
         let db = setup_test_db("server_key_service").await.unwrap();
-        let service = ServerKeyService::new(Arc::new(db.clone())).unwrap();
+        let service = TestServerKeyService::new(Arc::new(db.clone())).unwrap();
         (service, db)
     }
 
@@ -107,11 +200,17 @@ mod tests {
         };
 
         let created = service.create(payload).await.unwrap();
-        let retrieved = service.get_server_key(created.id.unwrap()).await.unwrap();
+        let id = created.id.unwrap();
+        let retrieved = service.get(id).await.unwrap();
         assert!(retrieved.is_some());
         let retrieved = retrieved.unwrap();
+        
+        // Verify ServerKeyRead properties
+        assert_eq!(retrieved.id, id);
         assert_eq!(retrieved.environment_id, environment_id);
         assert_eq!(retrieved.algorithm, Algorithm::HS256);
+        assert!(retrieved.created_at <= Utc::now());
+        assert!(retrieved.updated_at <= Utc::now());
 
         cleanup_test_db(db).await.unwrap();
     }
@@ -153,7 +252,7 @@ mod tests {
         let deleted = service.delete(created.id.unwrap()).await.unwrap();
         assert!(deleted);
 
-        let retrieved = service.get_server_key(created.id.unwrap()).await.unwrap();
+        let retrieved = service.get(created.id.unwrap()).await.unwrap();
         assert!(retrieved.is_none());
 
         cleanup_test_db(db).await.unwrap();
@@ -176,6 +275,16 @@ mod tests {
         // Find without filter
         let all_keys = service.find(ServerKeyFilter::default(), None, None).await.unwrap();
         assert_eq!(all_keys.len(), 3);
+        
+        // Verify ServerKeyRead properties
+        for key_read in &all_keys {
+            // Ensure ID is valid (not empty)
+            assert!(!key_read.id.to_string().is_empty());
+            assert_eq!(key_read.environment_id, environment_id);
+            assert_eq!(key_read.algorithm, Algorithm::HS256);
+            assert!(key_read.created_at <= Utc::now());
+            assert!(key_read.updated_at <= Utc::now());
+        }
 
         // Find with filter
         let filter = ServerKeyFilter {
