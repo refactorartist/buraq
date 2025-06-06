@@ -1,6 +1,6 @@
+use crate::serializers::algorithm::serialize as algorithm_serialize;
 use jsonwebtoken::Algorithm;
 use serde::{Deserialize, Deserializer, Serializer};
-use crate::serializers::algorithm::serialize as algorithm_serialize;
 
 pub fn serialize<S>(algorithm: &Option<Algorithm>, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -14,12 +14,12 @@ where
 
 pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Algorithm>, D::Error>
 where
-    D: Deserializer<'de>,   
+    D: Deserializer<'de>,
 {
     // Use Option::deserialize with a default value of None for missing fields
     #[derive(Deserialize)]
     struct Wrapper(#[serde(deserialize_with = "deserialize_opt")] Option<Algorithm>);
-    
+
     let wrapper = Wrapper::deserialize(deserializer)?;
     Ok(wrapper.0)
 }
@@ -42,9 +42,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::{from_value, to_value};
     use serde::{Deserialize, Serialize};
     use serde_json::json;
+    use serde_json::{from_value, to_value};
 
     #[derive(Debug, Serialize, Deserialize, PartialEq)]
     struct TestStruct {
@@ -72,7 +72,12 @@ mod tests {
     fn test_deserialize_some() {
         let json = json!({ "algorithm": "HS256" });
         let test: TestStruct = from_value(json).unwrap();
-        assert_eq!(test, TestStruct { algorithm: Some(Algorithm::HS256) });
+        assert_eq!(
+            test,
+            TestStruct {
+                algorithm: Some(Algorithm::HS256)
+            }
+        );
     }
 
     #[test]

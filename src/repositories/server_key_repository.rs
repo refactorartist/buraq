@@ -1,10 +1,7 @@
-use crate::models::server_key::{
-    ServerKey,
-    ServerKeyFilter,
-    ServerKeySortableFields,
-    ServerKeyUpdatePayload,
-};
 use crate::models::pagination::Pagination;
+use crate::models::server_key::{
+    ServerKey, ServerKeyFilter, ServerKeySortableFields, ServerKeyUpdatePayload,
+};
 use crate::models::sort::SortBuilder;
 use crate::repositories::base::Repository;
 use anyhow::{Error, Result};
@@ -142,15 +139,16 @@ impl Repository<ServerKey> for ServerKeyRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use jsonwebtoken::Algorithm;
-    use mongodb::Database;
     use crate::test_utils::cleanup_test_db;
     use crate::test_utils::setup_test_db;
+    use jsonwebtoken::Algorithm;
+    use mongodb::Database;
 
     async fn setup() -> (ServerKeyRepository, Database) {
         let client = setup_test_db("test_db").await.unwrap();
         let database = client.clone();
-        let repository = ServerKeyRepository::new(database.clone()).expect("Failed to create repository");
+        let repository =
+            ServerKeyRepository::new(database.clone()).expect("Failed to create repository");
         (repository, database)
     }
 
@@ -220,7 +218,9 @@ mod tests {
             algorithm: Some(Algorithm::HS512),
         };
 
-        let updated = repository.update(created.id.unwrap(), update_payload).await?;
+        let updated = repository
+            .update(created.id.unwrap(), update_payload)
+            .await?;
         assert_eq!(updated.key, "updated_key");
         assert_eq!(updated.algorithm, Algorithm::HS512);
 

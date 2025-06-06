@@ -1,13 +1,12 @@
 use crate::config::AppData;
-use crate::models::server_key::{
-    ServerKeyCreatePayload, ServerKeyFilter, ServerKeyRead, ServerKeyUpdatePayload
-};
 use crate::models::pagination::Pagination;
+use crate::models::server_key::{
+    ServerKeyCreatePayload, ServerKeyFilter, ServerKeyRead, ServerKeyUpdatePayload,
+};
 use crate::services::server_key_service::ServerKeyService;
 use actix_web::{Error, HttpResponse, web};
 use mongodb::bson::uuid::Uuid;
 use std::sync::Arc;
-
 
 /// Handler to create a new server key.
 pub async fn create(
@@ -157,16 +156,16 @@ pub fn configure_routes(config: &mut web::ServiceConfig) {
                     .route(web::patch().to(update))
                     .route(web::delete().to(delete)),
             ),
-    );    
+    );
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::server_key::ServerKeyRead;
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use actix_web::{App, test};
     use jsonwebtoken::Algorithm;
-    use crate::models::server_key::ServerKeyRead;
 
     #[actix_web::test]
     async fn test_list_server_keys_no_filter() {
@@ -257,7 +256,11 @@ mod tests {
         assert_eq!(resp.status(), 200);
         let server_keys: Vec<ServerKeyRead> = test::read_body_json(resp).await;
         assert_eq!(server_keys.len(), 5);
-        assert!(server_keys.iter().all(|k| k.environment_id == environment_id));
+        assert!(
+            server_keys
+                .iter()
+                .all(|k| k.environment_id == environment_id)
+        );
 
         // Cleanup
         cleanup_test_db(db).await.unwrap();
@@ -375,7 +378,6 @@ mod tests {
             environment_id,
             algorithm: Algorithm::HS256,
         };
-        
 
         let resp = test::TestRequest::post()
             .uri("/server-keys")
