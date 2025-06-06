@@ -1,10 +1,8 @@
 use anyhow::{Error, Result, Context};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
-use dotenvy::dotenv;
 use mongodb::bson::uuid::Uuid;
 use rand::{RngCore, rngs::OsRng};
-use sha2::Sha256;
 use std::env;
 
 use crate::utils::tokens::hmac::{HmacKey, HmacHashFunction};
@@ -14,16 +12,19 @@ use crate::utils::tokens::hmac::{HmacKey, HmacHashFunction};
 /// 
 /// This ensures that each client's data is encrypted with a unique key derived
 /// from both the master key and the client's ID.
+#[derive(Debug)]
 pub struct SecretsManager {
     master_key: Vec<u8>,
 }
 
 impl SecretsManager {
     /// Creates a new SecretsManager instance using the master key from .env
-    pub fn new() -> Result<Self, Error> {
-        dotenv().ok();
-        let master_key = env::var("MASTER_ENCRYPTION_KEY")
-            .context("MASTER_ENCRYPTION_KEY not found in environment variables")?;
+    pub fn new(load_dotenv: bool) -> Result<Self, Error> {
+        if load_dotenv {
+            dotenvy::dotenv().ok();
+        }
+        let master_key = env::var("BURAQ_MASTER_KEY")
+            .context("BURAQ_MASTER_KEY not found in environment variables")?;
         
         Ok(Self {
             master_key: master_key.into_bytes(),
@@ -142,14 +143,13 @@ impl SecretsManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
     use temp_env;
     
     #[test]
     fn test_encrypt_decrypt() {
-        temp_env::with_var("MASTER_ENCRYPTION_KEY", Some("test-master-key-12345"), || {
+        temp_env::with_var("BURAQ_MASTER_KEY", Some("test-master-key-12345"), || {
             // Create a SecretsManager
-            let secrets_manager = SecretsManager::new().unwrap();
+            let secrets_manager = SecretsManager::new(false).unwrap();
             
             // Test data
             let original_text = "This is a secret message";
@@ -168,9 +168,9 @@ mod tests {
     
     #[test]
     fn test_different_client_ids() {
-        temp_env::with_var("MASTER_ENCRYPTION_KEY", Some("test-master-key-12345"), || {
+        temp_env::with_var("BURAQ_MASTER_KEY", Some("test-master-key-12345"), || {
             // Create a SecretsManager
-            let secrets_manager = SecretsManager::new().unwrap();
+            let secrets_manager = SecretsManager::new(false).unwrap();
             
             // Test data
             let original_text = "This is a secret message";
@@ -195,8 +195,9 @@ mod tests {
     
     #[test]
     fn test_missing_env_var() {
-        temp_env::with_var_unset("MASTER_ENCRYPTION_KEY", || {
-            let result = SecretsManager::new();
+        temp_env::with_var_unset("BURAQ_MASTER_KEY", || {
+            let result = SecretsManager::new(false);
+            dbg!(&result);
             assert!(result.is_err());
         });
     }

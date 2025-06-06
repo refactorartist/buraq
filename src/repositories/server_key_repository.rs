@@ -18,7 +18,8 @@ use mongodb::{Collection, Database, IndexModel};
 
 /// Repository for managing ServerKey documents in MongoDB.
 ///
-/// Provides CRUD operations for ServerKey entities.
+/// Provides CRUD operations for ServerKey entities.    
+#[derive(Debug)]
 pub struct ServerKeyRepository {
     collection: Collection<ServerKey>,
 }

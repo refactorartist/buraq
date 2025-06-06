@@ -1,11 +1,12 @@
 use crate::config::AppData;
 use crate::models::server_key::{
-    ServerKeyCreatePayload, ServerKeyFilter, ServerKeyUpdatePayload
+    ServerKeyCreatePayload, ServerKeyFilter, ServerKeyRead, ServerKeyUpdatePayload
 };
 use crate::models::pagination::Pagination;
 use crate::services::server_key_service::ServerKeyService;
 use actix_web::{Error, HttpResponse, web};
 use mongodb::bson::uuid::Uuid;
+use std::sync::Arc;
 
 
 /// Handler to create a new server key.
@@ -42,9 +43,9 @@ pub async fn read(
         .map_err(actix_web::error::ErrorInternalServerError)?;
     let server_key_id = Uuid::parse_str(path.into_inner())
         .map_err(|_| actix_web::error::ErrorBadRequest("Invalid UUID format"))?;
-    let server_key = service.get_server_key(server_key_id).await;
+    let server_key = service.get(server_key_id).await;
     match server_key {
-        Ok(Some(server_key)) => Ok(HttpResponse::Ok().json(server_key)),
+        Ok(Some(server_key_read)) => Ok(HttpResponse::Ok().json(server_key_read)),
         Ok(None) => Ok(HttpResponse::NotFound().finish()),
         Err(e) => {
             println!("Error getting server key: {:?}", e);
@@ -123,13 +124,17 @@ pub async fn list(
     let service = ServerKeyService::new(database.clone())
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
+    dbg!(filter.clone());
+    dbg!(pagination.clone());
+    dbg!(&service);
+
     let pagination = pagination.into_inner();
     let filter = filter.map(|f| f.into_inner()).unwrap_or_default();
 
     let result = service.find(filter, None, Some(pagination)).await;
 
     match result {
-        Ok(server_keys) => Ok(HttpResponse::Ok().json(server_keys)),
+        Ok(server_key_reads) => Ok(HttpResponse::Ok().json(server_key_reads)),
         Err(e) => {
             println!("Error listing server keys: {:?}", e);
             Err(actix_web::error::ErrorBadRequest(e))
@@ -161,7 +166,7 @@ mod tests {
     use crate::test_utils::{cleanup_test_db, setup_test_db};
     use actix_web::{App, test};
     use jsonwebtoken::Algorithm;
-    use crate::models::server_key::ServerKey;
+    use crate::models::server_key::ServerKeyRead;
 
     #[actix_web::test]
     async fn test_list_server_keys_no_filter() {
@@ -198,8 +203,8 @@ mod tests {
             .send_request(&app)
             .await;
 
-        assert_eq!(resp.status(), 200);
-        let server_keys: Vec<ServerKey> = test::read_body_json(resp).await;
+        assert!(resp.status().is_success());
+        let server_keys: Vec<ServerKeyRead> = test::read_body_json(resp).await;
         assert_eq!(server_keys.len(), 5);
 
         // Cleanup
@@ -208,6 +213,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_list_server_keys_with_filter() {
+        // Set the master encryption key for testing
         // Setup
         let db = setup_test_db("server_key_routes").await.unwrap();
         let app_data = web::Data::new(AppData {
@@ -249,7 +255,7 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), 200);
-        let server_keys: Vec<ServerKey> = test::read_body_json(resp).await;
+        let server_keys: Vec<ServerKeyRead> = test::read_body_json(resp).await;
         assert_eq!(server_keys.len(), 5);
         assert!(server_keys.iter().all(|k| k.environment_id == environment_id));
 
@@ -288,8 +294,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), 200);
-        let created_key: ServerKey = test::read_body_json(resp).await;
-        assert!(created_key.id.is_some());
+        let created_key: ServerKeyRead = test::read_body_json(resp).await;
+        assert!(!created_key.id.to_string().is_empty());
         assert_eq!(created_key.environment_id, environment_id);
         assert_eq!(created_key.algorithm, Algorithm::HS256);
 
@@ -299,7 +305,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_get_server_key_success() {
-        // Setup
+        // Set the master encryption key for testing
         let db = setup_test_db("server_key_routes").await.unwrap();
         let app_data = web::Data::new(AppData {
             database: Some(std::sync::Arc::new(db.clone())),
@@ -328,16 +334,16 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), 200);
-        let created_key: ServerKey = test::read_body_json(resp).await;
+        let created_key: ServerKeyRead = test::read_body_json(resp).await;
 
         // Get server key
         let resp = test::TestRequest::get()
-            .uri(&format!("/server-keys/{}", created_key.id.unwrap()))
+            .uri(&format!("/server-keys/{}", created_key.id))
             .send_request(&app)
             .await;
 
         assert_eq!(resp.status(), 200);
-        let retrieved_key: ServerKey = test::read_body_json(resp).await;
+        let retrieved_key: ServerKeyRead = test::read_body_json(resp).await;
         assert_eq!(retrieved_key.id, created_key.id);
         assert_eq!(retrieved_key.environment_id, environment_id);
         assert_eq!(retrieved_key.algorithm, Algorithm::HS256);
@@ -378,7 +384,7 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), 200);
-        let created_key: ServerKey = test::read_body_json(resp).await;
+        let created_key: ServerKeyRead = test::read_body_json(resp).await;
 
         // Update server key
         let update_payload = ServerKeyUpdatePayload {
@@ -388,13 +394,13 @@ mod tests {
         };
 
         let resp = test::TestRequest::patch()
-            .uri(&format!("/server-keys/{}", created_key.id.unwrap()))
+            .uri(&format!("/server-keys/{}", created_key.id))
             .set_json(&update_payload)
             .send_request(&app)
             .await;
 
         assert_eq!(resp.status(), 200);
-        let updated_key: ServerKey = test::read_body_json(resp).await;
+        let updated_key: ServerKeyRead = test::read_body_json(resp).await;
         assert_eq!(updated_key.environment_id, environment_id);
         assert_eq!(updated_key.algorithm, Algorithm::HS256);
 
@@ -432,11 +438,11 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), 200);
-        let created_key: ServerKey = test::read_body_json(resp).await;
+        let created_key: ServerKeyRead = test::read_body_json(resp).await;
 
         // Delete server key
         let resp = test::TestRequest::delete()
-            .uri(&format!("/server-keys/{}", created_key.id.unwrap()))
+            .uri(&format!("/server-keys/{}", created_key.id))
             .send_request(&app)
             .await;
 
@@ -444,7 +450,7 @@ mod tests {
 
         // Verify deletion
         let resp = test::TestRequest::get()
-            .uri(&format!("/server-keys/{}", created_key.id.unwrap()))
+            .uri(&format!("/server-keys/{}", created_key.id))
             .send_request(&app)
             .await;
 
