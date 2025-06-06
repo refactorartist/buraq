@@ -21,3 +21,4 @@ target/
 # Environment files
 .env
 
+.windsurf/workflows/
