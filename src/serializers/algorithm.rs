@@ -119,9 +119,7 @@ mod tests {
 
     #[test]
     fn test_serialize_option_none() {
-        let test_struct = TestStructOption {
-            algorithm: None,
-        };
+        let test_struct = TestStructOption { algorithm: None };
         let serialized = serde_json::to_string(&test_struct).unwrap();
         assert_eq!(serialized, r#"{"algorithm":null}"#);
     }
