@@ -53,7 +53,7 @@ impl ServerKeyService {
 
         match servery_key {
             Ok(server_key) => Ok(ServerKeyRead::from(server_key)),
-            Err(e) => Err(anyhow::Error::from(e)),
+            Err(e) => Err(e),
         }
     }
 
@@ -75,7 +75,7 @@ impl ServerKeyService {
 
         match server_key {
             Ok(server_key) => Ok(ServerKeyRead::from(server_key)),
-            Err(e) => Err(anyhow::Error::from(e)),
+            Err(e) => Err(e),
         }
     }
 

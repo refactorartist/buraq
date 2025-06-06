@@ -1,12 +1,11 @@
 use crate::config::AppData;
 use crate::models::pagination::Pagination;
 use crate::models::server_key::{
-    ServerKeyCreatePayload, ServerKeyFilter, ServerKeyRead, ServerKeyUpdatePayload,
+    ServerKeyCreatePayload, ServerKeyFilter, ServerKeyUpdatePayload,
 };
 use crate::services::server_key_service::ServerKeyService;
 use actix_web::{Error, HttpResponse, web};
 use mongodb::bson::uuid::Uuid;
-use std::sync::Arc;
 
 /// Handler to create a new server key.
 pub async fn create(
