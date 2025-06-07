@@ -3,7 +3,6 @@
 
 use anyhow::{Context, Error, Result};
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
-use jsonwebtoken::encode;
 use openssl::pkey::PKey;
 use std::str;
 
@@ -240,15 +239,15 @@ impl KeyBuilder {
 
     /// Generates a key for a specific algorithm with a custom key length (for HMAC)
     /// Creates a JWT token with the specified claims using the provided key
-    /// 
+    ///
     /// # Arguments
     /// * `claims` - The JWT claims to include in the token
     /// * `key` - The key to use for signing the token
     /// * `algorithm` - The algorithm to use for signing the token
-    /// 
+    ///
     /// # Returns
     /// A `Result` containing the signed JWT token as a string
-    /// 
+    ///
     /// # Errors
     /// Returns an error if the token cannot be created or signed
     pub fn create_jwt<T: serde::Serialize>(
@@ -259,17 +258,14 @@ impl KeyBuilder {
     ) -> anyhow::Result<String> {
         let header = &Header::new(algorithm);
         let encoding_key = match algorithm {
-            Algorithm::HS256 | Algorithm::HS384 | Algorithm::HS512 => {
-                EncodingKey::from_secret(key)
-            }
+            Algorithm::HS256 | Algorithm::HS384 | Algorithm::HS512 => EncodingKey::from_secret(key),
             _ => EncodingKey::from_rsa_pem(key).map_err(|e| {
                 Error::msg(format!("Failed to create encoding key from RSA key: {}", e))
             })?,
         };
 
-        jsonwebtoken::encode(header, claims, &encoding_key).map_err(|e| {
-            Error::msg(format!("Failed to sign JWT token: {}", e))
-        })
+        jsonwebtoken::encode(header, claims, &encoding_key)
+            .map_err(|e| Error::msg(format!("Failed to sign JWT token: {}", e)))
     }
 
     /// Generates a key for a specific algorithm with a custom key length (for HMAC)
@@ -322,11 +318,11 @@ impl Default for KeyBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use jsonwebtoken::{decode, DecodingKey, Validation};
-    use serde_json::json;
+    
     use jsonwebtoken::Algorithm;
+    use jsonwebtoken::{DecodingKey, Validation, decode};
     use serde_json;
-    use anyhow::Result;
+    
 
     #[test]
     fn test_generate_hmac_key() {
@@ -433,10 +429,10 @@ mod tests {
     #[test]
     fn test_create_jwt_with_hmac() {
         let builder = KeyBuilder::new();
-        
+
         // Generate HMAC key for HS256
         let key_pair = builder.generate_key(Algorithm::HS256).unwrap();
-        
+
         // Create test claims
         let claims = serde_json::json!({
             "sub": "1234567890",
@@ -444,30 +440,26 @@ mod tests {
             "admin": true,
             "iat": 1516239022
         });
-        
+
         // Create JWT token
-        let token = builder.create_jwt(
-            &claims,
-            &key_pair.private_key,
-            Algorithm::HS256
-        );
-        
+        let token = builder.create_jwt(&claims, &key_pair.private_key, Algorithm::HS256);
+
         // Verify token was created successfully
         assert!(token.is_ok());
         let token = token.unwrap();
-        
+
         // Basic validation of the token format
         let parts: Vec<&str> = token.split('.').collect();
         assert_eq!(parts.len(), 3, "JWT should have 3 parts");
     }
-    
+
     #[test]
     fn test_create_jwt_with_rsa() {
         let builder = KeyBuilder::new();
-        
+
         // Generate RSA key for RS256
         let key_pair = builder.generate_key(Algorithm::RS256).unwrap();
-        
+
         // Create test claims
         let claims = serde_json::json!({
             "sub": "1234567890",
@@ -475,29 +467,25 @@ mod tests {
             "admin": true,
             "iat": 1516239022
         });
-        
+
         // Create JWT token
-        let token = builder.create_jwt(
-            &claims,
-            &key_pair.private_key,
-            Algorithm::RS256
-        );
-        
+        let token = builder.create_jwt(&claims, &key_pair.private_key, Algorithm::RS256);
+
         // Verify token was created successfully
         assert!(token.is_ok());
         let token = token.unwrap();
-        
+
         // Basic validation of the token format
         let parts: Vec<&str> = token.split('.').collect();
         assert_eq!(parts.len(), 3, "JWT should have 3 parts");
     }
-    
+
     #[test]
     fn test_claims_creation() {
         // Test basic claims creation
         let claims = Claims::new("user123", 3600);
         let now = OffsetDateTime::now_utc().unix_timestamp();
-        
+
         assert_eq!(claims.sub, "user123");
         assert!(claims.exp > now);
         assert!(claims.iat <= now);
@@ -515,7 +503,10 @@ mod tests {
             .with_jti(jti.clone());
 
         assert_eq!(claims.iss, Some("test-issuer".to_string()));
-        assert_eq!(claims.aud, Some(vec!["aud1".to_string(), "aud2".to_string()]));
+        assert_eq!(
+            claims.aud,
+            Some(vec!["aud1".to_string(), "aud2".to_string()])
+        );
         assert_eq!(claims.nbf, Some(now - 100));
         assert_eq!(claims.jti, Some(jti));
     }
@@ -529,7 +520,7 @@ mod tests {
         // Serialize to JSON
         let json = serde_json::to_string(&claims).unwrap();
         let value: serde_json::Value = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(value["sub"], "user123");
         assert_eq!(value["iss"], "test-issuer");
         assert_eq!(value["aud"][0], "aud1");
@@ -540,7 +531,7 @@ mod tests {
     fn test_create_and_verify_jwt() {
         let builder = KeyBuilder::new();
         let key_pair = builder.generate_key(Algorithm::HS256).unwrap();
-        
+
         // Create claims
         let issuer = "test-issuer";
         let audience = "test-audience";
@@ -550,23 +541,28 @@ mod tests {
             .with_jti(uuid::Uuid::new_v4().to_string());
 
         // Create JWT
-        let token = builder.create_jwt(&claims, &key_pair.private_key, Algorithm::HS256)
+        let token = builder
+            .create_jwt(&claims, &key_pair.private_key, Algorithm::HS256)
             .expect("Failed to create JWT");
 
         // Verify the token
         let mut validation = Validation::new(Algorithm::HS256);
         validation.set_issuer(&[issuer]);
         validation.set_audience(&[audience]);
-        
+
         let token_data = decode::<serde_json::Value>(
             &token,
             &DecodingKey::from_secret(&key_pair.private_key),
-            &validation
+            &validation,
         );
 
-        assert!(token_data.is_ok(), "Token validation failed: {:?}", token_data.err());
+        assert!(
+            token_data.is_ok(),
+            "Token validation failed: {:?}",
+            token_data.err()
+        );
         let token_claims = token_data.unwrap().claims;
-        
+
         // Verify individual claims
         assert_eq!(token_claims["sub"], "user123");
         assert_eq!(token_claims["iss"], issuer);
@@ -578,42 +574,36 @@ mod tests {
     #[test]
     fn test_create_jwt_with_invalid_key() {
         let builder = KeyBuilder::new();
-        
+
         // Create test claims
         let claims = serde_json::json!({});
-        
+
         // Try to create JWT with invalid key
-        let result = builder.create_jwt(
-            &claims,
-            b"invalid-key",
-            Algorithm::RS256
-        );
-        
+        let result = builder.create_jwt(&claims, b"invalid-key", Algorithm::RS256);
+
         // Should fail with invalid key error
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("Failed to create encoding key from RSA key") || 
-                err.contains("Failed to sign JWT token"));
+        assert!(
+            err.contains("Failed to create encoding key from RSA key")
+                || err.contains("Failed to sign JWT token")
+        );
     }
-    
+
     #[test]
     fn test_create_jwt_with_unsupported_algorithm() {
         let builder = KeyBuilder::new();
-        
+
         // Generate a key (type doesn't matter for this test)
         let key_pair = builder.generate_key(Algorithm::HS256).unwrap();
-        
+
         // Create test claims
         let claims = serde_json::json!({});
-        
+
         // Try to create JWT with unsupported algorithm (ES256)
         // Note: This tests the error handling when the algorithm is not supported by the key
-        let result = builder.create_jwt(
-            &claims,
-            &key_pair.private_key,
-            Algorithm::ES256
-        );
-        
+        let result = builder.create_jwt(&claims, &key_pair.private_key, Algorithm::ES256);
+
         // Should fail with unsupported algorithm error
         assert!(result.is_err());
     }
