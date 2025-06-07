@@ -11,6 +11,71 @@ use crate::utils::tokens::{
     hmac::{self, HmacHashFunction, HmacKeyLength},
     rsa::{self, RsaKeyLength},
 };
+use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
+
+/// Standard JWT Claims as defined in RFC 7519
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Claims {
+    /// Subject (whom the token refers to)
+    pub sub: String,
+    /// Expiration time (as UTC timestamp)
+    pub exp: i64,
+    /// Issued at (as UTC timestamp)
+    pub iat: i64,
+    /// Issuer
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iss: Option<String>,
+    /// Audience
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aud: Option<Vec<String>>,
+    /// Not Before (as UTC timestamp)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nbf: Option<i64>,
+    /// JWT ID (unique identifier for the token)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jti: Option<String>,
+}
+
+impl Claims {
+    /// Creates a new Claims instance with the required fields and default values for optional fields
+    pub fn new(sub: impl Into<String>, exp_seconds: i64) -> Self {
+        let now = OffsetDateTime::now_utc().unix_timestamp();
+        Self {
+            sub: sub.into(),
+            exp: now + exp_seconds,
+            iat: now,
+            iss: None,
+            aud: None,
+            nbf: None,
+            jti: None,
+        }
+    }
+
+    /// Sets the issuer (iss) claim
+    pub fn with_issuer(mut self, issuer: impl Into<String>) -> Self {
+        self.iss = Some(issuer.into());
+        self
+    }
+
+    /// Sets the audience (aud) claim
+    pub fn with_audience(mut self, audience: Vec<String>) -> Self {
+        self.aud = Some(audience);
+        self
+    }
+
+    /// Sets the not-before (nbf) claim
+    pub fn with_not_before(mut self, nbf: i64) -> Self {
+        self.nbf = Some(nbf);
+        self
+    }
+
+    /// Sets the JWT ID (jti) claim
+    pub fn with_jti(mut self, jti: impl Into<String>) -> Self {
+        self.jti = Some(jti.into());
+        self
+    }
+}
 
 /// KeyBuilder is responsible for generating cryptographic keys based on the JWT algorithm.
 /// It provides methods to generate keys for various algorithms including HMAC, RSA, and more.
@@ -257,6 +322,8 @@ impl Default for KeyBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use jsonwebtoken::{decode, DecodingKey, Validation};
+    use serde_json::json;
     use jsonwebtoken::Algorithm;
     use serde_json;
     use anyhow::Result;
@@ -425,6 +492,89 @@ mod tests {
         assert_eq!(parts.len(), 3, "JWT should have 3 parts");
     }
     
+    #[test]
+    fn test_claims_creation() {
+        // Test basic claims creation
+        let claims = Claims::new("user123", 3600);
+        let now = OffsetDateTime::now_utc().unix_timestamp();
+        
+        assert_eq!(claims.sub, "user123");
+        assert!(claims.exp > now);
+        assert!(claims.iat <= now);
+        assert!(claims.iss.is_none());
+        assert!(claims.aud.is_none());
+        assert!(claims.nbf.is_none());
+        assert!(claims.jti.is_none());
+
+        // Test with all fields
+        let jti = uuid::Uuid::new_v4().to_string();
+        let claims = Claims::new("user123", 3600)
+            .with_issuer("test-issuer")
+            .with_audience(vec!["aud1".to_string(), "aud2".to_string()])
+            .with_not_before(now - 100)
+            .with_jti(jti.clone());
+
+        assert_eq!(claims.iss, Some("test-issuer".to_string()));
+        assert_eq!(claims.aud, Some(vec!["aud1".to_string(), "aud2".to_string()]));
+        assert_eq!(claims.nbf, Some(now - 100));
+        assert_eq!(claims.jti, Some(jti));
+    }
+
+    #[test]
+    fn test_claims_serialization() {
+        let claims = Claims::new("user123", 3600)
+            .with_issuer("test-issuer")
+            .with_audience(vec!["aud1".to_string()]);
+
+        // Serialize to JSON
+        let json = serde_json::to_string(&claims).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        
+        assert_eq!(value["sub"], "user123");
+        assert_eq!(value["iss"], "test-issuer");
+        assert_eq!(value["aud"][0], "aud1");
+        assert!(value.get("nbf").is_none()); // Should be omitted when None
+    }
+
+    #[test]
+    fn test_create_and_verify_jwt() {
+        let builder = KeyBuilder::new();
+        let key_pair = builder.generate_key(Algorithm::HS256).unwrap();
+        
+        // Create claims
+        let issuer = "test-issuer";
+        let audience = "test-audience";
+        let claims = Claims::new("user123", 3600)
+            .with_issuer(issuer)
+            .with_audience(vec![audience.to_string()])
+            .with_jti(uuid::Uuid::new_v4().to_string());
+
+        // Create JWT
+        let token = builder.create_jwt(&claims, &key_pair.private_key, Algorithm::HS256)
+            .expect("Failed to create JWT");
+
+        // Verify the token
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.set_issuer(&[issuer]);
+        validation.set_audience(&[audience]);
+        
+        let token_data = decode::<serde_json::Value>(
+            &token,
+            &DecodingKey::from_secret(&key_pair.private_key),
+            &validation
+        );
+
+        assert!(token_data.is_ok(), "Token validation failed: {:?}", token_data.err());
+        let token_claims = token_data.unwrap().claims;
+        
+        // Verify individual claims
+        assert_eq!(token_claims["sub"], "user123");
+        assert_eq!(token_claims["iss"], issuer);
+        assert_eq!(token_claims["aud"][0], audience);
+        assert!(token_claims["exp"].as_i64().unwrap() > OffsetDateTime::now_utc().unix_timestamp());
+        assert!(token_claims["jti"].as_str().is_some());
+    }
+
     #[test]
     fn test_create_jwt_with_invalid_key() {
         let builder = KeyBuilder::new();
