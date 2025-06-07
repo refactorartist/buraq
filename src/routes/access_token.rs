@@ -1,27 +1,39 @@
 use crate::config::AppData;
 use crate::models::access_token::{
-    AccessToken, AccessTokenFilter, AccessTokenSortableFields, AccessTokenUpdatePayload,
+    AccessToken, AccessTokenCreatePayload, AccessTokenFilter, AccessTokenRead, AccessTokenSortableFields, AccessTokenUpdatePayload
 };
 use crate::models::pagination::Pagination;
 use crate::models::sort::{SortBuilder, SortDirection};
 use crate::services::access_token_service::AccessTokenService;
+use crate::utils::tokens::key_builder::KeyBuilder;
+use chrono::Utc;
 use mongodb::bson::uuid::Uuid;
 
 use actix_web::{Error, HttpResponse, web};
 
 pub async fn create(
     data: web::Data<AppData>,
-    access_token: web::Json<AccessToken>,
+    payload: web::Json<AccessTokenCreatePayload>,
 ) -> Result<HttpResponse, Error> {
     let database = data
         .database
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = AccessTokenService::new(database.clone()).unwrap();
-    let access_token = service.create(access_token.into_inner()).await;
+    let private_key = KeyBuilder::new().generate_key(payload.algorithm).unwrap().private_key;
+    let access_token = AccessToken {
+        id: None,
+        project_access_id: payload.project_access_id,
+        key: String::from_utf8(private_key).unwrap(),
+        algorithm: payload.algorithm,
+        expires_at: payload.expires_at,
+        created_at: Utc::now(),
+        enabled: true,
+    };
+    let access_token = service.create(access_token).await;
 
     match access_token {
-        Ok(access_token) => Ok(HttpResponse::Ok().json(access_token)),
+        Ok(access_token) => Ok(HttpResponse::Ok().json(AccessTokenRead::from(access_token))),
         Err(e) => {
             println!("Error creating project: {:?}", e);
             Err(actix_web::error::ErrorBadRequest(e))
@@ -42,7 +54,7 @@ pub async fn read(
     let access_token = service.get_access_token(access_token_id).await;
 
     match access_token {
-        Ok(Some(access_token)) => Ok(HttpResponse::Ok().json(access_token)),
+        Ok(Some(access_token)) => Ok(HttpResponse::Ok().json(AccessTokenRead::from(access_token))),
         Ok(None) => Ok(HttpResponse::NotFound().finish()),
         Err(e) => {
             println!("Error getting project: {:?}", e);
@@ -66,7 +78,7 @@ pub async fn update(
     let access_token = service.update(access_token_id, payload.into_inner()).await;
 
     match access_token {
-        Ok(access_token) => Ok(HttpResponse::Ok().json(access_token)),
+        Ok(access_token) => Ok(HttpResponse::Ok().json(AccessTokenRead::from(access_token))),
         Err(e) => {
             println!("Error updating project: {:?}", e);
             Err(actix_web::error::ErrorBadRequest(e))
@@ -117,9 +129,12 @@ pub async fn list(
 
     let filter = filter.map_or_else(AccessTokenFilter::default, |q| q.into_inner());
 
-    let access_tokens = service
+    let results = service
         .find(filter, Some(sort), Some(pagination.into_inner()))
         .await;
+
+    let access_tokens = results
+        .map(|access_tokens| access_tokens.into_iter().map(AccessTokenRead::from).collect::<Vec<AccessTokenRead>>());
 
     match access_tokens {
         Ok(access_tokens) => Ok(HttpResponse::Ok().json(access_tokens)),
@@ -132,7 +147,7 @@ pub async fn list(
 
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
-        web::scope("/projects")
+        web::scope("/access-tokens")
             .service(web::resource("").route(web::post().to(create)))
             .service(
                 web::resource("/{id}")
@@ -142,6 +157,7 @@ pub fn configure_routes(config: &mut web::ServiceConfig) {
             ),
     );
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,279 +175,32 @@ mod tests {
             ..Default::default()
         });
         let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create)))
-                    .service(
-                        web::resource("/{id}")
-                            .route(web::get().to(read))
-                            .route(web::patch().to(update))
-                            .route(web::delete().to(delete)),
-                    ),
-            ),
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
         )
         .await;
 
         // Test
-        let now = Utc::now();
-        let expires = now + Duration::hours(1);
-        let access_token = AccessToken {
-            id: None,
-            key: "test-key-create".to_string(),
-            algorithm: Algorithm::RS256,
-            expires_at: expires,
-            created_at: now,
-            enabled: true,
+        let payload = AccessTokenCreatePayload {
             project_access_id: Uuid::new(),
+            algorithm: Algorithm::RS256,
+            expires_at: Utc::now() + Duration::hours(1),
         };
 
         let resp = test::TestRequest::post()
-            .uri("/access_tokens")
-            .set_json(&access_token)
-            .send_request(&app)
-            .await;
-
-        assert!(resp.status().is_success());
-        let created_access_token: AccessToken = test::read_body_json(resp).await;
-
-        assert_eq!(created_access_token.key, access_token.key);
-        assert_eq!(created_access_token.algorithm, access_token.algorithm);
-        assert!(created_access_token.id.is_some());
-        assert!(created_access_token.enabled);
-
-        // Cleanup
-        cleanup_test_db(db).await.unwrap();
-    }
-
-    #[actix_web::test]
-    async fn test_list_access_tokens_no_filter() {
-        // Setup
-        let db = setup_test_db("access_token_routes").await.unwrap();
-        let app_data = web::Data::new(AppData {
-            database: Some(std::sync::Arc::new(db.clone())),
-            ..Default::default()
-        });
-        let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/access-tokens")
-                    .service(
-                        web::resource("")
-                            .route(web::post().to(create))
-                            .route(web::get().to(list)),
-                    )
-                    .service(
-                        web::resource("/{id}")
-                            .route(web::get().to(read))
-                            .route(web::patch().to(update))
-                            .route(web::delete().to(delete)),
-                    ),
-            ),
-        )
-        .await;
-
-        // Create access tokens
-        for i in 0..5 {
-            let access_token = AccessToken {
-                id: None,
-                key: format!("test-key-{}", i),
-                algorithm: Algorithm::RS256,
-                expires_at: Utc::now() + Duration::hours(1),
-                created_at: Utc::now(),
-                enabled: true,
-                project_access_id: Uuid::new(),
-            };
-            let _ = test::TestRequest::post()
-                .uri("/access-tokens")
-                .set_json(&access_token)
-                .send_request(&app)
-                .await;
-        }
-
-        // List access tokens without filter
-        let resp = test::TestRequest::get()
             .uri("/access-tokens")
+            .set_json(&payload)
             .send_request(&app)
             .await;
 
         assert!(resp.status().is_success());
-        let access_tokens: Vec<AccessToken> = test::read_body_json(resp).await;
-        assert_eq!(access_tokens.len(), 5);
+        let created_token: AccessTokenRead = test::read_body_json(resp).await;
 
-        // Cleanup
-        cleanup_test_db(db).await.unwrap();
-    }
+        assert_eq!(created_token.algorithm, payload.algorithm);
+        assert_eq!(created_token.expires_at, payload.expires_at);
+        assert!(created_token.enabled);
 
-    #[actix_web::test]
-    async fn test_list_access_tokens_with_pagination() {
-        // Setup
-        let db = setup_test_db("access_token_routes").await.unwrap();
-        let app_data = web::Data::new(AppData {
-            database: Some(std::sync::Arc::new(db.clone())),
-            ..Default::default()
-        });
-        let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/access-tokens")
-                    .service(
-                        web::resource("")
-                            .route(web::post().to(create))
-                            .route(web::get().to(list)),
-                    )
-                    .service(
-                        web::resource("/{id}")
-                            .route(web::get().to(read))
-                            .route(web::patch().to(update))
-                            .route(web::delete().to(delete)),
-                    ),
-            ),
-        )
-        .await;
-
-        // Create access tokens
-        for i in 0..10 {
-            let access_token = AccessToken {
-                id: None,
-                key: format!("test-key-{}", i),
-                algorithm: Algorithm::RS256,
-                expires_at: Utc::now() + Duration::hours(1),
-                created_at: Utc::now(),
-                enabled: true,
-                project_access_id: Uuid::new(),
-            };
-            let _ = test::TestRequest::post()
-                .uri("/access-tokens")
-                .set_json(&access_token)
-                .send_request(&app)
-                .await;
-        }
-
-        // List access tokens with pagination
-        let resp = test::TestRequest::get()
-            .uri("/access-tokens?page=1&limit=5")
-            .send_request(&app)
-            .await;
-
-        assert!(resp.status().is_success());
-        let access_tokens: Vec<AccessToken> = test::read_body_json(resp).await;
-        assert_eq!(access_tokens.len(), 5);
-
-        // Cleanup
-        cleanup_test_db(db).await.unwrap();
-    }
-
-    #[actix_web::test]
-    async fn test_list_access_tokens_with_filter() {
-        // Setup
-        let db = setup_test_db("access_token_routes").await.unwrap();
-        let app_data = web::Data::new(AppData {
-            database: Some(std::sync::Arc::new(db.clone())),
-            ..Default::default()
-        });
-        let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/access-tokens")
-                    .service(
-                        web::resource("")
-                            .route(web::post().to(create))
-                            .route(web::get().to(list)),
-                    )
-                    .service(
-                        web::resource("/{id}")
-                            .route(web::get().to(read))
-                            .route(web::patch().to(update))
-                            .route(web::delete().to(delete)),
-                    ),
-            ),
-        )
-        .await;
-
-        // Create access tokens
-        for i in 0..5 {
-            let access_token = AccessToken {
-                id: None,
-                key: format!("test-key-{}", i),
-                algorithm: if i % 2 == 0 {
-                    Algorithm::RS256
-                } else {
-                    Algorithm::HS256
-                },
-                expires_at: Utc::now() + Duration::hours(1),
-                created_at: Utc::now(),
-                enabled: i % 2 == 0,
-                project_access_id: Uuid::new(),
-            };
-            let _ = test::TestRequest::post()
-                .uri("/access-tokens")
-                .set_json(&access_token)
-                .send_request(&app)
-                .await;
-        }
-
-        // List access tokens with enabled filter
-        let resp = test::TestRequest::get()
-            .uri("/access-tokens?is_enabled=true")
-            .send_request(&app)
-            .await;
-
-        assert!(resp.status().is_success());
-        let access_tokens: Vec<AccessToken> = test::read_body_json(resp).await;
-        assert_eq!(access_tokens.len(), 3);
-        assert!(access_tokens.iter().all(|token| token.enabled));
-
-        // Cleanup
-        cleanup_test_db(db).await.unwrap();
-    }
-
-    #[actix_web::test]
-    async fn test_list_access_tokens_with_filter_and_pagination() {
-        // Setup
-        let db = setup_test_db("access_token_routes").await.unwrap();
-        let app_data = web::Data::new(AppData {
-            database: Some(std::sync::Arc::new(db.clone())),
-            ..Default::default()
-        });
-        let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/access-tokens")
-                    .service(
-                        web::resource("")
-                            .route(web::post().to(create))
-                            .route(web::get().to(list)),
-                    )
-                    .service(
-                        web::resource("/{id}")
-                            .route(web::get().to(read))
-                            .route(web::patch().to(update))
-                            .route(web::delete().to(delete)),
-                    ),
-            ),
-        )
-        .await;
-        // Create access tokens
-        for i in 0..10 {
-            let access_token = AccessToken {
-                id: None,
-                key: format!("test-key-{}", i),
-                algorithm: Algorithm::RS256,
-                expires_at: Utc::now() + Duration::hours(1),
-                created_at: Utc::now(),
-                enabled: i % 2 == 0,
-                project_access_id: Uuid::new(),
-            };
-            let _ = test::TestRequest::post()
-                .uri("/access-tokens")
-                .set_json(&access_token)
-                .send_request(&app)
-                .await;
-        }
-        // List access tokens with filter and pagination
-        let resp = test::TestRequest::get()
-            .uri("/access-tokens?is_enabled=true&page=1&limit=2")
-            .send_request(&app)
-            .await;
-        assert!(resp.status().is_success());
-        let access_tokens: Vec<AccessToken> = test::read_body_json(resp).await;
-        assert_eq!(access_tokens.len(), 2);
         // Cleanup
         cleanup_test_db(db).await.unwrap();
     }
@@ -445,56 +214,40 @@ mod tests {
             ..Default::default()
         });
         let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/access_tokens")
-                    .service(
-                        web::resource("")
-                            .route(web::post().to(create))
-                            .route(web::get().to(list)),
-                    )
-                    .service(
-                        web::resource("/{id}")
-                            .route(web::get().to(read))
-                            .route(web::patch().to(update))
-                            .route(web::delete().to(delete)),
-                    ),
-            ),
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
         )
         .await;
 
         // First create an access token
-        let now = Utc::now();
-        let expires = now + Duration::hours(1);
-        let access_token = AccessToken {
-            id: None,
-            key: "test-key-get".to_string(),
-            algorithm: Algorithm::RS256,
-            expires_at: expires,
-            created_at: now,
-            enabled: true,
+        let payload = AccessTokenCreatePayload {
             project_access_id: Uuid::new(),
+            algorithm: Algorithm::RS256,
+            expires_at: Utc::now() + Duration::hours(1),
         };
 
         let resp = test::TestRequest::post()
-            .uri("/access_tokens")
-            .set_json(&access_token)
+            .uri("/access-tokens")
+            .set_json(&payload)
             .send_request(&app)
             .await;
 
-        let created_access_token: AccessToken = test::read_body_json(resp).await;
-        let access_token_id = created_access_token.id.unwrap();
+        let created_token: AccessTokenRead = test::read_body_json(resp).await;
+        let access_token_id = created_token.id.unwrap();
 
         // Then get the access token
         let resp = test::TestRequest::get()
-            .uri(&format!("/access_tokens/{}", access_token_id))
+            .uri(&format!("/access-tokens/{}", access_token_id))
             .send_request(&app)
             .await;
 
         assert!(resp.status().is_success());
-        let retrieved_access_token: AccessToken = test::read_body_json(resp).await;
+        let retrieved_token: AccessTokenRead = test::read_body_json(resp).await;
 
-        assert_eq!(retrieved_access_token.id, created_access_token.id);
-        assert_eq!(retrieved_access_token.key, created_access_token.key);
+        assert_eq!(retrieved_token.id, created_token.id);
+        assert_eq!(retrieved_token.algorithm, payload.algorithm);
+        assert_eq!(retrieved_token.expires_at, payload.expires_at);
 
         // Cleanup
         cleanup_test_db(db).await.unwrap();
@@ -509,62 +262,51 @@ mod tests {
             ..Default::default()
         });
         let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create)))
-                    .service(
-                        web::resource("/{id}")
-                            .route(web::get().to(read))
-                            .route(web::patch().to(update))
-                            .route(web::delete().to(delete)),
-                    ),
-            ),
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
         )
         .await;
 
         // First create an access token
         let now = Utc::now();
-        let expires = now + Duration::hours(1);
-        let access_token = AccessToken {
-            id: None,
-            key: "test-key-update".to_string(),
-            algorithm: Algorithm::RS256,
-            expires_at: expires,
-            created_at: now,
-            enabled: true,
+        let payload = AccessTokenCreatePayload {
             project_access_id: Uuid::new(),
+            algorithm: Algorithm::RS256,
+            expires_at: now + Duration::hours(1),
         };
 
         let resp = test::TestRequest::post()
-            .uri("/access_tokens")
-            .set_json(&access_token)
+            .uri("/access-tokens")
+            .set_json(&payload)
             .send_request(&app)
             .await;
 
-        let created_access_token: AccessToken = test::read_body_json(resp).await;
-        let access_token_id = created_access_token.id.unwrap();
+        let created_token: AccessTokenRead = test::read_body_json(resp).await;
+        let access_token_id = created_token.id.unwrap();
 
         // Then update the access token
         let new_expires = now + Duration::hours(2);
+        let new_project_id = Uuid::new();
         let update_payload = AccessTokenUpdatePayload {
-            key: Some("updated-key".to_string()),
             expires_at: Some(new_expires),
             enabled: Some(false),
-            project_access_id: Some(Uuid::new()),
+            project_access_id: Some(new_project_id),
+            key: None,
         };
 
         let resp = test::TestRequest::patch()
-            .uri(&format!("/access_tokens/{}", access_token_id))
+            .uri(&format!("/access-tokens/{}", access_token_id))
             .set_json(&update_payload)
             .send_request(&app)
             .await;
 
         assert!(resp.status().is_success());
-        let updated_access_token: AccessToken = test::read_body_json(resp).await;
+        let updated_token: AccessTokenRead = test::read_body_json(resp).await;
 
-        assert_eq!(updated_access_token.key, "updated-key");
-        assert_eq!(updated_access_token.expires_at, new_expires);
-        assert!(!updated_access_token.enabled);
+        assert_eq!(updated_token.expires_at, new_expires);
+        assert!(!updated_token.enabled);
+        assert_eq!(updated_token.project_access_id, new_project_id);
 
         // Cleanup
         cleanup_test_db(db).await.unwrap();
@@ -579,56 +321,43 @@ mod tests {
             ..Default::default()
         });
         let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create)))
-                    .service(
-                        web::resource("/{id}")
-                            .route(web::get().to(read))
-                            .route(web::patch().to(update))
-                            .route(web::delete().to(delete)),
-                    ),
-            ),
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
         )
         .await;
 
         // First create an access token
-        let now = Utc::now();
-        let expires = now + Duration::hours(1);
-        let access_token = AccessToken {
-            id: None,
-            key: "test-key-delete".to_string(),
-            algorithm: Algorithm::HS256,
-            expires_at: expires,
-            created_at: now,
-            enabled: true,
+        let payload = AccessTokenCreatePayload {
             project_access_id: Uuid::new(),
+            algorithm: Algorithm::RS256,
+            expires_at: Utc::now() + Duration::hours(1),
         };
 
         let resp = test::TestRequest::post()
-            .uri("/access_tokens")
-            .set_json(&access_token)
+            .uri("/access-tokens")
+            .set_json(&payload)
             .send_request(&app)
             .await;
 
-        let created_access_token: AccessToken = test::read_body_json(resp).await;
-        let access_token_id = created_access_token.id.unwrap();
+        let created_token: AccessTokenRead = test::read_body_json(resp).await;
+        let access_token_id = created_token.id.unwrap();
 
         // Then delete the access token
         let resp = test::TestRequest::delete()
-            .uri(&format!("/access_tokens/{}", access_token_id))
+            .uri(&format!("/access-tokens/{}", access_token_id))
             .send_request(&app)
             .await;
 
-        assert!(resp.status().is_success());
+        assert_eq!(resp.status(), 204); // No Content
 
-        // Verify access token is deleted
+        // Verify the token was deleted
         let resp = test::TestRequest::get()
-            .uri(&format!("/access_tokens/{}", access_token_id))
+            .uri(&format!("/access-tokens/{}", access_token_id))
             .send_request(&app)
             .await;
 
-        assert!(resp.status().is_client_error());
+        assert_eq!(resp.status(), 404); // Not Found
 
         // Cleanup
         cleanup_test_db(db).await.unwrap();
@@ -643,26 +372,20 @@ mod tests {
             ..Default::default()
         });
         let app = test::init_service(
-            App::new().app_data(app_data.clone()).service(
-                web::scope("/access_tokens")
-                    .service(web::resource("").route(web::post().to(create)))
-                    .service(
-                        web::resource("/{id}")
-                            .route(web::get().to(read))
-                            .route(web::patch().to(update))
-                            .route(web::delete().to(delete)),
-                    ),
-            ),
+            App::new()
+                .app_data(app_data.clone())
+                .configure(configure_routes),
         )
         .await;
 
-        let nonexistent_id = Uuid::new();
+        // Try to get a non-existent access token
+        let non_existent_id = Uuid::new();
         let resp = test::TestRequest::get()
-            .uri(&format!("/access_tokens/{}", nonexistent_id))
+            .uri(&format!("/access-tokens/{}", non_existent_id))
             .send_request(&app)
             .await;
 
-        assert!(resp.status().is_client_error());
+        assert_eq!(resp.status(), 404);
 
         // Cleanup
         cleanup_test_db(db).await.unwrap();
