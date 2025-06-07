@@ -52,6 +52,14 @@ pub struct AccessTokenUpdatePayload {
     pub project_access_id: Option<Uuid>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AccessTokenCreatePayload {
+    #[serde(with = "algorithm")]
+    pub algorithm: Algorithm,
+    pub expires_at: DateTime<Utc>,
+    pub project_access_id: Uuid,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct AccessTokenFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -209,6 +217,84 @@ mod tests {
         assert!(doc.get_bool("enabled").unwrap());
         assert!(doc.get_document("expires_at").unwrap().contains_key("$gt"));
         assert!(doc.contains_key("project_access_id"));
+    }
+
+    #[test]
+    fn test_access_token_create_payload() {
+        // Test creation and basic properties
+        let project_id = Uuid::new();
+        let expires_at = Utc::now() + Duration::hours(1);
+        
+        let payload = AccessTokenCreatePayload {
+            algorithm: Algorithm::HS256,
+            expires_at,
+            project_access_id: project_id,
+        };
+
+        assert_eq!(payload.algorithm, Algorithm::HS256);
+        assert_eq!(payload.expires_at, expires_at);
+        assert_eq!(payload.project_access_id, project_id);
+    }
+
+    #[test]
+    fn test_access_token_create_payload_serialization() {
+        // Test serialization to JSON
+        let project_id = Uuid::new();
+        let expires_at = Utc::now() + Duration::hours(1);
+        
+        let payload = AccessTokenCreatePayload {
+            algorithm: Algorithm::RS256,
+            expires_at,
+            project_access_id: project_id,
+        };
+
+        let json = serde_json::to_string(&payload).unwrap();
+        assert!(json.contains(&format!("\"algorithm\":\"RS256\"")));
+        assert!(json.contains(&format!("\"project_access_id\":\"{}\"", project_id)));
+    }
+
+    #[test]
+    fn test_access_token_create_payload_deserialization() {
+        // Test deserialization from JSON
+        let project_id = Uuid::new();
+        let expires_at = Utc::now() + Duration::hours(1);
+        let expires_at_str = expires_at.to_rfc3339();
+        
+        let json = format!(
+            r#"
+            {{
+                "algorithm": "HS512",
+                "expires_at": "{expires_at_str}",
+                "project_access_id": "{project_id}"
+            }}
+            "#
+        );
+
+        let payload: AccessTokenCreatePayload = serde_json::from_str(&json).unwrap();
+        
+        assert_eq!(payload.algorithm, Algorithm::HS512);
+        assert_eq!(payload.project_access_id, project_id);
+        assert_eq!(payload.expires_at.to_rfc3339(), expires_at_str);
+    }
+
+    #[test]
+    fn test_access_token_create_payload_invalid_algorithm() {
+        // Test handling of invalid algorithm during deserialization
+        let project_id = Uuid::new();
+        let expires_at = (Utc::now() + Duration::hours(1)).to_rfc3339();
+        
+        let json = format!(
+            r#"
+            {{
+                "algorithm": "INVALID_ALGO",
+                "expires_at": "{expires_at}",
+                "project_access_id": "{project_id}"
+            }}
+            "#
+        );
+
+        let result: Result<AccessTokenCreatePayload, _> = serde_json::from_str(&json);
+        assert!(result.is_err(), "Should fail with invalid algorithm");
     }
 
     #[test]
