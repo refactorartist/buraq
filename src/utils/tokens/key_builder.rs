@@ -34,6 +34,9 @@ pub struct Claims {
     /// JWT ID (unique identifier for the token)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub jti: Option<String>,
+    /// List of project scope names that this token is authorized for
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scopes: Option<Vec<String>>,
 }
 
 impl Claims {
@@ -48,6 +51,7 @@ impl Claims {
             aud: None,
             nbf: None,
             jti: None,
+            scopes: None,
         }
     }
 
@@ -72,6 +76,17 @@ impl Claims {
     /// Sets the JWT ID (jti) claim
     pub fn with_jti(mut self, jti: impl Into<String>) -> Self {
         self.jti = Some(jti.into());
+        self
+    }
+
+    /// Sets the project scopes claim
+    ///
+    /// # Arguments
+    /// * `scopes` - A vector of project scope names
+    pub fn with_scopes(mut self, scopes: Vec<String>) -> Self {
+        if !scopes.is_empty() {
+            self.scopes = Some(scopes);
+        }
         self
     }
 }
@@ -520,11 +535,37 @@ mod tests {
         // Serialize to JSON
         let json = serde_json::to_string(&claims).unwrap();
         let value: serde_json::Value = serde_json::from_str(&json).unwrap();
-
+        
         assert_eq!(value["sub"], "user123");
         assert_eq!(value["iss"], "test-issuer");
         assert_eq!(value["aud"][0], "aud1");
         assert!(value.get("nbf").is_none()); // Should be omitted when None
+        assert!(value.get("scopes").is_none()); // Should be omitted when None
+    }
+    
+    #[test]
+    fn test_claims_with_scopes() {
+        let scopes = vec!["read:project".to_string(), "write:project".to_string()];
+        let claims = Claims::new("user123", 3600)
+            .with_scopes(scopes.clone());
+            
+        // Serialize to JSON
+        let json = serde_json::to_string(&claims).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        
+        // Verify scopes are included in the serialized output
+        assert!(value.get("scopes").is_some());
+        let serialized_scopes = value["scopes"].as_array().unwrap();
+        assert_eq!(serialized_scopes.len(), 2);
+        assert_eq!(serialized_scopes[0], "read:project");
+        assert_eq!(serialized_scopes[1], "write:project");
+        
+        // Test with empty scopes (should be omitted)
+        let claims_empty = Claims::new("user123", 3600)
+            .with_scopes(Vec::new());
+        let json_empty = serde_json::to_string(&claims_empty).unwrap();
+        let value_empty: serde_json::Value = serde_json::from_str(&json_empty).unwrap();
+        assert!(value_empty.get("scopes").is_none());
     }
 
     #[test]
