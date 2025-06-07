@@ -4,6 +4,7 @@
 use anyhow::{Context, Error, Result};
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use openssl::pkey::PKey;
+use std::collections::HashMap;
 use std::str;
 
 use crate::utils::tokens::{
@@ -37,6 +38,9 @@ pub struct Claims {
     /// List of project scope names that this token is authorized for
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scopes: Option<Vec<String>>,
+    /// Additional metadata as key-value pairs
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub meta: Option<HashMap<String, String>>,
 }
 
 impl Claims {
@@ -52,6 +56,7 @@ impl Claims {
             nbf: None,
             jti: None,
             scopes: None,
+            meta: None,
         }
     }
 
@@ -86,6 +91,17 @@ impl Claims {
     pub fn with_scopes(mut self, scopes: Vec<String>) -> Self {
         if !scopes.is_empty() {
             self.scopes = Some(scopes);
+        }
+        self
+    }
+
+    /// Sets additional metadata as key-value pairs
+    ///
+    /// # Arguments
+    /// * `meta` - A HashMap containing key-value pairs of metadata
+    pub fn with_meta(mut self, meta: HashMap<String, String>) -> Self {
+        if !meta.is_empty() {
+            self.meta = Some(meta);
         }
         self
     }
@@ -566,6 +582,35 @@ mod tests {
         let json_empty = serde_json::to_string(&claims_empty).unwrap();
         let value_empty: serde_json::Value = serde_json::from_str(&json_empty).unwrap();
         assert!(value_empty.get("scopes").is_none());
+    }
+    
+    #[test]
+    fn test_claims_with_meta() {
+        use std::collections::HashMap;
+        
+        let mut meta = HashMap::new();
+        meta.insert("key1".to_string(), "value1".to_string());
+        meta.insert("key2".to_string(), "value2".to_string());
+        
+        let claims = Claims::new("user123", 3600)
+            .with_meta(meta.clone());
+            
+        // Serialize to JSON
+        let json = serde_json::to_string(&claims).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        
+        // Verify meta is included in the serialized output
+        assert!(value.get("meta").is_some());
+        let serialized_meta = value["meta"].as_object().unwrap();
+        assert_eq!(serialized_meta["key1"], "value1");
+        assert_eq!(serialized_meta["key2"], "value2");
+        
+        // Test with empty meta (should be omitted)
+        let claims_empty = Claims::new("user123", 3600)
+            .with_meta(HashMap::new());
+        let json_empty = serde_json::to_string(&claims_empty).unwrap();
+        let value_empty: serde_json::Value = serde_json::from_str(&json_empty).unwrap();
+        assert!(value_empty.get("meta").is_none());
     }
 
     #[test]
