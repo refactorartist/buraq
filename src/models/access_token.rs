@@ -253,7 +253,7 @@ mod tests {
         // Test creation and basic properties
         let project_id = Uuid::new();
         let expires_at = Utc::now() + Duration::hours(1);
-        
+
         let payload = AccessTokenCreatePayload {
             algorithm: Algorithm::HS256,
             expires_at,
@@ -270,7 +270,7 @@ mod tests {
         // Test serialization to JSON
         let project_id = Uuid::new();
         let expires_at = Utc::now() + Duration::hours(1);
-        
+
         let payload = AccessTokenCreatePayload {
             algorithm: Algorithm::RS256,
             expires_at,
@@ -278,7 +278,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&payload).unwrap();
-        assert!(json.contains(&format!("\"algorithm\":\"RS256\"")));
+        assert!(json.contains(&"\"algorithm\":\"RS256\"".to_string()));
         assert!(json.contains(&format!("\"project_access_id\":\"{}\"", project_id)));
     }
 
@@ -288,7 +288,7 @@ mod tests {
         let project_id = Uuid::new();
         let expires_at = Utc::now() + Duration::hours(1);
         let expires_at_str = expires_at.to_rfc3339();
-        
+
         let json = format!(
             r#"
             {{
@@ -300,7 +300,7 @@ mod tests {
         );
 
         let payload: AccessTokenCreatePayload = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(payload.algorithm, Algorithm::HS512);
         assert_eq!(payload.project_access_id, project_id);
         assert_eq!(payload.expires_at.to_rfc3339(), expires_at_str);
@@ -311,7 +311,7 @@ mod tests {
         // Test handling of invalid algorithm during deserialization
         let project_id = Uuid::new();
         let expires_at = (Utc::now() + Duration::hours(1)).to_rfc3339();
-        
+
         let json = format!(
             r#"
             {{
@@ -341,7 +341,7 @@ mod tests {
         };
 
         let read_token = AccessTokenRead::from(token.clone());
-        
+
         assert_eq!(read_token.id, token.id);
         assert_eq!(read_token.project_access_id, token.project_access_id);
         assert_eq!(read_token.algorithm, token.algorithm);

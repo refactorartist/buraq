@@ -1,6 +1,7 @@
 use crate::config::AppData;
 use crate::models::access_token::{
-    AccessToken, AccessTokenCreatePayload, AccessTokenFilter, AccessTokenRead, AccessTokenSortableFields, AccessTokenUpdatePayload
+    AccessToken, AccessTokenCreatePayload, AccessTokenFilter, AccessTokenRead,
+    AccessTokenSortableFields, AccessTokenUpdatePayload,
 };
 use crate::models::pagination::Pagination;
 use crate::models::sort::{SortBuilder, SortDirection};
@@ -20,7 +21,10 @@ pub async fn create(
         .as_ref()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Database not initialized"))?;
     let service = AccessTokenService::new(database.clone()).unwrap();
-    let private_key = KeyBuilder::new().generate_key(payload.algorithm).unwrap().private_key;
+    let private_key = KeyBuilder::new()
+        .generate_key(payload.algorithm)
+        .unwrap()
+        .private_key;
     let access_token = AccessToken {
         id: None,
         project_access_id: payload.project_access_id,
@@ -133,8 +137,12 @@ pub async fn list(
         .find(filter, Some(sort), Some(pagination.into_inner()))
         .await;
 
-    let access_tokens = results
-        .map(|access_tokens| access_tokens.into_iter().map(AccessTokenRead::from).collect::<Vec<AccessTokenRead>>());
+    let access_tokens = results.map(|access_tokens| {
+        access_tokens
+            .into_iter()
+            .map(AccessTokenRead::from)
+            .collect::<Vec<AccessTokenRead>>()
+    });
 
     match access_tokens {
         Ok(access_tokens) => Ok(HttpResponse::Ok().json(access_tokens)),

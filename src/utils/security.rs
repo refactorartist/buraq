@@ -161,7 +161,9 @@ mod tests {
             let resource_id = Uuid::new();
 
             // Encrypt
-            let encrypted = secrets_manager.encrypt(original_text, &resource_id).unwrap();
+            let encrypted = secrets_manager
+                .encrypt(original_text, &resource_id)
+                .unwrap();
 
             // Decrypt
             let decrypted = secrets_manager.decrypt(&encrypted, &resource_id).unwrap();
