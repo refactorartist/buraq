@@ -8,10 +8,10 @@ use std::env;
 use crate::utils::tokens::hmac::{HmacHashFunction, HmacKey};
 
 /// SecretsManager provides encryption and decryption functionality
-/// using a combination of a master key (from .env) and a client-specific ID.
+/// using a combination of a master key (from .env) and a resource-specific ID.
 ///
-/// This ensures that each client's data is encrypted with a unique key derived
-/// from both the master key and the client's ID.
+/// This ensures that each resource's data is encrypted with a unique key derived
+/// from both the master key and the resource's ID.
 #[derive(Debug)]
 pub struct SecretsManager {
     master_key: Vec<u8>,
@@ -31,24 +31,24 @@ impl SecretsManager {
         })
     }
 
-    /// Encrypts the provided text using the master key and client ID
+    /// Encrypts the provided text using the master key and resource ID
     ///
     /// # Arguments
     /// * `text` - The text to encrypt
-    /// * `client_id` - The client ID (typically from a ServiceAccount)
+    /// * `resource_id` - The resource ID (typically from a ServiceAccount)
     ///
     /// # Returns
     /// Base64-encoded encrypted data
-    pub fn encrypt(&self, text: &str, client_id: &Uuid) -> Result<String, Error> {
+    pub fn encrypt(&self, text: &str, resource_id: &Uuid) -> Result<String, Error> {
         // Generate a random initialization vector (IV)
         let mut iv = [0u8; 16];
         OsRng.fill_bytes(&mut iv);
 
-        // Derive a client-specific key using the master key and client ID
-        let client_key = self.derive_client_key(client_id)?;
+        // Derive a resource-specific key using the master key and resource ID
+        let resource_key = self.derive_resource_key(resource_id)?;
 
         // Encrypt the data
-        let encrypted = self.encrypt_data(text.as_bytes(), &client_key, &iv)?;
+        let encrypted = self.encrypt_data(text.as_bytes(), &resource_key, &iv)?;
 
         // Combine IV and encrypted data
         let mut result = Vec::with_capacity(iv.len() + encrypted.len());
@@ -59,15 +59,15 @@ impl SecretsManager {
         Ok(STANDARD.encode(result))
     }
 
-    /// Decrypts the provided encrypted text using the master key and client ID
+    /// Decrypts the provided encrypted text using the master key and resource ID
     ///
     /// # Arguments
     /// * `encrypted_text` - Base64-encoded encrypted text
-    /// * `client_id` - The client ID (typically from a ServiceAccount)
+    /// * `resource_id` - The resource ID (typically from a ServiceAccount)
     ///
     /// # Returns
     /// The original decrypted text
-    pub fn decrypt(&self, encrypted_text: &str, client_id: &Uuid) -> Result<String, Error> {
+    pub fn decrypt(&self, encrypted_text: &str, resource_id: &Uuid) -> Result<String, Error> {
         // Decode the Base64 input
         let encrypted_data = STANDARD
             .decode(encrypted_text)
@@ -81,24 +81,24 @@ impl SecretsManager {
         // Extract IV and encrypted data
         let (iv, encrypted) = encrypted_data.split_at(16);
 
-        // Derive client-specific key
-        let client_key = self.derive_client_key(client_id)?;
+        // Derive resource-specific key
+        let resource_key = self.derive_resource_key(resource_id)?;
 
         // Decrypt the data
-        let decrypted = self.decrypt_data(encrypted, &client_key, iv)?;
+        let decrypted = self.decrypt_data(encrypted, &resource_key, iv)?;
 
         // Convert to string
         String::from_utf8(decrypted).context("Failed to convert decrypted data to string")
     }
 
-    /// Derives a client-specific key using the master key and client ID
-    fn derive_client_key(&self, client_id: &Uuid) -> Result<Vec<u8>, Error> {
+    /// Derives a resource-specific key using the master key and resource ID
+    fn derive_resource_key(&self, resource_id: &Uuid) -> Result<Vec<u8>, Error> {
         let hmac_key = HmacKey::new(&self.master_key, HmacHashFunction::Sha256);
-        let client_id_bytes = client_id.bytes().to_vec();
+        let resource_id_bytes = resource_id.bytes().to_vec();
 
         hmac_key
-            .sign(&client_id_bytes)
-            .map_err(|e| Error::msg(format!("Failed to derive client key: {}", e)))
+            .sign(&resource_id_bytes)
+            .map_err(|e| Error::msg(format!("Failed to derive resource key: {}", e)))
     }
 
     /// Encrypts data using XOR with the derived key (simple encryption for demonstration)
@@ -158,13 +158,15 @@ mod tests {
 
             // Test data
             let original_text = "This is a secret message";
-            let client_id = Uuid::new();
+            let resource_id = Uuid::new();
 
             // Encrypt
-            let encrypted = secrets_manager.encrypt(original_text, &client_id).unwrap();
+            let encrypted = secrets_manager
+                .encrypt(original_text, &resource_id)
+                .unwrap();
 
             // Decrypt
-            let decrypted = secrets_manager.decrypt(&encrypted, &client_id).unwrap();
+            let decrypted = secrets_manager.decrypt(&encrypted, &resource_id).unwrap();
 
             // Verify
             assert_eq!(original_text, decrypted);
@@ -172,23 +174,23 @@ mod tests {
     }
 
     #[test]
-    fn test_different_client_ids() {
+    fn test_different_resource_ids() {
         temp_env::with_var("BURAQ_MASTER_KEY", Some("test-master-key-12345"), || {
             // Create a SecretsManager
             let secrets_manager = SecretsManager::new(false).unwrap();
 
             // Test data
             let original_text = "This is a secret message";
-            let client_id_1 = Uuid::new();
-            let client_id_2 = Uuid::new();
+            let resource_id_1 = Uuid::new();
+            let resource_id_2 = Uuid::new();
 
-            // Encrypt with first client ID
+            // Encrypt with first resource ID
             let encrypted = secrets_manager
-                .encrypt(original_text, &client_id_1)
+                .encrypt(original_text, &resource_id_1)
                 .unwrap();
 
-            // Try to decrypt with second client ID (should fail or produce different output)
-            let result = secrets_manager.decrypt(&encrypted, &client_id_2);
+            // Try to decrypt with second resource ID (should fail or produce different output)
+            let result = secrets_manager.decrypt(&encrypted, &resource_id_2);
 
             if let Ok(decrypted) = result {
                 // If decryption succeeded, the result should be different
