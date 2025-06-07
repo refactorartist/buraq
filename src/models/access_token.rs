@@ -40,6 +40,35 @@ impl From<Document> for AccessToken {
     }
 }
 
+/// Represents an access token for API reading (without the key field)
+///
+/// This is a read-only version of AccessToken that doesn't include the sensitive key field.
+/// Use this when returning token information to clients where the key shouldn't be exposed.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AccessTokenRead {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<Uuid>,
+    pub project_access_id: Uuid,
+    #[serde(with = "algorithm")]
+    pub algorithm: Algorithm,
+    pub expires_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub enabled: bool,
+}
+
+impl From<AccessToken> for AccessTokenRead {
+    fn from(token: AccessToken) -> Self {
+        AccessTokenRead {
+            id: token.id,
+            project_access_id: token.project_access_id,
+            algorithm: token.algorithm,
+            expires_at: token.expires_at,
+            created_at: token.created_at,
+            enabled: token.enabled,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AccessTokenUpdatePayload {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -295,6 +324,53 @@ mod tests {
 
         let result: Result<AccessTokenCreatePayload, _> = serde_json::from_str(&json);
         assert!(result.is_err(), "Should fail with invalid algorithm");
+    }
+
+    #[test]
+    fn test_access_token_read_conversion() {
+        let now = Utc::now();
+        let expires = now + Duration::hours(1);
+        let token = AccessToken {
+            id: Some(Uuid::new()),
+            key: "test-key".to_string(),
+            algorithm: Algorithm::RS256,
+            expires_at: expires,
+            created_at: now,
+            enabled: true,
+            project_access_id: Uuid::new(),
+        };
+
+        let read_token = AccessTokenRead::from(token.clone());
+        
+        assert_eq!(read_token.id, token.id);
+        assert_eq!(read_token.project_access_id, token.project_access_id);
+        assert_eq!(read_token.algorithm, token.algorithm);
+        assert_eq!(read_token.expires_at, token.expires_at);
+        assert_eq!(read_token.created_at, token.created_at);
+        assert_eq!(read_token.enabled, token.enabled);
+    }
+
+    #[test]
+    fn test_access_token_read_serialization() {
+        let now = Utc::now();
+        let read_token = AccessTokenRead {
+            id: Some(Uuid::new()),
+            project_access_id: Uuid::new(),
+            algorithm: Algorithm::HS256,
+            expires_at: now + Duration::hours(1),
+            created_at: now,
+            enabled: true,
+        };
+
+        let serialized = serde_json::to_string(&read_token).unwrap();
+        let deserialized: AccessTokenRead = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(read_token.id, deserialized.id);
+        assert_eq!(read_token.project_access_id, deserialized.project_access_id);
+        assert_eq!(read_token.algorithm, deserialized.algorithm);
+        assert_eq!(read_token.expires_at, deserialized.expires_at);
+        assert_eq!(read_token.created_at, deserialized.created_at);
+        assert_eq!(read_token.enabled, deserialized.enabled);
     }
 
     #[test]
