@@ -1,0 +1,43 @@
+meta {
+  name: Create Project
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://127.0.0.1:8080/projects
+  body: json
+  auth: inherit
+}
+
+assert {
+  req.getBody(): neq null
+}
+
+script:pre-request {
+  const { faker } = require('@faker-js/faker');
+  
+  if (Object.keys(req.getBody()).length === 0) {
+    req.setBody({
+      name: faker.company.name() + "_test",
+      description: faker.company.buzzPhrase(),
+      enabled: faker.datatype.boolean()
+    });
+  }
+}
+
+tests {
+  const { faker } = require('@faker-js/faker');
+  
+  test("Create_Project_TEST",function() {
+    
+    req.setBody({
+      name: faker.company.name() + "_TEST", 
+      description : faker.company.buzzPhrase() , 
+      enabled: faker.datatype.boolean()
+    })
+    expect(req.getBody() !== null)
+  
+  })  
+  
+}
