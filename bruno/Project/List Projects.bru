@@ -1,0 +1,44 @@
+meta {
+  name: List Projects
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://127.0.0.1:8080/projects
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Something",
+    "description": "definitely something",
+    "enabled": true
+  }
+}
+
+tests {
+  const {faker} =require('@faker-js/faker');
+  const { v4: uuid } = require('uuid');
+  const axios = require('axios');
+  
+  test("list test",function() {
+    let name = "some project_test"
+    let description = "some description"
+    let enable = true 
+    let data = {
+      name:name,
+      description:description,
+      enabled:enable 
+    }
+    let reponse = axios.post("http://127.0.0.1:8080/projects",data)
+  
+    expect(data in res.getBody())
+    expect(res.getStatus() == 200 ) 
+    
+    let id = res.getBody()._id 
+    axios.delete("http://127.0.0.1:8080/projects/"+id)
+  
+  })
+}

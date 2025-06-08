@@ -1,0 +1,51 @@
+meta {
+  name: Delete Project
+  type: http
+  seq: 5
+}
+
+delete {
+  url: http://127.0.0.1:8080/projects/{{id}}
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const axios = require('axios');
+  
+  let response = await axios.get("http://127.0.0.1:8080/projects");
+  let projects = response.data;
+  
+  try {
+    for (let i = 0;i < projects.length ; i++) {
+  //    if (projects[i]._id.slice(-5) == "_test") {
+        bru.setVar("id",projects[i]._id)
+  //    }    
+    }
+  }catch(error) {
+    console.log("No item")
+  }
+}
+
+tests {
+  const axios = require('axios');
+  
+  
+  test("delete test ", function() {
+  let response = axios.get("http://127.0.0.1:8080/projects");
+  let projects = response.data;
+  console.log(projects)
+  if ( projects !== null) {
+  for (let i = 0;i < Object.keys(projects).length ; i++) {
+      if (projects[i]._id.slice(-5) == "_test") {
+        bru.setVar("id",projects[i]._id)
+        console.log(projects[i])
+      }    
+  }
+  }else {
+    console.log("Projects is empty")
+  }
+  expect(res.getStatus() == 200)
+  })
+  
+}

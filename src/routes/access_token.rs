@@ -39,7 +39,7 @@ pub async fn create(
     match access_token {
         Ok(access_token) => Ok(HttpResponse::Ok().json(AccessTokenRead::from(access_token))),
         Err(e) => {
-            println!("Error creating project: {:?}", e);
+            println!("Error creating Access Token: {:?}", e);
             Err(actix_web::error::ErrorBadRequest(e))
         }
     }
@@ -61,7 +61,7 @@ pub async fn read(
         Ok(Some(access_token)) => Ok(HttpResponse::Ok().json(AccessTokenRead::from(access_token))),
         Ok(None) => Ok(HttpResponse::NotFound().finish()),
         Err(e) => {
-            println!("Error getting project: {:?}", e);
+            println!("Error getting Access Token: {:?}", e);
             Err(actix_web::error::ErrorBadRequest(e))
         }
     }
@@ -84,7 +84,7 @@ pub async fn update(
     match access_token {
         Ok(access_token) => Ok(HttpResponse::Ok().json(AccessTokenRead::from(access_token))),
         Err(e) => {
-            println!("Error updating project: {:?}", e);
+            println!("Error updating AccessToken: {:?}", e);
             Err(actix_web::error::ErrorBadRequest(e))
         }
     }
@@ -112,7 +112,7 @@ pub async fn delete(
             }
         }
         Err(e) => {
-            println!("Error deleting project: {:?}", e);
+            println!("Error deleting Acess Token: {:?}", e);
             Err(actix_web::error::ErrorBadRequest(e))
         }
     }
@@ -147,7 +147,7 @@ pub async fn list(
     match access_tokens {
         Ok(access_tokens) => Ok(HttpResponse::Ok().json(access_tokens)),
         Err(e) => {
-            println!("Error listing projects: {:?}", e);
+            println!("Error listing accessToken: {:?}", e);
             Err(actix_web::error::ErrorInternalServerError(e))
         }
     }
@@ -155,8 +155,17 @@ pub async fn list(
 
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
+<<<<<<< HEAD
+        web::scope("/access_tokens")
+            .service(
+                web::resource("")
+                    .route(web::post().to(create))
+                    .route(web::get().to(list)),
+            )
+=======
         web::scope("/access-tokens")
             .service(web::resource("").route(web::post().to(create)))
+>>>>>>> 36e8043872c20e76891fc4517dc1eaae827561c8
             .service(
                 web::resource("/{id}")
                     .route(web::get().to(read))

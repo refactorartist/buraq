@@ -1,0 +1,39 @@
+meta {
+  name: Create AccessToken
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://127.0.0.1:8080/access_tokens
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "key":"Key_example",
+    "Algorithm":"RSA",
+    "createdAt": "2023-01-01T00:00:00.000Z",
+    "expiresAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+
+script:pre-request {
+  const {faker} =require('@faker-js/faker');
+  const { v4: uuid } = require('uuid');
+  const Algorithm = {
+    RSA:"RSA",
+    HMAC:"HMAC"
+  }
+  
+  
+  req.setBody({
+    key:uuid(),
+    Algorithm:Algorithm[faker.number.int({min:0,max:1})],
+    CreatedAt:faker.date.past(),
+    ExpiresAt:faker.date.future()
+  })  
+  
+  
+}
