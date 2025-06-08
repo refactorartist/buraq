@@ -17,10 +17,11 @@ assert {
 script:pre-request {
   const { faker } = require('@faker-js/faker');
   
-  if (Object.keys(req.getBody()).length === 0) {
+  const currentBody = req.getBody();
+  if (!currentBody || Object.keys(currentBody).length === 0) {
     req.setBody({
-      name: faker.company.name() + "_test",
-      description: faker.company.buzzPhrase(),
+      name: faker.company.name() + "_TEST",
+      description: faker.lorem.text(),
       enabled: faker.datatype.boolean()
     });
   }

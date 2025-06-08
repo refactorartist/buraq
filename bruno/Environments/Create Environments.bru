@@ -1,0 +1,41 @@
+meta {
+  name: Create Environments
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://127.0.0.1:8080/environments
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const { faker } = require('@faker-js/faker');
+  
+  const currentBody = req.getBody();
+  if (!currentBody || Object.keys(currentBody).length === 0) {
+    req.setBody({
+      id:faker.string.uuid(),
+      project_id:faker.string.uuid(),
+      name:faker.company.name() + "_TEST",
+      description:faker.lorem.text(),
+      enabled:faker.datatype.boolean()
+  
+    });
+  }
+}
+
+tests {
+  const { faker } = require('@faker-js/faker');
+  const currentBody = req.getBody();
+  if (!currentBody || Object.keys(currentBody).length === 0) {
+    req.setBody({
+      id: faker.string.uuid(),
+      project_id: faker.string.uuid(),
+      name: faker.company.name() + "_TEST",
+      description: faker.lorem.text(),
+      enabled: Math.random() < 0.5  
+    });
+  }
+}
