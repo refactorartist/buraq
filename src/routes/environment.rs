@@ -137,7 +137,11 @@ pub async fn list(
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/environments")
-            .service(web::resource("").route(web::post().to(create)))
+            .service(
+                web::resource("")
+                    .route(web::post().to(create))
+                    .route(web::get().to(list)),
+            )
             .service(
                 web::resource("/{id}")
                     .route(web::get().to(read))
@@ -146,7 +150,6 @@ pub fn configure_routes(config: &mut web::ServiceConfig) {
             ),
     );
 }
-
 #[cfg(test)]
 mod tests {
 
