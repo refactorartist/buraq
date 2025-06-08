@@ -11,8 +11,11 @@
   },
   "keywords": [],
   "devDependencies": {
-    "@faker-js/faker": "^9.8.0"
+    "@eslint/js": "^9.28.0",
+    "@faker-js/faker": "^9.8.0",
+    "globals": "^16.2.0"
   },
+  
   "dependencies": {
     "axios": "^1.9.0"
   }

@@ -29,14 +29,14 @@ script:pre-request {
 tests {
   const { faker } = require('@faker-js/faker');
   
-  test("test with random data",function() {
+  test("Create_Project_TEST",function() {
     
     req.setBody({
-    name: faker.company.name() + "_TEST", 
-    description : faker.company.buzzPhrase() , 
-    enabled: faker.datatype.boolean()
+      name: faker.company.name() + "_TEST", 
+      description : faker.company.buzzPhrase() , 
+      enabled: faker.datatype.boolean()
     })
-      expect(req.getBody() !== null)
+    expect(req.getBody() !== null)
   
   })  
   
