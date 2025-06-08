@@ -6,7 +6,8 @@
     "bruno@latest",
     "cmake@latest",
     "libsodium@latest",
-    "gcc@latest"
+    "gcc@latest",
+    "sqlx-cli@latest"
   ],
   "env": {
     "OPENSSL_DIR":     "${DEVBOX_PACKAGES}/openssl",
