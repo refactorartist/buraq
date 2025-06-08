@@ -1,0 +1,49 @@
+meta {
+  name: Update Project
+  type: http
+  seq: 3
+}
+
+patch {
+  url: http://127.0.0.1:8080/projects/{{id}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name":"some name",
+    "description":"some description",
+    "enabled": false
+  }
+}
+
+assert {
+  req.getBody(): neq null
+  bru.getVar("id"): neq null
+}
+
+script:pre-request {
+  const {axios} = require("axios")
+  
+  
+  if (bru.getVar("id") == null){ 
+    let response = axios.get("http://127.0.0.1:8080/projects")
+    let data = response.data
+    bru.setVar("id",data[0])
+  }
+}
+
+tests {
+  const {faker }  = require("faker")
+  
+  test("Update_Project_TEST",function() {
+    
+    req.setBody({
+    "name": faker.company.name(), 
+    "description" : faker.company.buzzPhrase() , 
+    "enabled": faker.datatype.boolean()
+    })
+    
+  })
+}

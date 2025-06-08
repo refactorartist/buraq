@@ -44,6 +44,31 @@ where
     }
 }
 
+pub fn serialize_option<S>(algorithm: &Option<Algorithm>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match algorithm {
+        Some(algorithm) => serialize(algorithm, serializer),
+        None => serializer.serialize_none(),
+    }
+}
+
+pub fn deserialize_option<'de, D>(deserializer: D) -> Result<Option<Algorithm>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Option::deserialize(deserializer)?;
+    match s {
+        Some(s) => {
+            // Parse the Algorithm from the string directly
+            let algorithm = s.parse().map_err(serde::de::Error::custom)?;
+            Ok(Some(algorithm))
+        }
+        None => Ok(None),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -54,6 +79,15 @@ mod tests {
     struct TestStruct {
         #[serde(serialize_with = "serialize", deserialize_with = "deserialize")]
         algorithm: Algorithm,
+    }
+
+    #[derive(Serialize, Deserialize)]
+    struct TestStructOption {
+        #[serde(
+            serialize_with = "serialize_option",
+            deserialize_with = "deserialize_option"
+        )]
+        algorithm: Option<Algorithm>,
     }
 
     #[test]
@@ -75,6 +109,22 @@ mod tests {
     }
 
     #[test]
+    fn test_serialize_option_rs256() {
+        let test_struct = TestStructOption {
+            algorithm: Some(Algorithm::RS256),
+        };
+        let serialized = serde_json::to_string(&test_struct).unwrap();
+        assert_eq!(serialized, r#"{"algorithm":"RS256"}"#);
+    }
+
+    #[test]
+    fn test_serialize_option_none() {
+        let test_struct = TestStructOption { algorithm: None };
+        let serialized = serde_json::to_string(&test_struct).unwrap();
+        assert_eq!(serialized, r#"{"algorithm":null}"#);
+    }
+
+    #[test]
     fn test_deserialize_rs256() {
         let json = r#"{"algorithm":"RS256"}"#;
         let deserialized: TestStruct = serde_json::from_str(json).unwrap();
@@ -89,9 +139,30 @@ mod tests {
     }
 
     #[test]
+    fn test_deserialize_option_rs256() {
+        let json = r#"{"algorithm":"RS256"}"#;
+        let deserialized: TestStructOption = serde_json::from_str(json).unwrap();
+        assert!(matches!(deserialized.algorithm, Some(Algorithm::RS256)));
+    }
+
+    #[test]
+    fn test_deserialize_option_none() {
+        let json = r#"{"algorithm":null}"#;
+        let deserialized: TestStructOption = serde_json::from_str(json).unwrap();
+        assert!(deserialized.algorithm.is_none());
+    }
+
+    #[test]
     fn test_deserialize_invalid() {
         let json = r#"{"algorithm":"INVALID"}"#;
         let result: Result<TestStruct, _> = serde_json::from_str(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_deserialize_option_invalid() {
+        let json = r#"{"algorithm":"INVALID"}"#;
+        let result: Result<TestStructOption, _> = serde_json::from_str(json);
         assert!(result.is_err());
     }
 }

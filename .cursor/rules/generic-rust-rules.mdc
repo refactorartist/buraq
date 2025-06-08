@@ -1,19 +1,21 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
+
 # Rust Async Web Development Guide
 
 ## Project Setup and Workflow
 
 ### Development Commands
-
-- Run tests: `devbox run test`
-- Start application: `devbox run start`
+- Run tests: `devbox run tests`
+- Start application: `devbox run app`
+- Check code: `devbox run cargo check`
+- Run linter: `devbox run cargo clippy`
+- Run linter with fix: `cargo clippy --fix --lib -p buraq`
 
 ### Prerequisites
-
 - Rust
 - Tokio
 - Actix-web
@@ -21,48 +23,25 @@ alwaysApply: false
 - Devbox
 
 ## Project Structure
-
 ```
 project_root/
 |
-|= src/
-|     |
-|     main.rs
-|     lib.rs
-|    | routes/
-|     models/
-|     repositories/
-|     services/
+|-- src/
+|     |
+|     |-- main.rs
+|     |-- lib.rs
+|     |-- routes/
+|     |-- models/
+|     |-- repositories/
+|     |-- services/
 |
-|= tests/
-|    | integration/
-|    | unit/
+|-- tests/
+|     |-- integration/
+|     |-- unit/
 |
-|= Cargo.toml
-|=> devbox.json
-```
-
-## Devbox Configuration
-
-```json
-{
-  "packages": [
-    "rust",
-    "mongodb",
-    "openssl"
-  ],
-  "shell": {
-    "init_hook": [
-      "export RUST_BACKTRACE=3
-  L  }
-  },
-  "scripts": {
-    "test": "cargo test -- --nocapture",
-    "start": "cargo run",
-    "check": "cargo check",
-    "clippy": "cargo clippy"
-  }
-}
+|-- Cargo.toml
+|-- devbox.json
+|-- README.md
 ```
 
 ## Testing Workflow
@@ -101,7 +80,6 @@ devbox run tests -- --nocapture
 - Leverage `serde` for serialization
 
 ## Recommended Ecosystem
-
 - HTTP Server: Actix-web
 - Database: MongoDB
 - Serialization: Serde
@@ -109,14 +87,12 @@ devbox run tests -- --nocapture
 - Configuration: Config crate
 
 ## Performance Optimization
-
 - Minimize async overhead
 - Implement connection pooling
 - Optimize database queries
 - Use efficient serialization
 
 ## Security Considerations
-
 - Input validation
 - Secure MongoDB connections
 - Implement authentication
@@ -124,7 +100,6 @@ devbox run tests -- --nocapture
 - Protect against web vulnerabilities
 
 ## Best Practices
-
 1. Modular application structure
 2. Clear separation of concerns
 3. Comprehensive logging
@@ -132,26 +107,34 @@ devbox run tests -- --nocapture
 5. Thorough testing
 
 ## Continuous Integration
-
 Ensure all tests pass:
 ```bash
 devbox run tests
 ```
-
+cargo test
 Start application:
 ```bash
-devbox run start
-tests
+devbox run app
 ```
 
-## Contributing
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+## Common Commands Reference
+```bash
+# Build the project
+devbox cargo build
 
-## License
+# Run the project
+devbox run app
 
-[Your License Here]
+# Run tests
+devbox run tests
+
+# Check code without building
+devbox run cargo check
+
+# Run linter
+devbox run cargo clippy
+
+# Format code
+devbox run cargo fmt
+```

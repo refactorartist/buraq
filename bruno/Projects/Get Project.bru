@@ -1,0 +1,54 @@
+meta {
+  name: Get Project
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://127.0.0.1:8080/projects/{{userId}}
+  body: none
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Something",
+    "description": "definitely something",
+    "enabled": true
+  }
+}
+
+assert {
+  bru.getVar("id"): neq null
+}
+
+script:pre-request {
+  const axios = require('axios');
+  let id = bru.getVar("userId");
+  
+  if (id == null) {
+    return axios.get('http://127.0.0.1:8080/projects')
+      .then(response => {
+        const userId = String(response.data[0]._id);
+        console.log("Setting userId:", userId);
+        bru.setVar("userId", userId);
+        
+        const newUrl = `http://127.0.0.1:8080/projects/${userId}`;
+        req.setUrl(newUrl);
+        
+        console.log("Updated URL:", req.getUrl());
+        
+        return true;
+      })
+      .catch(error => {
+        console.error('Error fetching data:', error.message);
+        console.error('Error details:', error.response ? error.response.data : error);
+        return false;
+      });
+  } else {
+    console.log("Using existing userId:", id);
+    const updatedUrl = `http://127.0.0.1:8080/projects/${id}`;
+    req.setUrl(updatedUrl);
+    return true;
+  }
+}
