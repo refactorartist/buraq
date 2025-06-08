@@ -155,17 +155,8 @@ pub async fn list(
 
 pub fn configure_routes(config: &mut web::ServiceConfig) {
     config.service(
-<<<<<<< HEAD
-        web::scope("/access_tokens")
-            .service(
-                web::resource("")
-                    .route(web::post().to(create))
-                    .route(web::get().to(list)),
-            )
-=======
         web::scope("/access-tokens")
             .service(web::resource("").route(web::post().to(create)))
->>>>>>> 36e8043872c20e76891fc4517dc1eaae827561c8
             .service(
                 web::resource("/{id}")
                     .route(web::get().to(read))
