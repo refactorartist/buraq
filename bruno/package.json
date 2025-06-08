@@ -2,24 +2,14 @@
   "name": "bruno",
   "version": "1.0.0",
   "description": "",
-<<<<<<< HEAD
-=======
   "license": "ISC",
   "author": "",
   "type": "commonjs",
->>>>>>> 36e8043872c20e76891fc4517dc1eaae827561c8
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-<<<<<<< HEAD
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "@faker-js/faker": "^9.8.0",
-=======
   "devDependencies": {
     "@eslint/js": "^9.28.0",
     "@faker-js/faker": "^9.8.0",
@@ -27,7 +17,6 @@
   },
   
   "dependencies": {
->>>>>>> 36e8043872c20e76891fc4517dc1eaae827561c8
     "axios": "^1.9.0"
   }
 }
